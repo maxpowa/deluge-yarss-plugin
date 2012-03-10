@@ -22,9 +22,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with deluge.    If not, write to:
-# 	The Free Software Foundation, Inc.,
-# 	51 Franklin Street, Fifth Floor
-# 	Boston, MA  02110-1301, USA.
+#       The Free Software Foundation, Inc.,
+#       51 Franklin Street, Fifth Floor
+#       Boston, MA  02110-1301, USA.
 #
 #    In addition, as a special exception, the copyright holders give
 #    permission to link the code of portions of this program with the OpenSSL
@@ -48,31 +48,29 @@ from twisted.internet.task import LoopingCall
 import urllib
 import datetime
 
-
-
 DEFAULT_PREFS = {
-    "updatetime":1800,
+    "updatetime": 120,
     "abos":{}
 }
 
 class Core(CorePluginBase):
+
     def enable(self):
         self.config = deluge.configmanager.ConfigManager("yarss.conf", DEFAULT_PREFS)
+        self.verify_and_update_config_format()
         self.update_status_timer = LoopingCall(self.update_handler)
-        #self.update_handler()
-        self.update_status_timer.start(self.config['updatetime'])
-
+        self.update_status_timer.start(self.config['updatetime'] * 60) # Multiply to get seconds
         
     def disable(self):
         self.update_status_timer.stop()
-	self.config.save();
+        self.config.save();
 
     def update(self):
         pass
 
     @export
     def set_config(self, config):
-        "sets the config dictionary"
+        """sets the config dictionary"""
         for key in config.keys():
             self.config[key] = config[key]
         self.config.save()
@@ -82,117 +80,178 @@ class Core(CorePluginBase):
         "returns the config dictionary"
         return self.config.config
 
-    def load_torrent(self, filename):
-        try:
-            log.debug("Attempting to open %s for add.", filename)
-            _file = open(filename, "rb")
-            filedump = _file.read()
-            if not filedump:
-                raise RuntimeError, "Torrent is 0 bytes!"
-            _file.close()
-        except IOError, e:
-            log.warning("Unable to open %s: %s", filename, e)
-            raise e
+    def add_torrent(self, url, feed_config):
+        import os
+        basename = os.path.basename(url)
 
-        # Get the info to see if any exceptions are raised
-        info = lt.torrent_info(lt.bdecode(filedump))
+        def download_torrent_file(url):
+            import urllib
+            webFile = urllib.urlopen(url)
+            filedump = webFile.read()
+            # Get the info to see if any exceptions are raised
+            #info = lt.torrent_info(lt.bdecode(filedump))
+            return filedump
 
-        return filedump
-
-    def add_torrent(self,url):
-        log.debug("add torrent: %s", url)
-        import tempfile
-        import os.path
-        tmp_file = os.path.join(tempfile.gettempdir(), url.split("/")[-1])
-
-	def on_part(data, current_length, total_length):
-            if total_length:
-                percent = float(current_length) / float(total_length)
-            else:
-                pass
-
-        def on_download_success(result):
-            log.debug("Download success!")
-            opts={}
-            filedump = self.load_torrent(tmp_file)
-	    torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=tmp_file, options=opts)
-
-        def on_download_fail(result):
-            log.debug("Download failed: %s", result)
-            
-
-        import deluge.httpdownloader
-        d = deluge.httpdownloader.download_file(url, tmp_file, on_part)
-        d.addCallback(on_download_success)
-        d.addErrback(on_download_fail)
+        filedump = download_torrent_file(url)
+        options={}
+        
+        if len(feed_config["move_completed"].strip()) > 0:
+            options["move_completed"] = True
+            options["move_completed_path"] = feed_config["move_completed"].strip()
+        torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=basename, options=options)
 
     @export
-    def add_eztv_abo(self,show,quality,name=None):
-#    "format of config name = (distri,url,regex,show,quality,active,search())"
-	url = "http://ezrss.it/search/index.php?show_name=%s&date=&quality=%s&quality_exact=true&release_group=&mode=rss" % (urllib.quote_plus(show), urllib.quote_plus(quality))
-	log.debug("Url: %s added",url)
+    def add_eztv_abo(self, show, quality, name=None):
+        url = "http://ezrss.it/search/index.php?show_name=%s&quality=%s&quality_exact=true&mode=simple&mode=rss" % (urllib.quote_plus(show), urllib.quote_plus(quality))
+        log.info("YARSS: Url: %s added", url)
         if name is None:
             name = show
-        date = datetime.datetime(datetime.MINYEAR,1,1,0,0,0,0).isoformat()
-        self.config["abos"][name] = ("EZTV",url,"",show,quality,True,True,date)
-	self.config.save()
+        date = datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0).isoformat()
+        new_config = self.new_feed_config(site="EZTV", url=url, regex=show, name=name, quality=quality, date=date)
+        self.config["abos"][new_config["key"]] = new_config
+        self.config.save()
+        return self.config.config
+    
     @export
-    def add_feed(self,url,regex,name):
-#    "format of config name = (distri,url,regex,show,quality,active,search())"
-        date = datetime.datetime(datetime.MINYEAR,1,1,0,0,0,0).isoformat()
-        self.config["abos"][name] = ("Custom",url,regex,"","",True,True,date)
-	self.config.save()
+    def add_feed(self, url, regex, name, move_completed):
+        #"format of config name = (distri,url,regex,show,quality,active,search())"
+        log.info("YARSS: Url: %s added", url)
+        date = datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0).isoformat()
+        new_config = self.new_feed_config(name=name, url=url, regex=regex, date=date, 
+                                          move_completed=move_completed)
+        self.save_feed_config(new_config)
+        return self.config.config
+
     @export
-    def remove_feed(self,name):
-        del self.config["abos"][name]
+    def save_feed(self, feed_config):
+        self.save_feed_config(feed_config)
+        return self.config.config
+
+    def save_feed_config(self, feed_config):
+        from urlparse import urlparse
+        feed_config["site"] = urlparse(feed_config["url"]).netloc
+        self.config["abos"][feed_config["key"]] = feed_config
+        self.config.save()
+        return self.config.config
+
+    @export
+    def remove_feed(self, key):
+        del self.config["abos"][key]
+        self.config.save()
+        return self.config.config
 
     @export
     def refresh(self,updatetime = 0):
-        #self.update_handler()
+        """Not Used?"""
         self.update_status_timer.stop()
-	if updatetime == 0:
+        if updatetime == 0:
             self.update_status_timer.start(self.config['updatetime'])
         else:
             self.update_status_timer.start(updatetime)
     @export
-    def disable_feed(self,name):
-        log.debug("disable_feed: %s", name)
-        (dist,url,regex,show,quality,active,search,date) = self.config["abos"][name]
-        self.config["abos"][name] = (dist,url,regex,show,quality,False,search,date)
+    def disable_feed(self, key):
+        if self.config["abos"].has_key(key):
+            log.info("YARSS: Disable_feed: %s", self.config["abos"][key]["name"])
+            self.config["abos"][key]["active"] = False
+            self.config.save()
+
     @export 
-    def enable_feed(self,name):
-        log.debug("enable_feed: %s", name)
-        (dist,url,regex,show,quality,active,search,date) = self.config["abos"][name]
-        self.config["abos"][name] = (dist,url,regex,show,quality,True,search,date)
+    def enable_feed(self, key):
+        if self.config["abos"].has_key(key):
+            log.info("YARSS: Enable_feed: %s", self.config["abos"][key]["name"])
+            self.config["abos"][key]["active"] = True
+            self.config.save()
 
     @export
-    def edit_feed(self,name,feed):
-        self.config["abos"][name] = feed
+    def run_feed_test(self):
+        """Runs the update handler"""
+        log.info("YARSS: Running feed test")
+        self.update_handler()
 
     def update_handler(self):
-        log.debug("update handler executed")
+        """Goes through all the feeds and runs the active ones."""
+        log.info("YARSS: Update handler executed")
+        self.rss_cache = {}
         for key in self.config["abos"].keys():
-            (dist,url,regex,show,quality,active,search,date) = self.config["abos"][key]
-            if active == True:
-                self.fetch_feed(url,regex,search,date,key)
+            config = self.config["abos"][key]
+            if config["active"] == True:
+                self.fetch_feed(config)
+        self.rss_cache = {}
 
-    def fetch_feed(self,url,regex,search,date,name):
-        log.debug('fetch_feed function')
-        d = feedparser.parse(url)
-        p = re.compile(regex)
-	newdate = datetime.datetime.strptime(date,"%Y-%m-%dT%H:%M:%S")
+    def fetch_feed(self, feed_config):
+        """Search a feed with config 'feed_config'"""
+        log.info("YARSS: Fetch feed:" + feed_config["name"])
+        if self.rss_cache.has_key(feed_config["url"]):
+            d = self.rss_cache[feed_config["url"]]
+        else:
+            d = feedparser.parse(feed_config["url"])
+            self.rss_cache[feed_config["url"]] = d
+        p = re.compile(feed_config["regex"])
+        try:
+            newdate = datetime.datetime.strptime(feed_config["date"], "%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            newdate = datetime.datetime(datetime.MINYEAR,1,1,0,0,0,0)
         tmpdate = newdate
+
+        # Go through each feed item
         for i in d['items']:
-            if search == True:
-                m = p.search(i['title'])
+            search_string = i['title']
+            log.info("YARSS: Searching feed string:" + search_string)
+
+            if feed_config["search"] == True:
+                m = p.search(search_string)
             else:
-                m = p.match(i['title'])
-            if m and newdate < datetime.datetime(*i.date_parsed[:6]):
-                print i['link']
-                self.add_torrent(i['link'])
+                m = p.match(search_string)
+            if m:
+                if newdate < datetime.datetime(*i.date_parsed[:6]):
+                    log.info("YARSS: Adding torrent:" + str( i['link']))
+                    self.add_torrent(i['link'], feed_config)
+                else:
+                    log.info("YARSS: Not adding, old timestamp:" + str(search_string))
         for i in d['items']:
             dt = datetime.datetime(*i.date_parsed[:6])
             if tmpdate < dt:
                 tmpdate = dt
-        (dist,url,regex,show,quality,active,search,date) = self.config["abos"][name]
-        self.config["abos"][name] = (dist,url,regex,show,quality,active,search,tmpdate.isoformat())
+        feed_config["date"] = tmpdate.isoformat()
+
+    def verify_and_update_config_format(self):
+        """Converts the loaded config if it is old"""
+        # Contains no feeds
+        if len(self.config['abos']) == 0:
+            return
+        for key in self.config['abos'].keys():
+            if type(self.config['abos'][key]) == dict:
+                return            
+            # Old version 0.1 config list format
+            conf = self.config['abos'][key]
+            # Delete config with name as key
+            del self.config['abos'][key]
+            # format of old config is a list with the values: (distri, url, regex, show, quality, active, search, date)
+            log.info("YARSS: Convert old yarss (v0.1) config:" + str(conf))
+            new_config = self.new_feed_config(url=conf[1], regex=conf[2], name=key, 
+                                              quality=conf[4], active=conf[5],
+                                              search=conf[6], date=conf[7])
+            log.info("YARSS: Saved as:" + str(new_config))
+            self.save_feed_config(new_config)
+
+    def new_feed_config(self, name="", site="", url="", regex="", quality="", active=True, 
+                        search=True, date=None, move_completed=""):
+        """Create a new config (dictionary) for a feed"""
+        if date == None:
+            date = datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0).isoformat()
+        # Find a new key
+        key = 1
+        while (self.config["abos"].has_key(str(key))):
+            key += 1
+        config_dict = {}
+        config_dict["key"] = str(key)
+        config_dict["site"] = site
+        config_dict["url"] = url
+        config_dict["regex"] = regex
+        config_dict["name"] = name
+        config_dict["quality"] = quality
+        config_dict["active"] = active
+        config_dict["search"] = search
+        config_dict["date"] = date
+        config_dict["move_completed"] = move_completed
+        return config_dict

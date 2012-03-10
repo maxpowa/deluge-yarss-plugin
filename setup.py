@@ -42,11 +42,13 @@ from setuptools import setup
 __plugin_name__ = "yarss"
 __author__ = "Camillo Dell'mour"
 __author_email__ = "cdellmour@gmail.com"
-__version__ = "0.1"
+__version__ = "0.2"
 __url__ = ""
 __license__ = "GPLv3"
-__description__ = ""
-__long_description__ = """"""
+__description__ = "Yet Another RSS"
+__long_description__ = """Yet Another RSS, a simple RSS plugin for Deluge. 
+Updated by Bro on 2012-03-10, tested with Deluge 1.3.3.
+"""
 __pkg_data__ = {__plugin_name__.lower(): ["template/*", "data/*"]}
 
 setup(

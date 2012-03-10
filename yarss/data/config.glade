@@ -1,17 +1,20 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.6 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window2">
+    <property name="can_focus">False</property>
     <child>
       <widget class="GtkTable" id="prefs_box2">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="n_rows">3</property>
         <property name="n_columns">2</property>
         <property name="column_spacing">1</property>
         <child>
           <widget class="GtkVBox" id="vbox_abos">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <child>
               <placeholder/>
             </child>
@@ -23,15 +26,16 @@
         <child>
           <widget class="GtkVButtonBox" id="vbuttonbox1">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="layout_style">start</property>
             <child>
-              <widget class="GtkButton" id="button_add">
-                <property name="label">gtk-add</property>
+              <widget class="GtkButton" id="button_add_feed">
+                <property name="label" translatable="yes">Add Feed</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_add_clicked"/>
+                <property name="use_action_appearance">False</property>
+                <signal name="clicked" handler="on_button_add_feed_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -40,12 +44,14 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkButton" id="button_add_feed">
-                <property name="label" translatable="yes">Add Custom Feed</property>
+              <widget class="GtkButton" id="button_add_eztv">
+                <property name="label">Add EXTV feed</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_button_add_feed_clicked"/>
+                <property name="use_action_appearance">False</property>
+                <property name="image_position">top</property>
+                <signal name="clicked" handler="on_button_add_eztv_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -60,6 +66,7 @@
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_edit_clicked"/>
               </widget>
@@ -76,6 +83,7 @@
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_delete_clicked"/>
               </widget>
@@ -83,6 +91,21 @@
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkButton" id="button_test">
+                <property name="label" translatable="yes">Test feeds</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+                <signal name="clicked" handler="on_button_test_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </widget>
@@ -96,7 +119,8 @@
         <child>
           <widget class="GtkLabel" id="label_updatetime">
             <property name="visible">True</property>
-            <property name="label" translatable="yes">Update TIme (sec):</property>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Update TIme (min):</property>
           </widget>
           <packing>
             <property name="top_attach">2</property>
@@ -109,8 +133,12 @@
           <widget class="GtkSpinButton" id="spinbutton_updatetime">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="invisible_char">&#x25CF;</property>
-            <property name="adjustment">120 1 3600 1 10 10</property>
+            <property name="invisible_char">●</property>
+            <property name="primary_icon_activatable">False</property>
+            <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
+            <property name="adjustment">120 15 10000 1 10 0</property>
           </widget>
           <packing>
             <property name="left_attach">1</property>
