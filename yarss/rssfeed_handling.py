@@ -45,14 +45,18 @@ from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 import deluge.common
 
-import feedparser
+from lib import feedparser
 import datetime
 import re
+import urllib
 
 
 def get_cookie_header(cookies, url):
     matching_cookies = []
-    for key in cookies_dict.keys():
+    if not cookies:
+        return {}
+
+    for key in cookies.keys():
         if not cookies[key]["active"]:
             continue
         # Test url match
@@ -61,8 +65,8 @@ def get_cookie_header(cookies, url):
                 matching_cookies.append((key,value))
 
     if len(matching_cookies) == 0:
-        return None
-    return {"Cookie": encoded_values = encode_cookie_values(matching_cookies)}
+        return {}
+    return {"Cookie": encode_cookie_values(matching_cookies)}
 
 def encode_cookie_values(values):
     """Takes a list of tuples containing key/value for a Cookie, 
@@ -78,9 +82,11 @@ def get_rssfeed_parsed_dict(rssfeed_config, cookies_dict):
 
     header = get_cookie_header(cookies_dict, rssfeed_config["site"])
 
-    parsed_feeds = feedparser.parse(self.rssfeed_config["url"])
-    #parsed_feeds = feedparser.parse("/home/bro/test/RssServlet?digest=865ee613af273d32c5117080f13dc01f95bac1c0&hash=c3182bfdc067db100b3b518637be67439602de28")
-
+    parsed_feeds = feedparser.parse(rssfeed_config["url"], header)
+    print "name", rssfeed_config["name"]
+    print "header", header
+    log.info("YARSS: Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_config["name"], header))
+    
     key = 0
     for item in parsed_feeds['items']:
         updated = item['updated_parsed']
@@ -154,14 +160,14 @@ def fetch_subscription_torrents(config, rssfeed_key):
     for key in config["subscriptions"].keys():
         subscription_data = config["subscriptions"][key]
         if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] == True:
-            rss_cache = rssfeed_handling.fetch_subscription(subscription_data, rssfeed_data, 
-                                                            config["cookies"], rss_cache)
+            rss_cache = fetch_subscription(subscription_data, rssfeed_data, 
+                                           rss_cache, config["cookies"])
 
-def fetch_subscription(self, subscription_data, rssfeed_data, rss_cache, cookies):
+def fetch_subscription(subscription_data, rssfeed_data, rssfeed_parsed, cookies):
     """Search a feed with config 'subscription_data'"""
     log.info("YARSS: Fetching subscription '%s'." % subscription_data["name"])
-    if rss_cache == None:
-        result_dict = get_rssfeed_parsed_dict(rssfeed_data, cookies)
+    if rssfeed_parsed == None:
+        rssfeed_parsed = get_rssfeed_parsed_dict(rssfeed_data, cookies)
     matches = update_rssfeeds_dict_matching(rssfeed_parsed, options=subscription_data)
 
     try:
@@ -174,9 +180,29 @@ def fetch_subscription(self, subscription_data, rssfeed_data, rss_cache, cookies
     for key in matches.keys():
         if newdate < matches[key]["updated_datetime"]:
             log.info("YARSS: Adding torrent:" + str(matches[key]["link"]))
-            self.add_torrent(matches[key]["link"], subscription_data)
+            add_torrent(matches[key]["link"], subscription_data)
             subscription_data["date"] = matches[key]["updated_datetime"].isoformat()
         else:
             log.info("YARSS: Not adding, old timestamp:" + str(search_string))
 
-    return rss_cache
+    return rssfeed_parsed
+
+def add_torrent(self, torrent_url, feed_config):
+    import os
+    basename = os.path.basename(torrent_url)
+
+    def download_torrent_file(torrent_url):
+        import urllib
+        webFile = urllib.urlopen(torrent_url)
+        filedump = webFile.read()
+        # Get the info to see if any exceptions are raised
+        #info = lt.torrent_info(lt.bdecode(filedump))
+        return filedump
+
+    filedump = download_torrent_file(torrent_url)
+    options={}
+    
+    if len(feed_config["move_completed"].strip()) > 0:
+        options["move_completed"] = True
+        options["move_completed_path"] = feed_config["move_completed"].strip()
+    torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=basename, options=options)

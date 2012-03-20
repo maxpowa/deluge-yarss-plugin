@@ -49,9 +49,6 @@ from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 import deluge.common
 
-from yarss import feedparser
-import datetime
-
 from yarss import common
 
 class DialogCookie():

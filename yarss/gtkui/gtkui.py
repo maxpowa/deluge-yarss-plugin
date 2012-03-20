@@ -56,7 +56,7 @@ from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
 
 from yarss.common import get_resource
-from yarss.common import encode_cookie_values
+from yarss.rssfeed_handling import encode_cookie_values
 
 from yarss import yarss_config
 #import core
@@ -131,7 +131,7 @@ class GtkUI(GtkPluginBase):
 
     def save_subscription(self, subscription_data, subscription_key=None, delete=False):
         """Called by the RSSFeed Dialog"""
-        self.selected_path_rssfeeds = self.get_selection_path(self.rssfeeds_treeview)
+        self.selected_path_subscriptions = self.get_selection_path(self.subscriptions_treeview)
         client.yarss.save_subscription(dict_key=subscription_key, subscription_data=subscription_data, 
                                        delete=delete).addCallback(self.cb_get_config)
 
@@ -509,7 +509,11 @@ class GtkUI(GtkPluginBase):
 
     def on_button_add_subscription_clicked(self,Event=None, a=None, col=None):
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(self, fresh_subscription_config, self.rssfeeds, self.get_move_completed_list(), self.email_messages)
+        subscription_dialog = DialogSubscription(self, fresh_subscription_config, 
+                                                 self.rssfeeds, 
+                                                 self.get_move_completed_list(), 
+                                                 self.email_messages,
+                                                 self.cookies)
         subscription_dialog.show()
 
     def get_move_completed_list(self):
@@ -522,8 +526,8 @@ class GtkUI(GtkPluginBase):
 
     def on_button_delete_subscription_clicked(self,Event=None, a=None, col=None):
         tree, tree_id = self.subscriptions_treeview.get_selection().get_selected()
-        key = name = str(self.subscriptions_store.get_value(tree_id, 0))
-        if key:
+        if tree_id:
+            key = str(self.subscriptions_store.get_value(tree_id, 0))
             self.save_subscription(None, subscription_key=key, delete=True)
 
     def on_button_test_clicked(self, Event=None, a=None, col=None):
@@ -537,7 +541,12 @@ class GtkUI(GtkPluginBase):
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
                 self.save_subscriptions(self.subscriptions[key])
             else:
-                edit_subscription_dialog = DialogSubscription(self, self.subscriptions[key], self.rssfeeds, self.get_move_completed_list(), self.email_messages)
+                edit_subscription_dialog = DialogSubscription(self, 
+                                                              self.subscriptions[key], 
+                                                              self.rssfeeds, 
+                                                              self.get_move_completed_list(), 
+                                                              self.email_messages,
+                                                              self.cookies)
                 edit_subscription_dialog.show()
 
     def on_subscription_listitem_activated(self, treeview):
@@ -561,8 +570,8 @@ class GtkUI(GtkPluginBase):
 
     def on_button_delete_rssfeed_clicked(self,Event=None, a=None, col=None):
         tree, tree_id = self.rssfeeds_treeview.get_selection().get_selected()
-        key = name = str(self.rssfeeds_store.get_value(tree_id, 0))
-        if key:
+        if tree_id:
+            key = name = str(self.rssfeeds_store.get_value(tree_id, 0))
             self.save_rssfeed(None, rssfeed_key=key, delete=True)
             
     def on_button_edit_rssfeed_clicked(self, Event=None, a=None, col=None):
@@ -610,28 +619,15 @@ class GtkUI(GtkPluginBase):
 
     def on_button_delete_message_clicked(self, button):
         tree_sel = self.email_messages_treeview.get_selection()
-
         #TreeModel, treeIter
         (tm, ti) = tree_sel.get_selected()
         # No selection
         if not ti:
             return
-
         # Get the message dictionary key
         dict_key = tm.get_value(ti, 0)
-
-        model, tree_paths = tree_sel.get_selected_rows()
-        #tree_sel.select_path(tree_paths[0])
-
-        print "tree_paths:", tree_paths
-        print "tree_paths[0]:", tree_paths[0]
-
-        self.selected_path = tree_paths[0]
-
         # Delete from core config
         self.save_email_message(None, email_message_key=dict_key, delete=True)
-
-
 
     def on_checkbox_email_authentication_toggled(self, button):
         auth_enable = self.glade.get_widget("checkbox_email_enable_authentication")

@@ -49,7 +49,6 @@ import deluge.component as component
 import deluge.common
 
 from yarss.common import get_resource
-from yarss import feedparser
 
 class DialogRSSFeed():
     def __init__(self, gtkUI, rssfeed):
@@ -82,7 +81,7 @@ class DialogRSSFeed():
 
         self.rssfeed["name"] = name
         self.rssfeed["url"] = url
-        self.rssfeed["update_interval"] = update_interval
+        self.rssfeed["update_interval"] = int(update_interval)
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 

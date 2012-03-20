@@ -42,11 +42,8 @@ from deluge.plugins.pluginbase import CorePluginBase
 import deluge.component as component
 import deluge.configmanager
 from deluge.core.rpcserver import export
-import feedparser
 import re
 from twisted.internet.task import LoopingCall
-import urllib
-import datetime
 
 import rssfeed_handling
 
@@ -77,7 +74,7 @@ class Core(CorePluginBase):
         for key in self.config["rssfeeds"]:
             timer = LoopingCall(self.rssfeed_update_handler, (self.config["rssfeeds"][key]["key"]))
             self.rssfeed_timers[key] = timer
-            timer.start(self.config["rssfeeds"][key]['update_interval'] * 60) # Multiply to get seconds
+            timer.start(self.config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
             log.info("YARSS: Starting timer for RSS Feed '%s' with interval %d minutes." % 
                      (self.config["rssfeeds"][key]['name'],
                       self.config["rssfeeds"][key]['update_interval']))
@@ -95,26 +92,6 @@ class Core(CorePluginBase):
     def get_config(self):
         "returns the config dictionary"
         return self.yarss_config.get_config()
-
-    def add_torrent(self, torrent_url, feed_config):
-        import os
-        basename = os.path.basename(torrent_url)
-
-        def download_torrent_file(torrent_url):
-            import urllib
-            webFile = urllib.urlopen(torrent_url)
-            filedump = webFile.read()
-            # Get the info to see if any exceptions are raised
-            #info = lt.torrent_info(lt.bdecode(filedump))
-            return filedump
-
-        filedump = download_torrent_file(torrent_url)
-        options={}
-        
-        if len(feed_config["move_completed"].strip()) > 0:
-            options["move_completed"] = True
-            options["move_completed_path"] = feed_config["move_completed"].strip()
-        torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=basename, options=options)
 
     @export
     def refresh(self,updatetime = 0):

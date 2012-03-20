@@ -49,14 +49,14 @@ import deluge.component as component
 import deluge.common
 
 from yarss.common import get_resource
-from yarss import feedparser
+from yarss.lib import feedparser
 from yarss import rssfeed_handling
 
 from CellrendererPango import CustomAttribute, CellrendererPango
 
 class DialogSubscription():
 
-    def __init__(self, gtkUI, subscription_data, rssfeeds, move_completed_list, email_messages):
+    def __init__(self, gtkUI, subscription_data, rssfeeds, move_completed_list, email_messages, cookies):
         self.gtkUI = gtkUI
         self.rssfeeds = rssfeeds
         self.move_completed_list = move_completed_list
@@ -65,6 +65,7 @@ class DialogSubscription():
         self.icon_matching = gtk.gdk.pixbuf_new_from_file(get_resource("match.png"))
         self.icon_nonmatching = gtk.gdk.pixbuf_new_from_file(get_resource("no_match.png"))
         self.subscription_data = subscription_data
+        self.cookies = cookies
 
     def show(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
@@ -100,8 +101,8 @@ class DialogSubscription():
             self.glade.get_widget("txt_regex_include").set_text(self.subscription_data["regex_include"])
             self.glade.get_widget("txt_regex_exclude").set_text(self.subscription_data["regex_exclude"])
 
-            self.glade.get_widget("regex_include_case").set_active(not self.subscription_data["regex_include_ingorecase"])
-            self.glade.get_widget("regex_exclude_case").set_active(not self.subscription_data["regex_exclude_ingorecase"])
+            self.glade.get_widget("regex_include_case").set_active(not self.subscription_data["regex_include_ignorecase"])
+            self.glade.get_widget("regex_exclude_case").set_active(not self.subscription_data["regex_exclude_ignorecase"])
             #self.glade.get_widget("combobox_move_completed").set_active_text(self.subscription_data["move_completed"])
             
 

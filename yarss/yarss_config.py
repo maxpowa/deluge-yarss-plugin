@@ -49,9 +49,6 @@ from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 import deluge.common
 
-from yarss import feedparser
-import datetime
-
 from common import *
 
 DEFAULT_UPDATE_INTERVAL = 120
@@ -212,9 +209,9 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     #config_dict["key"] = self.get_new_config_key(self.config["subscriptions"])
     config_dict["rssfeed_key"] = rssfeed_key
     config_dict["regex_include"] = regex_include
-    config_dict["regex_include_ingorecase"] = True
+    config_dict["regex_include_ignorecase"] = True
     config_dict["regex_exclude"] = regex_exclude
-    config_dict["regex_exclude_ingorecase"] = True
+    config_dict["regex_exclude_ignorecase"] = True
     config_dict["name"] = name
     config_dict["active"] = active
     config_dict["search"] = search
