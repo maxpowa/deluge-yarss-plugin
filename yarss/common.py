@@ -37,6 +37,11 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
+import datetime
+import pkg_resources, os
+
 def get_resource(filename):
-    import pkg_resources, os
     return pkg_resources.resource_filename("yarss", os.path.join("data", filename))
+
+def get_default_date():
+    return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0).isoformat()
