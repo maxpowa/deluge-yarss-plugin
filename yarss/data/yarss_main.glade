@@ -70,6 +70,21 @@
                         <property name="position">2</property>
                       </packing>
                     </child>
+                    <child>
+                      <widget class="GtkButton" id="button_test_subscription">
+                        <property name="label" translatable="yes">Test subscription</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
+                        <signal name="clicked" handler="on_button_test_subscription_clicked" swapped="no"/>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
@@ -89,7 +104,7 @@
               <widget class="GtkScrolledWindow" id="subscriptions_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hadjustment">0 0 719 71.900000000000006 647.10000000000002 719</property>
+                <property name="hadjustment">0 0 768 76.800000000000011 691.20000000000005 768</property>
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>

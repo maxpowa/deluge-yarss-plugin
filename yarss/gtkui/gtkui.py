@@ -59,7 +59,6 @@ from yarss.common import get_resource
 from yarss.rssfeed_handling import encode_cookie_values
 
 from yarss import yarss_config
-#import core
 
 class GtkUI(GtkPluginBase):
 
@@ -93,7 +92,8 @@ class GtkUI(GtkPluginBase):
                 
                 "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
                 "on_checkbutton_send_email_on_torrent_events_toggled": 
-                self.on_checkbutton_send_email_on_torrent_events_toggled
+                self.on_checkbutton_send_email_on_torrent_events_toggled,
+                "on_button_test_subscription_clicked": self.on_button_test_subscription_clicked
                 })
         
         component.get("Preferences").add_page("YARSS", self.glade.get_widget("notebook_main"))
@@ -110,8 +110,8 @@ class GtkUI(GtkPluginBase):
         # key, enabled, name, site, download_location
         self.subscriptions_store = gtk.ListStore(str, bool, str, str, str, str)
 
-        # key, active, name, site, Update interval, Last update
-        self.rssfeeds_store = gtk.ListStore(str, bool, str, str, str, str, str)
+        # key, active, name, site, Update interval, Last update, subscripions, URL
+        self.rssfeeds_store = gtk.ListStore(str, bool, str, str, str, str, str, str)
 
         # key, active, site, value
         self.cookies_store = gtk.ListStore(str, bool, str, str)
@@ -124,6 +124,14 @@ class GtkUI(GtkPluginBase):
         self.create_cookies_pane()
         self.create_email_messages_pane()
 
+        self.load_config_data()
+
+    def on_button_test_subscription_clicked(self, button):
+        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        self.subscriptions[key]["last_update"] = ""
+        self.save_subscription(self.subscriptions[key])
+        if key:
+            client.yarss.rssfeed_update_handler(None, subscription_key=key)
 
 ##############################
 # Save data and delete data from core
@@ -143,8 +151,6 @@ class GtkUI(GtkPluginBase):
 
     def save_email_message(self, message_data, email_message_key=None, delete=False):
         self.selected_path_email_message = self.get_selection_path(self.email_messages_treeview)
-        print "delete:", message_data
-        print "delete:", email_message_key
         client.yarss.save_email_message(dict_key=email_message_key, message_data=message_data, 
                                         delete=delete).addCallback(self.cb_get_config)
 
@@ -160,6 +166,7 @@ class GtkUI(GtkPluginBase):
         
     def on_apply_prefs(self):
         """Called when the 'Apply' button is pressed"""
+        print "Apply prefs"
         self.save_configuration_data()
 
     def on_checkbutton_send_email_on_torrent_events_toggled(self, button):
@@ -167,6 +174,7 @@ class GtkUI(GtkPluginBase):
         self.save_configuration_data()
 
     def save_configuration_data(self):
+        print "Saving config data:"
         # Save:
         # Settings -> Email Notifications -> Enable/Disable email notifcations
         # Settings -> Email configuration -> all fields
@@ -188,7 +196,7 @@ class GtkUI(GtkPluginBase):
         email_configurations["smtp_authentication"] = enable_auth
         email_configurations["smtp_username"] = smtp_username
         email_configurations["smtp_password"] = smtp_password
-
+        print "Saving config:", email_configurations
         conf = {"email_configurations": email_configurations}
         client.yarss.set_config(conf)
 
@@ -238,7 +246,7 @@ class GtkUI(GtkPluginBase):
         smtp_password = self.glade.get_widget("txt_email_password")
         enable_auth = self.glade.get_widget("checkbox_email_enable_authentication")
         
-        send_email.set_active(self.email_config["send_email_on_torrent_events"])
+        
         from_addr.set_text(self.email_config["from_address"])
         smtp_server.set_text(self.email_config["smtp_server"])
         smtp_port.set_text(self.email_config["smtp_port"])
@@ -246,6 +254,10 @@ class GtkUI(GtkPluginBase):
         enable_auth.set_active(self.email_config["smtp_authentication"])
         smtp_username.set_text(self.email_config["smtp_username"])
         smtp_password.set_text(self.email_config["smtp_password"])
+
+        # Must be last, since it will cause callback on 
+        # method on_checkbutton_send_email_on_torrent_events_toggled
+        send_email.set_active(self.email_config["send_email_on_torrent_events"])
 
     def update_subscription_list(self, subscriptions_store):
         subscriptions_store.clear()
@@ -271,7 +283,9 @@ class GtkUI(GtkPluginBase):
                                    self.rssfeeds[key]["name"],
                                    self.rssfeeds[key]["site"],
                                    self.rssfeeds[key]["update_interval"],
-                                   self.rssfeeds[key]["last_update"], active_subs])
+                                   self.rssfeeds[key]["last_update"], 
+                                   active_subs,
+                                   self.rssfeeds[key]["url"]])
 
     def update_cookies_list(self, cookies_store):
         cookies_store.clear()
@@ -417,6 +431,11 @@ class GtkUI(GtkPluginBase):
         column.set_sort_column_id(6)
         treeView.append_column(column)
 
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("URL", rendererText, text=7)
+        column.set_sort_column_id(7)
+        treeView.append_column(column)
+
 #########################
 # Create Messages list
 #########################
@@ -503,6 +522,16 @@ class GtkUI(GtkPluginBase):
 ###  CALLBACK FUNCTIONS from Glade GUI
 ########################################################
 
+    def get_selected_in_treeview(self, treeview, store):
+        """Helper to get the key of the selected element in the given treeview
+        return None of no item is selected
+        """
+        tree, tree_id = treeview.get_selection().get_selected()
+        if tree_id:
+            key = str(store.get_value(tree_id, 0))
+            return key
+        return None
+
 #############################
 # SUBSCRIPTION callbacks
 #############################
@@ -525,17 +554,15 @@ class GtkUI(GtkPluginBase):
         return values
 
     def on_button_delete_subscription_clicked(self,Event=None, a=None, col=None):
-        tree, tree_id = self.subscriptions_treeview.get_selection().get_selected()
-        if tree_id:
-            key = str(self.subscriptions_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        if key:
             self.save_subscription(None, subscription_key=key, delete=True)
 
     def on_button_test_clicked(self, Event=None, a=None, col=None):
         client.yarss.run_feed_test()
 
     def on_button_edit_subscription_clicked(self, Event=None, a=None, col=None):
-        tree, tree_id = self.subscriptions_treeview.get_selection().get_selected()
-        key = str(self.subscriptions_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             if col and col.get_title() == 'Active':
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
@@ -569,14 +596,12 @@ class GtkUI(GtkPluginBase):
         rssfeed_dialog.show()
 
     def on_button_delete_rssfeed_clicked(self,Event=None, a=None, col=None):
-        tree, tree_id = self.rssfeeds_treeview.get_selection().get_selected()
-        if tree_id:
-            key = name = str(self.rssfeeds_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
+        if key:
             self.save_rssfeed(None, rssfeed_key=key, delete=True)
             
     def on_button_edit_rssfeed_clicked(self, Event=None, a=None, col=None):
-        tree, tree_id = self.rssfeeds_treeview.get_selection().get_selected()
-        key = str(self.rssfeeds_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -606,8 +631,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_message_clicked(self, Event=None, a=None, col=None):
-        tree, tree_id = self.email_messages_treeview.get_selection().get_selected()
-        key = str(self.email_messages_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -618,16 +642,10 @@ class GtkUI(GtkPluginBase):
                 edit_message_dialog.show()
 
     def on_button_delete_message_clicked(self, button):
-        tree_sel = self.email_messages_treeview.get_selection()
-        #TreeModel, treeIter
-        (tm, ti) = tree_sel.get_selected()
-        # No selection
-        if not ti:
-            return
-        # Get the message dictionary key
-        dict_key = tm.get_value(ti, 0)
-        # Delete from core config
-        self.save_email_message(None, email_message_key=dict_key, delete=True)
+        key = self.get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        if key:
+            # Delete from core config
+            self.save_email_message(None, email_message_key=key, delete=True)
 
     def on_checkbox_email_authentication_toggled(self, button):
         auth_enable = self.glade.get_widget("checkbox_email_enable_authentication")
@@ -644,8 +662,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_cookie_clicked(self, Event=None, a=None, col=None):
-        tree, tree_id = self.cookies_treeview.get_selection().get_selected()
-        key = str(self.cookies_store.get_value(tree_id, 0))
+        key = self.get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -656,13 +673,7 @@ class GtkUI(GtkPluginBase):
                 dialog_cookie.show()
 
     def on_button_delete_cookie_clicked(self, button):
-        tree_sel = self.cookies_treeview.get_selection()
-        (tm, ti) = tree_sel.get_selected()
-        # No selection
-        if not ti:
-            return
-        # Get the cookie dictionary key
-        cookie_key = tm.get_value(ti, 0)
-        self.save_cookie(None, cookie_key=cookie_key, delete=True)
-        
-
+        key = self.get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
+        if key:
+            # Delete from core config
+            self.save_cookie(None, cookie_key=cookie_key, delete=True)

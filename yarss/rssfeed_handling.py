@@ -45,7 +45,10 @@ from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 import deluge.common
 
+from common import get_default_date
+
 from lib import feedparser
+from email import send_email
 import datetime
 import re
 import urllib
@@ -74,21 +77,27 @@ def encode_cookie_values(values):
     cookie_value = ""
     for key, value in values:
         cookie_value += ("; %s=%s" % (key, value))
-    return cookie_value[1:]
+    return cookie_value[2:]
 
 def get_rssfeed_parsed_dict(rssfeed_config, cookies_dict):
 
+    return_dict = {}
     rssfeeds_dict = {}
-
     header = get_cookie_header(cookies_dict, rssfeed_config["site"])
+    print "header:", str(header)
+    parsed_feeds = feedparser.parse(rssfeed_config["url"], request_headers=header)
 
-    parsed_feeds = feedparser.parse(rssfeed_config["url"], header)
-    print "name", rssfeed_config["name"]
-    print "header", header
     log.info("YARSS: Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_config["name"], header))
-    
+
+    # Error parsing
+    if parsed_feeds["bozo"] == 1:
+        log.warn("YARSS: Exception occured when fetching feed: %s:\nContent:%s " % 
+                 (str(parsed_feeds["bozo_exception"]), str(parsed_feeds)))
+        return_dict["bozo_exception"] = parsed_feeds["bozo_exception"]
+
     key = 0
     for item in parsed_feeds['items']:
+        #print "item:", item
         updated = item['updated_parsed']
         dt = datetime.datetime(* updated[:6])
         rssfeeds_dict[key] = {}
@@ -98,7 +107,10 @@ def get_rssfeed_parsed_dict(rssfeed_config, cookies_dict):
         rssfeeds_dict[key]["updated"] = dt.isoformat()
         rssfeeds_dict[key]["matches"] = False
         key += 1
-    return rssfeeds_dict
+
+    if key > 0:
+        return_dict["items"] = rssfeeds_dict
+    return return_dict
 
 
 def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
@@ -113,20 +125,25 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
     Return: a dictionary of the matching items only.
     """
     matching_items = {}
-    p_include = p_exclude =None
+    p_include = p_exclude = None
 
     if options["regex_include"] != None:
         flags = re.IGNORECASE if options["regex_include_ignorecase"] else 0
         p_include = re.compile(options["regex_include"], flags)
 
-    if options["regex_exclude"] != None:
+    if options["regex_exclude"] != None and options["regex_exclude"] != "":
         flags = re.IGNORECASE if options["regex_exclude_ignorecase"] else 0
         p_exclude = re.compile(options["regex_exclude"], flags)
     
     for key in rssfeed_parsed.keys():
         item = rssfeed_parsed[key]
         title = item["title"]
-        
+
+        if item.has_key("regex_exclude_match"):
+            del item["regex_exclude_match"]
+        if item.has_key("regex_include_match"):
+            del item["regex_include_match"]
+             
         if p_include:
             m = p_include.search(title)
             if m:
@@ -134,60 +151,77 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
                 item["regex_include_match"] = m.span()
             else:
                 item["matches"] = False
-                if item.has_key("regex_include_match"):
-                    del item["regex_include_match"]
         if p_exclude:
             m = p_exclude.search(title)
             if m:
                 item["matches"] = False
                 item["regex_exclude_match"] = m.span()
-            else:
-                if item.has_key("regex_exclude_match"):
-                    del item["regex_exclude_match"]
-
         if item["matches"]:
             matching_items[key] = rssfeed_parsed[key]
 
     return matching_items
     
 
-def fetch_subscription_torrents(config, rssfeed_key):
+def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
     
+    if rssfeed_key == None:
+        if subscription_key == None:
+            log.warn("rssfeed_key and subscription_key cannot both be None")
+            return
+        rssfeed_key = config["subscriptions"][subscription_key]["rssfeed_key"]
+
     rssfeed_data = config["rssfeeds"][rssfeed_key]
     log.info("YARSS: Update handler executed on RSS Feed %s (%s) upate interval %d." % 
              (rssfeed_data["name"], rssfeed_data["site"], rssfeed_data["update_interval"]))
     rss_cache = None
     for key in config["subscriptions"].keys():
+        if subscription_key and subscription_key != key:
+            continue
         subscription_data = config["subscriptions"][key]
         if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] == True:
             rss_cache = fetch_subscription(subscription_data, rssfeed_data, 
-                                           rss_cache, config["cookies"])
+                                           rss_cache, config)
 
-def fetch_subscription(subscription_data, rssfeed_data, rssfeed_parsed, cookies):
+def fetch_subscription(subscription_data, rssfeed_data, rssfeed_parsed, config):
     """Search a feed with config 'subscription_data'"""
     log.info("YARSS: Fetching subscription '%s'." % subscription_data["name"])
+        
     if rssfeed_parsed == None:
-        rssfeed_parsed = get_rssfeed_parsed_dict(rssfeed_data, cookies)
+        rssfeed_parsed = get_rssfeed_parsed_dict(rssfeed_data, config["cookies"])
+        if rssfeed_parsed.has_key("bozo_exception"):
+            print "Exception:", rssfeed_parsed["bozo_exception"]
+        if rssfeed_parsed.has_key("items"):
+            rssfeed_parsed = rssfeed_parsed["items"]
+    
     matches = update_rssfeeds_dict_matching(rssfeed_parsed, options=subscription_data)
 
     try:
-        newdate = datetime.datetime.strptime(subscription_data["date"], "%Y-%m-%dT%H:%M:%S")
+        newdate = datetime.datetime.strptime(subscription_data["last_update"], "%Y-%m-%dT%H:%M:%S")
     except ValueError:
         newdate = get_default_date()
     tmpdate = newdate
+
+    #log.info("Matches: %d" % len(matches.keys()))
 
     # Sort by time?
     for key in matches.keys():
         if newdate < matches[key]["updated_datetime"]:
             log.info("YARSS: Adding torrent:" + str(matches[key]["link"]))
             add_torrent(matches[key]["link"], subscription_data)
-            subscription_data["date"] = matches[key]["updated_datetime"].isoformat()
+            subscription_data["last_update"] = matches[key]["updated_datetime"].isoformat()
+            print "Sending email:"
+            
+            for k in subscription_data["email_notifications"].keys():
+                if subscription_data["email_notifications"][k]["on_torrent_added"]:
+                    message = config["email_messages"][k]
+                    if message["active"]:
+                        send_email(message, config["email_configurations"])
         else:
-            log.info("YARSS: Not adding, old timestamp:" + str(search_string))
+            log.info("YARSS: Not adding, old timestamp:" + str(matches[key]["title"]))
 
     return rssfeed_parsed
 
-def add_torrent(self, torrent_url, feed_config):
+def add_torrent(torrent_url, feed_config):
     import os
     basename = os.path.basename(torrent_url)
 

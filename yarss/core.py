@@ -79,10 +79,13 @@ class Core(CorePluginBase):
                      (self.config["rssfeeds"][key]['name'],
                       self.config["rssfeeds"][key]['update_interval']))
 
-    def rssfeed_update_handler(self, rssfeed_key):
+    @export
+    def rssfeed_update_handler(self, rssfeed_key, subscription_key=None):
         """Goes through all the feeds and runs the active ones.
         Multiple subscriptions on one RSS Feed will download the RSS only once"""
-        rssfeed_handling.fetch_subscription_torrents(self.yarss_config.config, rssfeed_key)
+        print "email_config:", self.yarss_config.config["email_configurations"]
+        rssfeed_handling.fetch_subscription_torrents(self.yarss_config.config, rssfeed_key, 
+                                                     subscription_key=subscription_key)
 
     @export
     def set_config(self, config):
@@ -93,15 +96,15 @@ class Core(CorePluginBase):
         "returns the config dictionary"
         return self.yarss_config.get_config()
 
-    @export
-    def refresh(self,updatetime = 0):
-        """Not Used?"""
-        self.update_status_timer.stop()
-        if updatetime == 0:
-            self.update_status_timer.start(self.config['updatetime'])
-        else:
-            self.update_status_timer.start(updatetime)
-
+#    @export
+#    def refresh(self,updatetime = 0):
+#        """Not Used?"""
+#        self.update_status_timer.stop()
+#        if updatetime == 0:
+#            self.update_status_timer.start(self.config['updatetime'])
+#        else:
+#            self.update_status_timer.start(updatetime)
+#
     @export
     def run_feed_test(self):
         """Runs the update handler"""

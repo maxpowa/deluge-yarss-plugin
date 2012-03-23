@@ -74,6 +74,7 @@ class YARSSConfig(object):
     def __init__(self):
         self.config = deluge.configmanager.ConfigManager("yarss.conf", DEFAULT_PREFS)
         self.verify_config()
+        print "Loaded email config:", self.config["email_configurations"]
 
     def save(self):
         self.config.save()
@@ -86,6 +87,11 @@ class YARSSConfig(object):
         """Replaces the config data in self.config with the available keys in config"""
         for key in config.keys():
             self.config[key] = config[key]
+            print "setting core config:", key
+            if key == "email_configurations":
+                print "Email config::", self.config[key]
+
+        print "Saving to file"
         self.config.save()
 
     def get_new_config_key(self, dictionary):
@@ -100,7 +106,6 @@ class YARSSConfig(object):
         If message_dict is None, delete message with key==dict_key
         config_name must be either of the dictionaries in the main config (See DEFAULT_PREFS):
         """
-        
         if data_dict != None and type(data_dict) != dict:
             raise ValueError("generic_save_config: data_dict must be a dictionary: '%s'" % str(data_dict))
         
@@ -164,7 +169,7 @@ class YARSSConfig(object):
 
     def new_subscription_config(self, name="", rssfeed_key="", regex_include="", regex_exclude="", 
                                 active=True, search=True, move_completed="",
-                                last_update=get_default_date()):
+                                last_update=get_default_date().isoformat()):
         """Create a new config (dictionary) for a feed.
         If rssfeed_key does not correspond to a real key, the config cannot be used to save a real subscription"""
         config_dict = get_fresh_subscription_config(name=name, rssfeed_key=rssfeed_key, regex_include=regex_include, regex_exclude=regex_exclude, 
@@ -203,7 +208,7 @@ def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update=
 
 def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", regex_exclude="", 
                             active=True, search=True, move_completed="",
-                            last_update=get_default_date()):
+                            last_update=get_default_date().isoformat()):
     """Create a new config """
     config_dict = {}
     #config_dict["key"] = self.get_new_config_key(self.config["subscriptions"])

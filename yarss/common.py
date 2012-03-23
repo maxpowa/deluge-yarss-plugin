@@ -44,4 +44,4 @@ def get_resource(filename):
     return pkg_resources.resource_filename("yarss", os.path.join("data", filename))
 
 def get_default_date():
-    return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0).isoformat()
+    return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0)

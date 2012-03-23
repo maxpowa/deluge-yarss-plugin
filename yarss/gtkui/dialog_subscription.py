@@ -85,9 +85,9 @@ class DialogSubscription():
 
         self.load_subscription_data()
         
-        self.dialog = self.glade.get_widget("dialog_add_feed")
+        self.dialog = self.glade.get_widget("window_subscription")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
-        self.dialog.run()
+        self.dialog.show()
 
     def load_subscription_data(self):
         
@@ -192,7 +192,19 @@ class DialogSubscription():
     def on_rssfeed_selected(self, combobox):
         """Gets the results for the RSS Feed"""
         rssfeed_key = self.get_selected_combobox_key(self.glade.get_widget("combobox_rssfeeds")) 
-        self.rssfeeds_dict = rssfeed_handling.get_rssfeed_parsed_dict(self.rssfeeds[rssfeed_key], None)
+        rssfeeds_parsed = rssfeed_handling.get_rssfeed_parsed_dict(self.rssfeeds[rssfeed_key], self.cookies)
+
+        # Error
+        if rssfeeds_parsed.has_key("bozo_exception"):
+            exception = rssfeeds_parsed["bozo_exception"]
+            label_status = self.glade.get_widget("label_status")
+            label_status.set_text(str(exception))
+            
+        if not rssfeeds_parsed.has_key("items"):
+            return
+        
+        self.rssfeeds_dict = rssfeeds_parsed["items"]
+
         self.treeview = self.create_matching_tree()
         self.update_matching_feeds(self.treeview, self.matching_store, 
                                    self.rssfeeds_dict, regex_matching=False)

@@ -82,6 +82,9 @@ class DialogRSSFeed():
         self.rssfeed["name"] = name
         self.rssfeed["url"] = url
         self.rssfeed["update_interval"] = int(update_interval)
+        from urlparse import urlparse
+        self.rssfeed["site"] = urlparse(url).netloc
+        
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 
