@@ -40,16 +40,10 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import gtk
-import gtk.glade 
-
 from deluge.log import LOG as log
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import GtkPluginBase
-import deluge.component as component
-import deluge.common
 
-from common import *
+from common import get_default_date
+import deluge.configmanager
 
 DEFAULT_UPDATE_INTERVAL = 120
 DEFAULT_PREFS = {
@@ -74,7 +68,6 @@ class YARSSConfig(object):
     def __init__(self):
         self.config = deluge.configmanager.ConfigManager("yarss.conf", DEFAULT_PREFS)
         self.verify_config()
-        print "Loaded email config:", self.config["email_configurations"]
 
     def save(self):
         self.config.save()
@@ -87,11 +80,6 @@ class YARSSConfig(object):
         """Replaces the config data in self.config with the available keys in config"""
         for key in config.keys():
             self.config[key] = config[key]
-            print "setting core config:", key
-            if key == "email_configurations":
-                print "Email config::", self.config[key]
-
-        print "Saving to file"
         self.config.save()
 
     def get_new_config_key(self, dictionary):
@@ -106,7 +94,7 @@ class YARSSConfig(object):
         If message_dict is None, delete message with key==dict_key
         config_name must be either of the dictionaries in the main config (See DEFAULT_PREFS):
         """
-        if data_dict != None and type(data_dict) != dict:
+        if data_dict is not None and type(data_dict) != dict:
             raise ValueError("generic_save_config: data_dict must be a dictionary: '%s'" % str(data_dict))
         
         if not DEFAULT_PREFS.has_key(config_name):
@@ -115,8 +103,8 @@ class YARSSConfig(object):
         config = self.config[config_name]
 
         # Means delete
-        if data_dict == None:
-            if dict_key == None:
+        if data_dict is None:
+            if dict_key is None:
                 raise ValueError("generic_save_config: key and value cannot both be None") 
             if not delete:
                 raise ValueError("generic_save_config: deleting item requires 'delete' to be True") 
@@ -157,7 +145,7 @@ class YARSSConfig(object):
         key_diff = None
         for config_key in config.keys():
             item = config[config_key]
-            if key_diff == None:
+            if key_diff is None:
                 key_diff = set(default_config.keys()) - set(item.keys())
                 # No keys missing, so nothing to do
                 if not key_diff:
@@ -222,6 +210,7 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     config_dict["search"] = search
     config_dict["last_update"] = last_update
     config_dict["move_completed"] = move_completed
+    config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {}
     return config_dict
 

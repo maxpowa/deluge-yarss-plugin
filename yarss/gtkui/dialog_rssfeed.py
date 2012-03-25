@@ -41,16 +41,16 @@
 #
 
 import gtk
+from urlparse import urlparse
 
 from deluge.log import LOG as log
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
-import deluge.common
 
 from yarss.common import get_resource
 
+
 class DialogRSSFeed():
+
     def __init__(self, gtkUI, rssfeed):
         self.gtkUI = gtkUI
         self.rssfeed = rssfeed
@@ -63,7 +63,6 @@ class DialogRSSFeed():
         })
 
         self.populate_data_fields()
-
         self.dialog = self.glade.get_widget("dialog_rssfeed")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.run()
@@ -82,15 +81,13 @@ class DialogRSSFeed():
         self.rssfeed["name"] = name
         self.rssfeed["url"] = url
         self.rssfeed["update_interval"] = int(update_interval)
-        from urlparse import urlparse
         self.rssfeed["site"] = urlparse(url).netloc
         
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 
     def on_info(self):
-        md = gtk.MessageDialog(None,
-                               gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
+        md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
                                gtk.BUTTONS_CLOSE, "You must select a RSS Feed")
         md.run()
         md.destroy()

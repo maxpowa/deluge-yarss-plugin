@@ -41,15 +41,8 @@
 #
 
 import gtk
-import gtk.glade 
-
 from deluge.log import LOG as log
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import GtkPluginBase
-import deluge.component as component
-import deluge.common
-
-from yarss import common
+from yarss.common import get_resource
 
 class DialogEmailMessage():
 
@@ -58,18 +51,15 @@ class DialogEmailMessage():
         self.message_data = message_data
 
     def show(self):
-        self.glade = gtk.glade.XML(common.get_resource("dialog_email_message.glade"))
+        self.glade = gtk.glade.XML(get_resource("dialog_email_message.glade"))
         self.glade.signal_autoconnect({
                 "on_button_save_clicked": self.on_button_save_clicked,
                 "on_button_cancel_clicked": self.on_button_cancel_clicked
         })
         # Add data
-        if self.message_data:
+        if self.message_data is not None:
             self.set_initial_data(self.message_data)
-        else:
-            data = {"name": "Ronny", "to_address": "ronny@tull.no", "subject": "Halla", "message": "Torrents ferdig", "active": True}
-            self.set_initial_data(data)
-
+        
         self.dialog = self.glade.get_widget("dialog_email_message")
         self.dialog.run()
 
@@ -87,9 +77,7 @@ class DialogEmailMessage():
         subject = self.glade.get_widget("txt_subject").get_text().strip()
         active = self.glade.get_widget("checkbutton_active").get_active()
         
-        #message = self.glade.get_widget("txt_email_content").get_buffer().get_text(0, -1)
         textbuffer = self.glade.get_widget("txt_email_content").get_buffer()
-
         message = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
 
         if name == "" or address == "" or subject == "" or message == "":

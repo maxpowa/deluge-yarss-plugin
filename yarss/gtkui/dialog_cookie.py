@@ -41,15 +41,8 @@
 #
 
 import gtk
-import gtk.glade 
-
 from deluge.log import LOG as log
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import GtkPluginBase
-import deluge.component as component
-import deluge.common
-
-from yarss import common
+from yarss.common import get_resource
 
 class DialogCookie():
 
@@ -58,7 +51,7 @@ class DialogCookie():
         self.cookie_data = cookie_data
 
     def show(self):
-        self.glade = gtk.glade.XML(common.get_resource("dialog_cookie.glade"))
+        self.glade = gtk.glade.XML(get_resource("dialog_cookie.glade"))
         self.glade.signal_autoconnect({
                 "on_button_add_cookie_data_clicked": self.on_button_add_cookie_data_clicked,
                 "on_button_remove_cookie_data_clicked": self.on_button_remove_cookie_data_clicked,

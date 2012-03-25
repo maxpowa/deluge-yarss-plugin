@@ -41,6 +41,7 @@ from deluge.log import LOG as log
 
 import smtplib
 
+
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
 
@@ -59,17 +60,18 @@ def send_email(email_conf, server_conf):
 #            port = 465
 #        elif self.config["ntf_security"] == 'TLS':
 #            port = 587
-#        elif self.config["ntf_security"] == None:
+#        elif self.config["ntf_security"] is None:
 #            port = 25
     try:
         mailServer = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
         log.error("There was an error sending the notification email: %s", e)
-        return
+        return False
 
     log.info("Sending email message: %s" % message)
     log.info("Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"], 
-             server_conf["smtp_port"], server_conf["smtp_authentication"]))
+                                                           server_conf["smtp_port"], 
+                                                           server_conf["smtp_authentication"]))
 
     if server_conf["smtp_authentication"]:
         #if self.config["ntf_security"] == 'SSL' or 'TLS':
@@ -87,7 +89,8 @@ def send_email(email_conf, server_conf):
         mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], message)
         mailServer.quit()
     except:
-        log.warning("sending email notification of finished torrent failed")
+        log.warning("Sending email notification failed")
+        return False
     else:
         log.info("sending email notification of finished torrent was successful")
-
+    return True

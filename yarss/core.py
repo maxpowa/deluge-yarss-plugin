@@ -36,34 +36,28 @@
 #    this exception statement from your version. If you delete this exception
 #    statement from all source files in the program, then also delete it here.
 #
-from deluge._libtorrent import lt
-from deluge.log import LOG as log
-from deluge.plugins.pluginbase import CorePluginBase
-import deluge.component as component
-import deluge.configmanager
-from deluge.core.rpcserver import export
-import re
+
 from twisted.internet.task import LoopingCall
 
-import rssfeed_handling
+from deluge.log import LOG as log
+from deluge.plugins.pluginbase import CorePluginBase
+from deluge.core.rpcserver import export
 
-from yarss_config import YARSSConfig
-
-from common import *
+from yarss.yarss_config import YARSSConfig
+from yarss.common import get_resource
+from yarss import torrent_handling
+from yarss import rssfeed_handling
 
 class Core(CorePluginBase):
 
     def enable(self):
         self.yarss_config = YARSSConfig()
-        self.config = self.yarss_config.get_config()
-        #self.update_status_timer = LoopingCall(self.update_handler)
-        #self.update_status_timer.start(self.config['updatetime'] * 60) # Multiply to get seconds
         self.setup_timers()
 
     def disable(self):
+        self.yarss_config.save()
         for key in self.rssfeed_timers.keys():
             self.rssfeed_timers[key].stop()
-        self.yarss_config.save()
 
     def update(self):
         pass
@@ -71,21 +65,23 @@ class Core(CorePluginBase):
     def setup_timers(self):
         """Creates the LoopingCall timers, one for each RSS Feed"""
         self.rssfeed_timers = {}
-        for key in self.config["rssfeeds"]:
-            timer = LoopingCall(self.rssfeed_update_handler, (self.config["rssfeeds"][key]["key"]))
+        config = self.yarss_config.get_config()
+        for key in config["rssfeeds"]:
+            timer = LoopingCall(self.rssfeed_update_handler, (config["rssfeeds"][key]["key"]))
             self.rssfeed_timers[key] = timer
-            timer.start(self.config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
+            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
             log.info("YARSS: Starting timer for RSS Feed '%s' with interval %d minutes." % 
-                     (self.config["rssfeeds"][key]['name'],
-                      self.config["rssfeeds"][key]['update_interval']))
+                     (config["rssfeeds"][key]['name'],
+                      config["rssfeeds"][key]['update_interval']))
 
     @export
     def rssfeed_update_handler(self, rssfeed_key, subscription_key=None):
         """Goes through all the feeds and runs the active ones.
         Multiple subscriptions on one RSS Feed will download the RSS only once"""
-        print "email_config:", self.yarss_config.config["email_configurations"]
-        rssfeed_handling.fetch_subscription_torrents(self.yarss_config.config, rssfeed_key, 
-                                                     subscription_key=subscription_key)
+        matching_torrents = rssfeed_handling.fetch_subscription_torrents(self.yarss_config.get_config(), 
+                                                                         rssfeed_key, 
+                                                                         subscription_key=subscription_key)
+        torrent_handling.add_torrents(matching_torrents, self.yarss_config.get_config())
 
     @export
     def set_config(self, config):
@@ -95,22 +91,6 @@ class Core(CorePluginBase):
     def get_config(self):
         "returns the config dictionary"
         return self.yarss_config.get_config()
-
-#    @export
-#    def refresh(self,updatetime = 0):
-#        """Not Used?"""
-#        self.update_status_timer.stop()
-#        if updatetime == 0:
-#            self.update_status_timer.start(self.config['updatetime'])
-#        else:
-#            self.update_status_timer.start(updatetime)
-#
-    @export
-    def run_feed_test(self):
-        """Runs the update handler"""
-        log.info("YARSS: Running feed test")
-        self.rssfeed_update_handler()
-
 
     @export
     def save_subscription(self, dict_key=None, subscription_data=None, delete=False):
@@ -133,7 +113,10 @@ class Core(CorePluginBase):
         """Save cookie to config. If dict_key is None, create new key
         If cookie_dict is None, delete cookie with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("cookies", dict_key=dict_key, data_dict=cookie_data, delete=delete)
+            return self.yarss_config.generic_save_config("cookies", 
+                                                         dict_key=dict_key, 
+                                                         data_dict=cookie_data, 
+                                                         delete=delete)
         except ValueError as (v):
             log.error("save_cookie: Failed to save cookie:" + str(v))
 
@@ -142,7 +125,10 @@ class Core(CorePluginBase):
         """Save email message to config. If dict_key is None, create new key
         If message_dict is None, delete message with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key, data_dict=message_data, delete=delete)
+            return self.yarss_config.generic_save_config("email_messages", 
+                                                         dict_key=dict_key, 
+                                                         data_dict=message_data, 
+                                                         delete=delete)
         except ValueError as (v):
             log.error("save_email_message: Failed to save email message:" + str(v))
 

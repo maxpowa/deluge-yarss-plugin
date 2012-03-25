@@ -46,18 +46,14 @@ from deluge.log import LOG as log
 from deluge.ui.client import client
 from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
-import deluge.common
-
-import yarss.rssfeed_handling
 
 from dialog_subscription import DialogSubscription
 from dialog_rssfeed import DialogRSSFeed
 from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
 
-from yarss.common import get_resource
-from yarss.rssfeed_handling import encode_cookie_values
-
+from yarss.common import get_resource, get_selected_in_treeview
+from yarss.http import encode_cookie_values
 from yarss import yarss_config
 
 class GtkUI(GtkPluginBase):
@@ -92,8 +88,7 @@ class GtkUI(GtkPluginBase):
                 
                 "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
                 "on_checkbutton_send_email_on_torrent_events_toggled": 
-                self.on_checkbutton_send_email_on_torrent_events_toggled,
-                "on_button_test_subscription_clicked": self.on_button_test_subscription_clicked
+                self.on_checkbutton_send_email_on_torrent_events_toggled
                 })
         
         component.get("Preferences").add_page("YARSS", self.glade.get_widget("notebook_main"))
@@ -123,15 +118,6 @@ class GtkUI(GtkPluginBase):
         self.create_rssfeeds_pane()
         self.create_cookies_pane()
         self.create_email_messages_pane()
-
-        self.load_config_data()
-
-    def on_button_test_subscription_clicked(self, button):
-        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
-        self.subscriptions[key]["last_update"] = ""
-        self.save_subscription(self.subscriptions[key])
-        if key:
-            client.yarss.rssfeed_update_handler(None, subscription_key=key)
 
 ##############################
 # Save data and delete data from core
@@ -206,7 +192,7 @@ class GtkUI(GtkPluginBase):
 
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
-        if config == None:
+        if config is None:
             log.error("YARSS: An error has occured. Cannot load data from config")
         else:
             self.update_data_from_config(config)
@@ -341,6 +327,7 @@ class GtkUI(GtkPluginBase):
         self.subscriptions_treeview.connect("cursor-changed", self.on_subscription_listitem_activated)
         self.subscriptions_treeview.connect("row-activated", self.on_button_edit_subscription_clicked)
         self.subscriptions_treeview.set_rules_hint(True)
+        self.subscriptions_treeview.connect('button-press-event', self.on_subscription_list_button_press_event)
 
         self.create_subscription_columns(self.subscriptions_treeview)
         subscriptions_window.add(self.subscriptions_treeview)
@@ -378,6 +365,38 @@ class GtkUI(GtkPluginBase):
         column = gtk.TreeViewColumn("Move Completed", rendererText, text=5)
         column.set_sort_column_id(5)
         subscriptions_treeView.append_column(column)
+
+        self.menu = gtk.Menu()
+        menuitem = gtk.MenuItem("Run this subscription")
+        self.menu.append(menuitem)
+        menuitem.connect("activate", self.on_button_run_subscription_clicked)
+
+    def on_button_run_subscription_clicked(self, menuitem):
+        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        if key:
+            self.on_button_test_subscription_clicked(menuitem)
+
+    def on_button_test_subscription_clicked(self, button):
+        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        self.subscriptions[key]["last_update"] = ""
+        self.save_subscription(self.subscriptions[key])
+        if key:
+            client.yarss.rssfeed_update_handler(None, subscription_key=key)
+
+    def on_subscription_list_button_press_event(self, treeview, event):
+        """Shows popup on selected row"""
+        if event.button == 3:
+            x = int(event.x)
+            y = int(event.y)
+            time = event.time
+            pthinfo = treeview.get_path_at_pos(x, y)
+            if pthinfo is not None:
+                path, col, cellx, celly = pthinfo
+                treeview.grab_focus()
+                treeview.set_cursor(path, col, 0)
+                self.menu.popup(None, None, None, event.button, time, data=path)
+                self.menu.show_all()
+            return True
 
 #########################
 # Create RSS Feeds list
@@ -522,15 +541,16 @@ class GtkUI(GtkPluginBase):
 ###  CALLBACK FUNCTIONS from Glade GUI
 ########################################################
 
-    def get_selected_in_treeview(self, treeview, store):
-        """Helper to get the key of the selected element in the given treeview
-        return None of no item is selected
-        """
-        tree, tree_id = treeview.get_selection().get_selected()
-        if tree_id:
-            key = str(store.get_value(tree_id, 0))
-            return key
-        return None
+#    def get_selected_in_treeview(self, treeview, store):
+#        """Helper to get the key of the selected element in the given treeview
+#        return None of no item is selected.
+#        The key must be in the first column of the ListStore
+#        """
+#        tree, tree_id = treeview.get_selection().get_selected()
+#        if tree_id:
+#            key = str(store.get_value(tree_id, 0))
+#            return key
+#        return None
 
 #############################
 # SUBSCRIPTION callbacks
@@ -554,7 +574,7 @@ class GtkUI(GtkPluginBase):
         return values
 
     def on_button_delete_subscription_clicked(self,Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             self.save_subscription(None, subscription_key=key, delete=True)
 
@@ -562,7 +582,8 @@ class GtkUI(GtkPluginBase):
         client.yarss.run_feed_test()
 
     def on_button_edit_subscription_clicked(self, Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        print "on_button_edit_subscription_clicked:"
+        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             if col and col.get_title() == 'Active':
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
@@ -596,12 +617,12 @@ class GtkUI(GtkPluginBase):
         rssfeed_dialog.show()
 
     def on_button_delete_rssfeed_clicked(self,Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
+        key = get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             self.save_rssfeed(None, rssfeed_key=key, delete=True)
             
     def on_button_edit_rssfeed_clicked(self, Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
+        key = get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -631,7 +652,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_message_clicked(self, Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -642,7 +663,7 @@ class GtkUI(GtkPluginBase):
                 edit_message_dialog.show()
 
     def on_button_delete_message_clicked(self, button):
-        key = self.get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
         if key:
             # Delete from core config
             self.save_email_message(None, email_message_key=key, delete=True)
@@ -662,7 +683,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_cookie_clicked(self, Event=None, a=None, col=None):
-        key = self.get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
+        key = get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -673,7 +694,7 @@ class GtkUI(GtkPluginBase):
                 dialog_cookie.show()
 
     def on_button_delete_cookie_clicked(self, button):
-        key = self.get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
+        key = get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
         if key:
             # Delete from core config
             self.save_cookie(None, cookie_key=cookie_key, delete=True)
