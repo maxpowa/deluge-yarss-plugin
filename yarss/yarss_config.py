@@ -47,15 +47,7 @@ import deluge.configmanager
 
 DEFAULT_UPDATE_INTERVAL = 120
 DEFAULT_PREFS = {
-    "email_configurations": {
-        "send_email_on_torrent_events": False,
-        "from_address": "",
-        "smtp_server": "",
-        "smtp_port": "",
-        "smtp_authentication": False,
-        "smtp_username": "",
-        "smtp_password": ""
-        },
+    "email_configurations": {},
     "rssfeeds":{},
     "subscriptions":{},
     "cookies":{},
@@ -83,15 +75,19 @@ class YARSSConfig(object):
         self.config.save()
 
     def get_new_config_key(self, dictionary):
-        """Returns the first unused key that is a integer, as string"""
+        """Returns the first unused key in the dictionary that is a integer, as string"""
         key = 0
         while (dictionary.has_key(str(key))):
             key += 1
         return str(key)
 
     def generic_save_config(self, config_name, dict_key=None, data_dict=None, delete=False):
-        """Save email message to config. If dict_key is None, create new key
-        If message_dict is None, delete message with key==dict_key
+        """Save email message to config. 
+        
+        If data_dict is None, delete message with key==dict_key
+        If data_dict is not None, dict_key is ignored
+        If data_dict does not have a key named "key", it's a new config element, so a new key is created.
+        
         config_name must be either of the dictionaries in the main config (See DEFAULT_PREFS):
         """
         if data_dict is not None and type(data_dict) != dict:
@@ -115,9 +111,10 @@ class YARSSConfig(object):
                 self.config.save()
                 return self.config.config
             else:
-                raise ValueError("generic_save_config: Invalid key - Item with key %s doesn't exist" % dict_key) 
+                raise ValueError("generic_save_config: Invalid key - "\
+                                     "Item with key %s doesn't exist" % dict_key)
         else: # Save config
-            # The entry to save does not have an item 'key'. This means it's a new entry to the database
+            # The entry to save does not have an item 'key'. This means it's a new entry in the config
             if not data_dict.has_key("key"):
                 dict_key = self.get_new_config_key(config)
                 data_dict["key"] = dict_key
@@ -133,52 +130,74 @@ class YARSSConfig(object):
         
         default_config = get_fresh_subscription_config()
         changed = False
-        changed = self.insert_missing_values(self.config["subscriptions"], default_config, changed)
+        if self.insert_missing_dict_values(self.config["subscriptions"], default_config):
+            changed = True
 
         default_config = get_fresh_rssfeed_config()
-        changed = self.insert_missing_values(self.config["rssfeeds"], default_config, changed)
+        if self.insert_missing_dict_values(self.config["rssfeeds"], default_config):
+            changed = True
+
+        default_config = get_fresh_message_config()
+        if self.insert_missing_dict_values(self.config["email_messages"], default_config):
+            changed = True
+
+        default_config = get_fresh_email_configurations()
+        if self.insert_missing_dict_values(self.config["email_configurations"], default_config, level=1):
+            changed = True
 
         if changed:
             self.config.save()
 
-    def insert_missing_values(self, config, default_config, changed):
-        key_diff = None
-        for config_key in config.keys():
-            item = config[config_key]
-            if key_diff is None:
-                key_diff = set(default_config.keys()) - set(item.keys())
-                # No keys missing, so nothing to do
+    def insert_missing_dict_values(self, config_dict, default_config, key_diff=None, level=2):
+        if level == 1:
+            return self.do_insert(config_dict, default_config, key_diff)
+        else:
+            level = level - 1
+            for key in config_dict.keys():
+                key_diff = self.insert_missing_dict_values(config_dict[key], default_config, 
+                                                      key_diff=key_diff, level=level)
                 if not key_diff:
-                    return
-                changed = True
-            # Set new keys
-            for key in key_diff:
-                item[key] = default_config[key]
+                    return key_diff
+        return key_diff
 
-    def new_subscription_config(self, name="", rssfeed_key="", regex_include="", regex_exclude="", 
-                                active=True, search=True, move_completed="",
-                                last_update=get_default_date().isoformat()):
-        """Create a new config (dictionary) for a feed.
-        If rssfeed_key does not correspond to a real key, the config cannot be used to save a real subscription"""
-        config_dict = get_fresh_subscription_config(name=name, rssfeed_key=rssfeed_key, regex_include=regex_include, regex_exclude=regex_exclude, 
-                                                    active=active, search=search, move_completed=move_completed,
-                                                    last_update=last_update)
-        config_dict["key"] = self.get_new_config_key(self.config["subscriptions"])
-        return config_dict
-
-    def new_rssfeed_config(self, name="", url="", site="", active=True, last_update="", 
-                           update_interval=DEFAULT_UPDATE_INTERVAL):
-        """Create a new config (dictionary) for a feed"""
-        config_dict = get_fresh_rssfeed_config(name=name, url=url, site=site, active=active, last_update=last_update, 
-                                               update_interval=update_interval)
-
-        config_dict["key"] = self.get_new_config_key(self.config["rssfeeds"])
-        return config_dict
+    def do_insert(self, config_dict, default_config, key_diff):
+        if key_diff is None:
+            key_diff = set(default_config.keys()) - set(config_dict.keys())
+            # No keys missing, so nothing to do
+            if not key_diff:
+                return key_diff
+        # Set new keys
+        for key in key_diff:
+            config_dict[key] = default_config[key]
+        return key_diff
 
 
 ####################################
 # Can be called from outside core
 ####################################
+
+def get_fresh_email_configurations():
+    """Return the default email_configurations dictionary"""
+    config_dict = {}
+    config_dict["send_email_on_torrent_events"] = False
+    config_dict["from_address"] = ""
+    config_dict["smtp_server"] = ""
+    config_dict["smtp_port"] = ""
+    config_dict["smtp_authentication"] = False
+    config_dict["smtp_username"] = ""
+    config_dict["smtp_password"] = ""
+
+    config_dict["default_email_to_address"] = ""
+    config_dict["default_email_subject"] = "[YARSS]: RSS event"
+    config_dict["default_email_message"] = """Hi
+
+The following torrents have been downloaded:
+
+$torrentlist
+
+Regards
+"""
+    return config_dict
 
 def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update="", 
                        update_interval=DEFAULT_UPDATE_INTERVAL):
@@ -199,7 +218,6 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
                             last_update=get_default_date().isoformat()):
     """Create a new config """
     config_dict = {}
-    #config_dict["key"] = self.get_new_config_key(self.config["subscriptions"])
     config_dict["rssfeed_key"] = rssfeed_key
     config_dict["regex_include"] = regex_include
     config_dict["regex_include_ignorecase"] = True
@@ -213,7 +231,6 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {}
     return config_dict
-
 
 def get_fresh_message_config():
     """Create a new config (dictionary) for a feed"""
@@ -232,44 +249,4 @@ def get_fresh_cookie_config():
     config_dict["value"] = []
     config_dict["active"] = True
     return config_dict
-
-
-#    def save_config(self, subscription_config=None, rssfeed_config=None):
-#        """Saves the configs for a subscription and/or a rssfeed"""
-#        if subscription_config:
-#            self.config["subscriptions"][subscription_config["key"]] = subscription_config
-#        if rssfeed_config:
-#            from urlparse import urlparse
-#            rssfeed_config["site"] = urlparse(rssfeed_config["url"]).netloc
-#            self.config["rssfeeds"][rssfeed_config["key"]] = rssfeed_config
-#        self.config.save()
-#        return self.config.config
-#
-
-
-
-    # NOT WORKING
-    def verify_and_update_config_format(self):
-        """Converts the loaded config if it is old"""
-        # Contains no feeds
-        if len(self.config['abos']) == 0:
-            return
-        for key in self.config['abos'].keys():
-            if type(self.config['abos'][key]) == dict:
-                return            
-            # Old version 0.1 config list format
-            conf = self.config['abos'][key]
-            # Delete config with name as key
-            del self.config['abos'][key]
-            # format of old config is a list with the values: 
-            # (distri, url, regex, show, quality, active, search, date)
-            log.info("YARSS: Convert old yarss (v0.1) config:" + str(conf))
-            new_config = self.new_subscription_config(url=conf[1], regex=conf[2], name=key, 
-                                                      quality=conf[4], active=conf[5],
-                                                      search=conf[6], date=conf[7])
-            log.info("YARSS: Saved as:" + str(new_config))
-            self.save_feed_config(new_config)
-
-
-    
-        
+       

@@ -52,6 +52,7 @@ from dialog_rssfeed import DialogRSSFeed
 from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
 
+from yarss.torrent_handling import send_torrent_email
 from yarss.common import get_resource, get_selected_in_treeview
 from yarss.http import encode_cookie_values
 from yarss import yarss_config
@@ -152,7 +153,6 @@ class GtkUI(GtkPluginBase):
         
     def on_apply_prefs(self):
         """Called when the 'Apply' button is pressed"""
-        print "Apply prefs"
         self.save_configuration_data()
 
     def on_checkbutton_send_email_on_torrent_events_toggled(self, button):
@@ -160,31 +160,35 @@ class GtkUI(GtkPluginBase):
         self.save_configuration_data()
 
     def save_configuration_data(self):
-        print "Saving config data:"
         # Save:
         # Settings -> Email Notifications -> Enable/Disable email notifcations
         # Settings -> Email configuration -> all fields
         # Settings -> Default values -> All fields
         
-        send_email = self.glade.get_widget("checkbutton_send_email_on_torrent_events").get_active()
+        send_emails = self.glade.get_widget("checkbutton_send_email_on_torrent_events").get_active()
         from_addr = self.glade.get_widget("txt_email_from").get_text()
         smtp_server = self.glade.get_widget("txt_email_server").get_text()
         smtp_port = self.glade.get_widget("txt_email_port").get_text()
         smtp_username = self.glade.get_widget("txt_email_username").get_text()
         smtp_password = self.glade.get_widget("txt_email_password").get_text()
         enable_auth = self.glade.get_widget("checkbox_email_enable_authentication").get_active()
-        
-        email_configurations = {}
-        email_configurations["send_email_on_torrent_events"] = send_email
-        email_configurations["from_address"] = from_addr
-        email_configurations["smtp_server"] = smtp_server
-        email_configurations["smtp_port"] = smtp_port
-        email_configurations["smtp_authentication"] = enable_auth
-        email_configurations["smtp_username"] = smtp_username
-        email_configurations["smtp_password"] = smtp_password
-        print "Saving config:", email_configurations
-        conf = {"email_configurations": email_configurations}
-        client.yarss.set_config(conf)
+
+        default_to_address = self.glade.get_widget("txt_default_to_address").get_text()
+        default_subject = self.glade.get_widget("txt_default_subject").get_text()
+        textbuffer = self.glade.get_widget("textview_default_message").get_buffer()
+        default_message = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
+
+        self.email_config["send_email_on_torrent_events"] = send_emails
+        self.email_config["from_address"] = from_addr
+        self.email_config["smtp_server"] = smtp_server
+        self.email_config["smtp_port"] = smtp_port
+        self.email_config["smtp_authentication"] = enable_auth
+        self.email_config["smtp_username"] = smtp_username
+        self.email_config["smtp_password"] = smtp_password
+        self.email_config["default_email_to_address"] = default_to_address
+        self.email_config["default_email_subject"] = default_subject
+        self.email_config["default_email_message"] = default_message
+        client.yarss.save_email_configurations(self.email_config)
 
     def on_show_prefs(self):
         """Called when showing preferences window"""
@@ -224,7 +228,7 @@ class GtkUI(GtkPluginBase):
             self.cookies_treeview.get_selection().select_path(self.selected_path_cookies) 
 
         # Email configurations
-        send_email = self.glade.get_widget("checkbutton_send_email_on_torrent_events")
+        send_email_checkbox = self.glade.get_widget("checkbutton_send_email_on_torrent_events")
         from_addr = self.glade.get_widget("txt_email_from")
         smtp_server = self.glade.get_widget("txt_email_server")
         smtp_port = self.glade.get_widget("txt_email_port")
@@ -232,7 +236,10 @@ class GtkUI(GtkPluginBase):
         smtp_password = self.glade.get_widget("txt_email_password")
         enable_auth = self.glade.get_widget("checkbox_email_enable_authentication")
         
-        
+        default_to_address = self.glade.get_widget("txt_default_to_address")
+        default_subject = self.glade.get_widget("txt_default_subject")
+        default_message = self.glade.get_widget("textview_default_message").get_buffer()
+
         from_addr.set_text(self.email_config["from_address"])
         smtp_server.set_text(self.email_config["smtp_server"])
         smtp_port.set_text(self.email_config["smtp_port"])
@@ -241,9 +248,13 @@ class GtkUI(GtkPluginBase):
         smtp_username.set_text(self.email_config["smtp_username"])
         smtp_password.set_text(self.email_config["smtp_password"])
 
+        default_to_address.set_text(self.email_config["default_email_to_address"])
+        default_subject.set_text(self.email_config["default_email_subject"])
+        default_message.set_text(self.email_config["default_email_message"])
+
         # Must be last, since it will cause callback on 
         # method on_checkbutton_send_email_on_torrent_events_toggled
-        send_email.set_active(self.email_config["send_email_on_torrent_events"])
+        send_email_checkbox.set_active(self.email_config["send_email_on_torrent_events"])
 
     def update_subscription_list(self, subscriptions_store):
         subscriptions_store.clear()
@@ -327,7 +338,8 @@ class GtkUI(GtkPluginBase):
         self.subscriptions_treeview.connect("cursor-changed", self.on_subscription_listitem_activated)
         self.subscriptions_treeview.connect("row-activated", self.on_button_edit_subscription_clicked)
         self.subscriptions_treeview.set_rules_hint(True)
-        self.subscriptions_treeview.connect('button-press-event', self.on_subscription_list_button_press_event)
+        self.subscriptions_treeview.connect('button-press-event', 
+                                            self.on_subscription_list_button_press_event)
 
         self.create_subscription_columns(self.subscriptions_treeview)
         subscriptions_window.add(self.subscriptions_treeview)
@@ -366,17 +378,12 @@ class GtkUI(GtkPluginBase):
         column.set_sort_column_id(5)
         subscriptions_treeView.append_column(column)
 
-        self.menu = gtk.Menu()
+        self.run_subscription_menu = gtk.Menu()
         menuitem = gtk.MenuItem("Run this subscription")
-        self.menu.append(menuitem)
+        self.run_subscription_menu.append(menuitem)
         menuitem.connect("activate", self.on_button_run_subscription_clicked)
-
+    
     def on_button_run_subscription_clicked(self, menuitem):
-        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
-        if key:
-            self.on_button_test_subscription_clicked(menuitem)
-
-    def on_button_test_subscription_clicked(self, button):
         key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         self.subscriptions[key]["last_update"] = ""
         self.save_subscription(self.subscriptions[key])
@@ -394,8 +401,8 @@ class GtkUI(GtkPluginBase):
                 path, col, cellx, celly = pthinfo
                 treeview.grab_focus()
                 treeview.set_cursor(path, col, 0)
-                self.menu.popup(None, None, None, event.button, time, data=path)
-                self.menu.show_all()
+                self.run_subscription_menu.popup(None, None, None, event.button, time, data=path)
+                self.run_subscription_menu.show_all()
             return True
 
 #########################
@@ -463,6 +470,8 @@ class GtkUI(GtkPluginBase):
         viewport = self.glade.get_widget("viewport_email_messages_list")
         self.email_messages_treeview = gtk.TreeView(self.email_messages_store)
         self.email_messages_treeview.connect("row-activated", self.on_button_edit_message_clicked)
+        self.email_messages_treeview.connect('button-press-event', 
+                                            self.on_notification_list_button_press_event)
         self.create_messages_columns(self.email_messages_treeview)
         viewport.add(self.email_messages_treeview)
         viewport.show_all()
@@ -497,6 +506,41 @@ class GtkUI(GtkPluginBase):
         column = gtk.TreeViewColumn("Message", rendererText, text=5)
         column.set_sort_column_id(5)
         treeview.append_column(column)
+
+        self.test_email_send_menu = gtk.Menu()
+        menuitem = gtk.MenuItem("Send email now!")
+        self.test_email_send_menu.append(menuitem)
+        menuitem.connect("activate", self.on_button_send_email_clicked)
+    
+    def on_button_send_email_clicked(self, menuitem):
+        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        # Send email
+        torrents = ["Name of torrent file"]
+        send_torrent_email(self.email_config,
+                           self.email_messages[key],
+                           torrent_name_list=torrents, 
+                           defered=True, callback_func=self.test_email_callback)
+
+    def test_email_callback(self, return_value):
+        if return_value:
+            log.warn("YARSS: Test email successfully sent!")
+        else:
+            log.warn("YARSS: Failed to send test email!")
+
+    def on_notification_list_button_press_event(self, treeview, event):
+        """Shows popup on selected row"""
+        if event.button == 3:
+            x = int(event.x)
+            y = int(event.y)
+            time = event.time
+            pthinfo = treeview.get_path_at_pos(x, y)
+            if pthinfo is not None:
+                path, col, cellx, celly = pthinfo
+                treeview.grab_focus()
+                treeview.set_cursor(path, col, 0)
+                self.test_email_send_menu.popup(None, None, None, event.button, time, data=path)
+                self.test_email_send_menu.show_all()
+            return True
 
 
 #########################
@@ -541,22 +585,22 @@ class GtkUI(GtkPluginBase):
 ###  CALLBACK FUNCTIONS from Glade GUI
 ########################################################
 
-#    def get_selected_in_treeview(self, treeview, store):
-#        """Helper to get the key of the selected element in the given treeview
-#        return None of no item is selected.
-#        The key must be in the first column of the ListStore
-#        """
-#        tree, tree_id = treeview.get_selection().get_selected()
-#        if tree_id:
-#            key = str(store.get_value(tree_id, 0))
-#            return key
-#        return None
 
 #############################
 # SUBSCRIPTION callbacks
 #############################
 
     def on_button_add_subscription_clicked(self,Event=None, a=None, col=None):
+        # Check if any RSS Feeds exists, if not, show popup
+        if len(self.rssfeeds.keys()) == 0:
+            md = gtk.MessageDialog(component.get("Preferences").pref_dialog, 
+                                   gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
+                                   gtk.BUTTONS_CLOSE, 
+                                   "You need to add a RSS Feed before creating subscriptions!")
+            md.run()
+            md.destroy()
+            return
+
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
         subscription_dialog = DialogSubscription(self, fresh_subscription_config, 
                                                  self.rssfeeds, 
@@ -582,12 +626,11 @@ class GtkUI(GtkPluginBase):
         client.yarss.run_feed_test()
 
     def on_button_edit_subscription_clicked(self, Event=None, a=None, col=None):
-        print "on_button_edit_subscription_clicked:"
         key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             if col and col.get_title() == 'Active':
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
-                self.save_subscriptions(self.subscriptions[key])
+                self.save_subscription(self.subscriptions[key])
             else:
                 edit_subscription_dialog = DialogSubscription(self, 
                                                               self.subscriptions[key], 
@@ -648,6 +691,10 @@ class GtkUI(GtkPluginBase):
 
     def on_button_add_message_clicked(self, button):
         fresh_message_config = yarss_config.get_fresh_message_config()
+        fresh_message_config["to_address"] = self.email_config["default_email_to_address"]
+        fresh_message_config["subject"] = self.email_config["default_email_subject"]
+        fresh_message_config["message"] = self.email_config["default_email_message"]
+
         dialog = DialogEmailMessage(self, fresh_message_config)
         dialog.show()
 
@@ -697,4 +744,4 @@ class GtkUI(GtkPluginBase):
         key = get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
         if key:
             # Delete from core config
-            self.save_cookie(None, cookie_key=cookie_key, delete=True)
+            self.save_cookie(None, cookie_key=key, delete=True)

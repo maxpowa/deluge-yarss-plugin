@@ -42,6 +42,8 @@
 
 import gtk
 from deluge.log import LOG as log
+import deluge.component as component
+
 from yarss.common import get_resource
 
 class DialogCookie():
@@ -74,6 +76,7 @@ class DialogCookie():
         cookie_list.add(self.treeview)
         cookie_list.show_all()
         self.dialog = self.glade.get_widget("dialog_cookie")
+        self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.run()
 
     def update_cookie_values_list(self):

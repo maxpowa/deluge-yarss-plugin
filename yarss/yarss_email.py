@@ -39,58 +39,73 @@
 
 from deluge.log import LOG as log
 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import smtplib
-
 
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
 
-    print "send_email:", email_conf
-    print "serve_conf:", server_conf
+    #print "send_email:", email_conf
+    #print "serve_conf:", server_conf
 
-    headers = "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n" % (
-        server_conf["from_address"], email_conf["to_address"], email_conf["subject"])
+    # Send multipart message with text and html
+    if email_conf.has_key("message"):
+        # Send Multipart email
+        if email_conf.has_key("message_html"):
+            mime_message = MIMEMultipart("alternative")
+            msg_plain = MIMEText(email_conf["message"].encode('utf-8'), "plain", _charset='utf-8')
+            msg_html = MIMEText(email_conf["message_html"].encode('utf-8'), "html", _charset='utf-8')
+            mime_message.attach(msg_plain)
+            mime_message.attach(msg_html)
+        else:
+            # Send plain message
+            mime_message = MIMEText(email_conf["message"].encode('utf-8'), "plain", _charset='utf-8')
+    elif email_conf.has_key("message_html"):
+        # Send html message
+        mime_message = MIMEText(email_conf["message"].encode('utf-8'), "html", _charset='utf-8')
+    else:
+        log.warn("YARSS: Email config must contain either 'message' or 'message_html'")
+        return False
+  
+    mime_message["Subject"] = email_conf["subject"]
+    mime_message["From"] = server_conf["from_address"]
+    mime_message["To"] = email_conf["to_address"]
 
-    port = 25
-    message = headers + email_conf["message"]
-    if len(server_conf["smtp_port"]) > 0:
-        port = int(server_conf["smtp_port"])
-#    else:
-#        if server_conf["ntf_security"] == 'SSL':
-#            port = 465
-#        elif self.config["ntf_security"] == 'TLS':
-#            port = 587
-#        elif self.config["ntf_security"] is None:
-#            port = 25
+    port = smtplib.SMTP_PORT
+    if len(server_conf["smtp_port"].strip()) > 0:
+        try:
+            port = int(server_conf["smtp_port"])
+        except:
+            pass
     try:
         mailServer = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
-        log.error("There was an error sending the notification email: %s", e)
+        log.error("YARSS: There was an error sending the notification email: %s", e)
         return False
 
-    log.info("Sending email message: %s" % message)
-    log.info("Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"], 
-                                                           server_conf["smtp_port"], 
+    log.info("YARSS: Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" % \
+                 (mime_message["To"], mime_message["From"], mime_message["Subject"]))
+    log.info("YARSS: Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"],
+                                                           server_conf["smtp_port"],
                                                            server_conf["smtp_authentication"]))
 
     if server_conf["smtp_authentication"]:
-        #if self.config["ntf_security"] == 'SSL' or 'TLS':
-        #if self.config["ntf_security"] == 'SSL' or 'TLS':
         mailServer.ehlo()
         mailServer.starttls()
         mailServer.ehlo()
         try:
             mailServer.login(server_conf["smtp_username"], server_conf["smtp_password"])
         except smtplib.SMTPHeloError:
-            log.warning("The server didn't reply properly to the helo greeting")
+            log.warning("YARSS: The server didn't reply properly to the helo greeting")
         except smtplib.SMTPAuthenticationError:
-            log.warning("The server didn't accept the username/password combination")
+            log.warning("YARSS: The server didn't accept the username/password combination")
     try:
-        mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], message)
+        mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
         mailServer.quit()
-    except:
-        log.warning("Sending email notification failed")
+    except Exception, e:
+        log.error("YARSS: Sending email notification failed: %s", e)
         return False
     else:
-        log.info("sending email notification of finished torrent was successful")
+        log.info("YARSS: Sending email notification of finished torrent was successful")
     return True

@@ -69,7 +69,7 @@ class Core(CorePluginBase):
         for key in config["rssfeeds"]:
             timer = LoopingCall(self.rssfeed_update_handler, (config["rssfeeds"][key]["key"]))
             self.rssfeed_timers[key] = timer
-            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
+            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=True) # Multiply to get seconds
             log.info("YARSS: Starting timer for RSS Feed '%s' with interval %d minutes." % 
                      (config["rssfeeds"][key]['name'],
                       config["rssfeeds"][key]['update_interval']))
@@ -81,7 +81,7 @@ class Core(CorePluginBase):
         matching_torrents = rssfeed_handling.fetch_subscription_torrents(self.yarss_config.get_config(), 
                                                                          rssfeed_key, 
                                                                          subscription_key=subscription_key)
-        torrent_handling.add_torrents(matching_torrents, self.yarss_config.get_config())
+        torrent_handling.add_torrents(self, matching_torrents, self.yarss_config.get_config())
 
     @export
     def set_config(self, config):
@@ -91,6 +91,14 @@ class Core(CorePluginBase):
     def get_config(self):
         "returns the config dictionary"
         return self.yarss_config.get_config()
+
+    @export
+    def save_email_configurations(self, email_configurations):
+        conf = {"email_configurations": email_configurations}
+        try:
+            self.yarss_config.set_config(conf)
+        except ValueError as (v):
+            log.error("save_email_configurations: Failed to save email configurations:" + str(v))
 
     @export
     def save_subscription(self, dict_key=None, subscription_data=None, delete=False):

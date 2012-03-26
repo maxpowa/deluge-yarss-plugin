@@ -42,6 +42,8 @@
 
 import gtk
 from deluge.log import LOG as log
+import deluge.component as component
+
 from yarss.common import get_resource
 
 class DialogEmailMessage():
@@ -61,6 +63,7 @@ class DialogEmailMessage():
             self.set_initial_data(self.message_data)
         
         self.dialog = self.glade.get_widget("dialog_email_message")
+        self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.run()
 
     def set_initial_data(self, data):

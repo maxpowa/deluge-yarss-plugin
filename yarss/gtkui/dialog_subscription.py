@@ -286,7 +286,9 @@ class DialogSubscription():
         return rssfeeds_parsed
 
     def update_matching_view_with_rssfeed_results(self, rssfeeds_parsed):
-        """Replaces the content of the matching window.
+        """Callback function, called when 'get_and_update_rssfeed_results'
+        has finished.
+        Replaces the content of the matching window.
         If valid items were retrieved, update the matching according
         to current settings.
         If no valid items, show the result as text instead.

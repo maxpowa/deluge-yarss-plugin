@@ -51,6 +51,12 @@ def get_resource(filename):
 def get_default_date():
     return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
 
+def isodate_to_datetime(date_in_isoformat):
+    try:
+        return datetime.datetime.strptime(date_in_isoformat, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return get_default_date()
+    
 def get_selected_in_treeview(treeview, store):
     """Helper to get the key of the selected element in the given treeview
     return None of no item is selected.
