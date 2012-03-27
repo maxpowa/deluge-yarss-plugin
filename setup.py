@@ -39,17 +39,19 @@
 
 from setuptools import setup
 
-__plugin_name__ = "yarss"
-__author__ = "Camillo Dell'mour"
-__author_email__ = "cdellmour@gmail.com"
+__plugin_name__ = "YaRSS2"
+__author__ = "Bro"
+__author_email__ = "bro.development@gmail.com"
 __version__ = "1.0"
 __url__ = ""
 __license__ = "GPLv3"
-__description__ = "Yet Another RSS"
-__long_description__ = """Yet Another RSS, a simple RSS plugin for Deluge. 
-Updated by Bro on 2012-03-10, tested with Deluge 1.3.3.
+__description__ = "Yet another RSS 2"
+__long_description__ = """
+Yet another RSS 2, a simple RSS plugin for Deluge, based on 
+YaRSS written by Camillo Dell'mour <cdellmour@gmail.com>. 
+Last updated on 2012-03-27, tested with Deluge 1.3.4.
 """
-__pkg_data__ = {__plugin_name__.lower(): ["template/*", "data/*"]}
+__pkg_data__ = {__plugin_name__.lower(): ["gtkui/*", "data/*", "lib/*"]}
 
 setup(
     name=__plugin_name__,
@@ -69,7 +71,5 @@ setup(
     %s = %s:CorePlugin
     [deluge.plugin.gtkui]
     %s = %s:GtkUIPlugin
-    [deluge.plugin.webui]
-    %s = %s:WebUIPlugin
-    """ % ((__plugin_name__, __plugin_name__.lower())*3)
+    """ % ((__plugin_name__, __plugin_name__.lower())*2)
 )

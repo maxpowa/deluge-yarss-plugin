@@ -58,7 +58,7 @@ DEFAULT_PREFS = {
 class YARSSConfig(object):
 
     def __init__(self):
-        self.config = deluge.configmanager.ConfigManager("yarss.conf", DEFAULT_PREFS)
+        self.config = deluge.configmanager.ConfigManager("yarss2.conf", DEFAULT_PREFS)
         self.verify_config()
 
     def save(self):
@@ -188,7 +188,7 @@ def get_fresh_email_configurations():
     config_dict["smtp_password"] = ""
 
     config_dict["default_email_to_address"] = ""
-    config_dict["default_email_subject"] = "[YARSS]: RSS event"
+    config_dict["default_email_subject"] = "[YaRSS2]: RSS event"
     config_dict["default_email_message"] = """Hi
 
 The following torrents have been downloaded:

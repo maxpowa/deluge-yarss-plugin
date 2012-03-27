@@ -46,9 +46,9 @@ from deluge.log import LOG as log
 import deluge.component as component
 from twisted.internet import threads
 
-from yarss.common import get_resource, get_selected_in_treeview
-from yarss.http import HTMLStripper
-from yarss import rssfeed_handling
+from yarss2.common import get_resource, get_selected_in_treeview
+from yarss2.http import HTMLStripper
+from yarss2 import rssfeed_handling
 
 from CellrendererPango import CustomAttribute, CellrendererPango
 

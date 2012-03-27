@@ -52,10 +52,10 @@ from dialog_rssfeed import DialogRSSFeed
 from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
 
-from yarss.torrent_handling import send_torrent_email
-from yarss.common import get_resource, get_selected_in_treeview
-from yarss.http import encode_cookie_values
-from yarss import yarss_config
+from yarss2.torrent_handling import send_torrent_email
+from yarss2.common import get_resource, get_selected_in_treeview
+from yarss2.http import encode_cookie_values
+from yarss2 import yarss_config
 
 class GtkUI(GtkPluginBase):
 
@@ -63,7 +63,7 @@ class GtkUI(GtkPluginBase):
         self.createUI()
 
     def disable(self):
-        component.get("Preferences").remove_page("YARSS")
+        component.get("Preferences").remove_page("YaRSS2")
         component.get("PluginManager").deregister_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").deregister_hook("on_show_prefs", self.on_show_prefs)
         pass
@@ -92,7 +92,7 @@ class GtkUI(GtkPluginBase):
                 self.on_checkbutton_send_email_on_torrent_events_toggled
                 })
         
-        component.get("Preferences").add_page("YARSS", self.glade.get_widget("notebook_main"))
+        component.get("Preferences").add_page("YaRSS2", self.glade.get_widget("notebook_main"))
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
         self.subscriptions = {}
@@ -127,23 +127,23 @@ class GtkUI(GtkPluginBase):
     def save_subscription(self, subscription_data, subscription_key=None, delete=False):
         """Called by the RSSFeed Dialog"""
         self.selected_path_subscriptions = self.get_selection_path(self.subscriptions_treeview)
-        client.yarss.save_subscription(dict_key=subscription_key, subscription_data=subscription_data, 
+        client.yarss2.save_subscription(dict_key=subscription_key, subscription_data=subscription_data, 
                                        delete=delete).addCallback(self.cb_get_config)
 
     def save_rssfeed(self, rssfeed_data, rssfeed_key=None, delete=False):
         """Called by the RSSFeed Dialog"""
         self.selected_path_rssfeeds = self.get_selection_path(self.rssfeeds_treeview)
-        client.yarss.save_rssfeed(dict_key=rssfeed_key, rssfeed_data=rssfeed_data, 
+        client.yarss2.save_rssfeed(dict_key=rssfeed_key, rssfeed_data=rssfeed_data, 
                                   delete=delete).addCallback(self.cb_get_config)
 
     def save_email_message(self, message_data, email_message_key=None, delete=False):
         self.selected_path_email_message = self.get_selection_path(self.email_messages_treeview)
-        client.yarss.save_email_message(dict_key=email_message_key, message_data=message_data, 
+        client.yarss2.save_email_message(dict_key=email_message_key, message_data=message_data, 
                                         delete=delete).addCallback(self.cb_get_config)
 
     def save_cookie(self, cookie_data, cookie_key=None, delete=False):
         self.selected_path_cookies = self.get_selection_path(self.cookies_treeview)
-        client.yarss.save_cookie(dict_key=cookie_key, cookie_data=cookie_data, 
+        client.yarss2.save_cookie(dict_key=cookie_key, cookie_data=cookie_data, 
                                  delete=delete).addCallback(self.cb_get_config)
 
 
@@ -188,11 +188,11 @@ class GtkUI(GtkPluginBase):
         self.email_config["default_email_to_address"] = default_to_address
         self.email_config["default_email_subject"] = default_subject
         self.email_config["default_email_message"] = default_message
-        client.yarss.save_email_configurations(self.email_config)
+        client.yarss2.save_email_configurations(self.email_config)
 
     def on_show_prefs(self):
         """Called when showing preferences window"""
-        client.yarss.get_config().addCallback(self.cb_get_config)
+        client.yarss2.get_config().addCallback(self.cb_get_config)
 
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
@@ -388,7 +388,7 @@ class GtkUI(GtkPluginBase):
         self.subscriptions[key]["last_update"] = ""
         self.save_subscription(self.subscriptions[key])
         if key:
-            client.yarss.rssfeed_update_handler(None, subscription_key=key)
+            client.yarss2.rssfeed_update_handler(None, subscription_key=key)
 
     def on_subscription_list_button_press_event(self, treeview, event):
         """Shows popup on selected row"""
@@ -621,9 +621,6 @@ class GtkUI(GtkPluginBase):
         key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             self.save_subscription(None, subscription_key=key, delete=True)
-
-    def on_button_test_clicked(self, Event=None, a=None, col=None):
-        client.yarss.run_feed_test()
 
     def on_button_edit_subscription_clicked(self, Event=None, a=None, col=None):
         key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)

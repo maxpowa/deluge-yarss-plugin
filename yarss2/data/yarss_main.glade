@@ -15,6 +15,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="n_rows">2</property>
+            <property name="row_spacing">2</property>
             <child>
               <widget class="GtkHBox" id="hbox1">
                 <property name="visible">True</property>
@@ -89,7 +90,7 @@
               <widget class="GtkScrolledWindow" id="subscriptions_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hadjustment">0 0 747 74.700000000000003 672.30000000000007 747</property>
+                <property name="hadjustment">0 0 574 57.400000000000006 516.60000000000002 574</property>
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
@@ -128,6 +129,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="n_rows">2</property>
+            <property name="row_spacing">2</property>
             <child>
               <widget class="GtkHBox" id="hbox2">
                 <property name="visible">True</property>
@@ -207,6 +209,7 @@
                   <widget class="GtkViewport" id="viewport3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="border_width">1</property>
                     <child>
                       <widget class="GtkVBox" id="rssfeeds_box">
                         <property name="visible">True</property>

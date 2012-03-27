@@ -43,10 +43,10 @@ from deluge.log import LOG as log
 from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
-from yarss.yarss_config import YARSSConfig
-from yarss.common import get_resource
-from yarss import torrent_handling
-from yarss import rssfeed_handling
+from yarss2.yarss_config import YARSSConfig
+from yarss2.common import get_resource
+from yarss2 import torrent_handling
+from yarss2 import rssfeed_handling
 
 class Core(CorePluginBase):
 

@@ -42,7 +42,7 @@ from deluge.log import LOG as log
 from common import isodate_to_datetime
 from lib import feedparser
 from datetime import datetime 
-from yarss.http import get_cookie_header
+from yarss2.http import get_cookie_header
 
 def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
 

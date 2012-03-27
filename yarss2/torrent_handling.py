@@ -46,8 +46,8 @@ from deluge.log import LOG as log
 from deluge.core.torrent import TorrentOptions
 from deluge._libtorrent import lt
 
-from yarss.http import get_cookie_header, url_fix
-from yarss.yarss_email import send_email
+from yarss2.http import get_cookie_header, url_fix
+from yarss2.yarss_email import send_email
 import common
 
 def download_torrent_file(torrent_url, cookie_header):

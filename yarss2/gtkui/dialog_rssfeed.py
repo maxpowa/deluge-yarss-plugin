@@ -46,7 +46,7 @@ from urlparse import urlparse
 from deluge.log import LOG as log
 import deluge.component as component
 
-from yarss.common import get_resource
+from yarss2.common import get_resource
 
 
 class DialogRSSFeed():
