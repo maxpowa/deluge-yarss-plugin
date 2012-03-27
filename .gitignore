@@ -1,6 +1,6 @@
 build/*
 dist/*
-yarss.egg-info/*
+YaRSS2.egg-info/*
 *.pyc
 *.pyo
 *.bak
