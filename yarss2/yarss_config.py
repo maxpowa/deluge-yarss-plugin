@@ -93,7 +93,7 @@ class YARSSConfig(object):
         if data_dict is not None and type(data_dict) != dict:
             raise ValueError("generic_save_config: data_dict must be a dictionary: '%s'" % str(data_dict))
         
-        if not DEFAULT_PREFS.has_key(config_name):
+        if not default_prefs().has_key(config_name):
             raise ValueError("Invalid config key:" + str(config_name))
 
         config = self.config[config_name]
