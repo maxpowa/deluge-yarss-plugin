@@ -43,10 +43,10 @@
 import pkg_resources
 import datetime
 import os
+from deluge.log import LOG as log
 
-
-def get_resource(filename):
-    return pkg_resources.resource_filename("yarss2", os.path.join("data", filename))
+def get_resource(filename, path="data"):
+    return pkg_resources.resource_filename("yarss2", os.path.join(path, filename))
 
 def get_default_date():
     return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
@@ -56,16 +56,35 @@ def isodate_to_datetime(date_in_isoformat):
         return datetime.datetime.strptime(date_in_isoformat, "%Y-%m-%dT%H:%M:%S")
     except ValueError:
         return get_default_date()
+
+def string_to_unicode(string):
+    if type(string) is unicode:
+        # Already unicode
+        return string
+    try:
+        return string.decode("utf-8")
+    except:
+        log.warn("YARSS: string_to_unicode: tailed to convert '%s' to unicode." % string)
+        return string
+
+def get_new_dict_key(dictionary, string_key=True):
+    """Returns the first unused key in the dictionary. 
+    string_key: if True, use strings as key, else use int
+    """
+    key = 0
+    while dictionary.has_key(str(key) if string_key else key):
+        key += 1
+    return str(key) if string_key else key
     
-def get_selected_in_treeview(treeview, store):
-    """Helper to get the key of the selected element in the given treeview
+def get_value_in_selected_row(treeview, store, column_index=0):
+    """Helper to get the value at index 'index_column' of the selected element 
+    in the given treeview.
     return None of no item is selected.
-    The key must be in the first column of the ListStore
     """
     tree, tree_id = treeview.get_selection().get_selected()
     if tree_id:
-        key = str(store.get_value(tree_id, 0))
-        return key
+        value = store.get_value(tree_id, column_index)
+        return value
     return None
 
 def write_to_file(filepath, content):

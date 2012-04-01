@@ -45,6 +45,7 @@
                       <widget class="GtkButton" id="button_edit_subscription">
                         <property name="label" translatable="yes">Edit Subscription</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
@@ -60,6 +61,7 @@
                       <widget class="GtkButton" id="button_delete_subscription">
                         <property name="label" translatable="yes">Delete subscription</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
@@ -90,7 +92,7 @@
               <widget class="GtkScrolledWindow" id="subscriptions_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hadjustment">0 0 574 57.400000000000006 516.60000000000002 574</property>
+                <property name="hadjustment">0 0 551 55.100000000000001 495.90000000000003 551</property>
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
@@ -157,6 +159,7 @@
                       <widget class="GtkButton" id="button_edit_rssfeed">
                         <property name="label" translatable="yes">Edit Feed</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
@@ -172,6 +175,7 @@
                       <widget class="GtkButton" id="button_delete_rssfeed">
                         <property name="label" translatable="yes">Delete Feed</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
@@ -389,6 +393,7 @@
                                               <widget class="GtkButton" id="button_edit_message">
                                                 <property name="label" translatable="yes">Edit Message</property>
                                                 <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
                                                 <property name="use_action_appearance">False</property>
@@ -404,6 +409,7 @@
                                               <widget class="GtkButton" id="button_delete_message">
                                                 <property name="label" translatable="yes">Delete Message</property>
                                                 <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
                                                 <property name="use_action_appearance">False</property>
@@ -994,9 +1000,10 @@
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button5">
+                              <widget class="GtkButton" id="button_edit_cookie">
                                 <property name="label" translatable="yes">Edit</property>
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="use_action_appearance">False</property>
@@ -1009,9 +1016,10 @@
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button6">
+                              <widget class="GtkButton" id="button_delete_cookie">
                                 <property name="label" translatable="yes">Delete</property>
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="use_action_appearance">False</property>

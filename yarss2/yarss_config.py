@@ -1,10 +1,8 @@
+# -*- coding: utf-8 -*- 
 #
-# dialog_email_message.py
+# yarss_config.py
 #
 # Copyright (C) 2012 Bro
-#
-# Based on work by:
-# Copyright (C) 2009 Camillo Dell'mour <cdellmour@gmail.com>
 #
 # Basic plugin template created by:
 # Copyright (C) 2008 Martijn Voncken <mvoncken@gmail.com>
@@ -42,24 +40,33 @@
 
 from deluge.log import LOG as log
 
-from common import get_default_date
+from common import get_default_date, get_new_dict_key
 import deluge.configmanager
 
+import copy
+
 DEFAULT_UPDATE_INTERVAL = 120
-DEFAULT_PREFS = {
+
+__DEFAULT_PREFS = {
     "email_configurations": {},
     "rssfeeds":{},
     "subscriptions":{},
     "cookies":{},
     "email_messages":{}
-}
+    }
 
+def default_prefs():
+    return copy.deepcopy(__DEFAULT_PREFS)
 
 class YARSSConfig(object):
 
-    def __init__(self):
-        self.config = deluge.configmanager.ConfigManager("yarss2.conf", DEFAULT_PREFS)
-        self.verify_config()
+    def __init__(self, config=None):
+        # Used for testing
+        if config is not None:
+            self.config = config
+        else:
+            self.config = deluge.configmanager.ConfigManager("yarss2.conf", default_prefs())
+            self.verify_config()
 
     def save(self):
         self.config.save()
@@ -73,13 +80,6 @@ class YARSSConfig(object):
         for key in config.keys():
             self.config[key] = config[key]
         self.config.save()
-
-    def get_new_config_key(self, dictionary):
-        """Returns the first unused key in the dictionary that is a integer, as string"""
-        key = 0
-        while (dictionary.has_key(str(key))):
-            key += 1
-        return str(key)
 
     def generic_save_config(self, config_name, dict_key=None, data_dict=None, delete=False):
         """Save email message to config. 
@@ -116,7 +116,7 @@ class YARSSConfig(object):
         else: # Save config
             # The entry to save does not have an item 'key'. This means it's a new entry in the config
             if not data_dict.has_key("key"):
-                dict_key = self.get_new_config_key(config)
+                dict_key = get_new_dict_key(config)
                 data_dict["key"] = dict_key
             else:
                 dict_key = data_dict["key"]
@@ -168,6 +168,7 @@ class YARSSConfig(object):
                 return key_diff
         # Set new keys
         for key in key_diff:
+            log.info("YARSS: Insert missing config key %s" % key)
             config_dict[key] = default_config[key]
         return key_diff
 
@@ -203,7 +204,6 @@ def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update=
                        update_interval=DEFAULT_UPDATE_INTERVAL):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
-    #config_dict["key"] = self.get_new_config_key(self.config["rssfeeds"])
     config_dict["name"] = name
     config_dict["url"] = url
     config_dict["site"] = site
@@ -214,7 +214,7 @@ def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update=
 
 
 def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", regex_exclude="", 
-                            active=True, search=True, move_completed="",
+                            active=True, move_completed="",
                             last_update=get_default_date().isoformat()):
     """Create a new config """
     config_dict = {}
@@ -225,9 +225,9 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     config_dict["regex_exclude_ignorecase"] = True
     config_dict["name"] = name
     config_dict["active"] = active
-    config_dict["search"] = search
     config_dict["last_update"] = last_update
     config_dict["move_completed"] = move_completed
+    config_dict["custom_text_lines"] = ""
     config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {}
     return config_dict

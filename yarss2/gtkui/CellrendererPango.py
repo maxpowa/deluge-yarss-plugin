@@ -24,6 +24,10 @@ class CellrendererPango(gtk.CellRendererText):
         
     def __init__(self):
         gtk.CellRendererText.__init__(self)
+        self.include_color_string = "#73a6f9"
+        self.exclude_color_string = "#f31010"
+        self.include_color = gtk.gdk.color_parse(self.include_color_string)
+        self.exclude_color = gtk.gdk.color_parse(self.exclude_color_string)
 
     def __getattr__(self, name):
         try:
@@ -60,45 +64,39 @@ class CellrendererPango(gtk.CellRendererText):
     def do_render(self, window, widget, background_area, cell_area, expose_area, flags):
         cairo_context = pangocairo.CairoContext(window.cairo_create())
         layout = self.get_layout(widget)
-        
-        #include_color_string = "#2400ff"
-        include_color_string = "#73a6f9"
-        exclude_color_string = "#f31010"
-               
-        include_color = gtk.gdk.color_parse(include_color_string)
-        exclude_color = gtk.gdk.color_parse(exclude_color_string)
-        
-        attributes_dict = {}
-        attributes_dict["regex_include_match"] = (0, 17)
-        attributes_dict["regex_exclude_match"] = (14, 30)
-        customAttr = CustomAttribute(attributes_dict=attributes_dict)
         customAttr = self.get_property("custom")
     
         def set_attr(layout):
+            attr = pango.AttrList()
+            size = pango.AttrSize(int(11.5 * pango.SCALE), 0, -1)
+            attr.insert(size)
             if customAttr and customAttr.attributes_dict:
                 attributes_dict = customAttr.attributes_dict
-                attr = pango.AttrList()
+             
                 if attributes_dict.has_key("regex_include_match"):
                     start, end = attributes_dict["regex_include_match"]
-                    pango_color = pango.AttrBackground(include_color.red, include_color.green, 
-                                                    include_color.blue, start, end)
+                    pango_color = pango.AttrBackground(self.include_color.red, self.include_color.green, 
+                                                       self.include_color.blue, start, end)
                     attr.insert(pango_color)
                 if attributes_dict.has_key("regex_exclude_match"):
                     start, end = attributes_dict["regex_exclude_match"]
-                    pango_color = pango.AttrForeground(exclude_color.red, exclude_color.green, 
-                                                    exclude_color.blue, start, end)
+                    pango_color = pango.AttrForeground(self.exclude_color.red, self.exclude_color.green, 
+                                                       self.exclude_color.blue, start, end)
                     attr.insert(pango_color)
-                layout.set_attributes(attr)
+            layout.set_attributes(attr)
         
-        text = unicode(self.get_text())
-
-        set_attr(layout)
+        text = self.get_text()
         layout.set_text(text)
+        set_attr(layout)
+
+        # Vertically align the text
+        cell_area.y += 2
+        cell_area.x += 1
+
         cairo_context.move_to(cell_area.x, cell_area.y)
         cairo_context.show_layout(layout)
 
     def do_get_size(self, widget, cell_area=None):
-        #return (0, 0, self.custom.get_width(), self.custom.get_height())
         return gtk.CellRendererText.do_get_size(self, widget, cell_area)
 
 gobject.type_register(CellrendererPango)

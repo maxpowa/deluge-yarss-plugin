@@ -53,7 +53,7 @@ from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
 
 from yarss2.torrent_handling import send_torrent_email
-from yarss2.common import get_resource, get_selected_in_treeview
+from yarss2.common import get_resource, get_value_in_selected_row
 from yarss2.http import encode_cookie_values
 from yarss2 import yarss_config
 
@@ -146,6 +146,12 @@ class GtkUI(GtkPluginBase):
         client.yarss2.save_cookie(dict_key=cookie_key, cookie_data=cookie_data, 
                                  delete=delete).addCallback(self.cb_get_config)
 
+    def save_email_config(self, email_config):
+        client.yarss2.save_email_configurations(email_config)
+
+    def add_torrent(self, torrent_link):
+        client.yarss2.add_torrent(torrent_link)
+
 
 ##############################
 # Update config and lists data
@@ -188,7 +194,7 @@ class GtkUI(GtkPluginBase):
         self.email_config["default_email_to_address"] = default_to_address
         self.email_config["default_email_subject"] = default_subject
         self.email_config["default_email_message"] = default_message
-        client.yarss2.save_email_configurations(self.email_config)
+        self.save_email_config(self.email_config)
 
     def on_show_prefs(self):
         """Called when showing preferences window"""
@@ -335,7 +341,7 @@ class GtkUI(GtkPluginBase):
         subscriptions_box.pack_start(subscriptions_window, True, True, 0)
 
         self.subscriptions_treeview = gtk.TreeView(self.subscriptions_store)
-        self.subscriptions_treeview.connect("cursor-changed", self.on_subscription_listitem_activated)
+        self.subscriptions_treeview.get_selection().connect("changed", self.on_subscription_listitem_activated)
         self.subscriptions_treeview.connect("row-activated", self.on_button_edit_subscription_clicked)
         self.subscriptions_treeview.set_rules_hint(True)
         self.subscriptions_treeview.connect('button-press-event', 
@@ -384,14 +390,14 @@ class GtkUI(GtkPluginBase):
         menuitem.connect("activate", self.on_button_run_subscription_clicked)
     
     def on_button_run_subscription_clicked(self, menuitem):
-        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
-        self.subscriptions[key]["last_update"] = ""
-        self.save_subscription(self.subscriptions[key])
+        key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
+            self.subscriptions[key]["last_update"] = ""
+            self.save_subscription(self.subscriptions[key])
             client.yarss2.rssfeed_update_handler(None, subscription_key=key)
 
     def on_subscription_list_button_press_event(self, treeview, event):
-        """Shows popup on selected row"""
+        """Shows popup on selected row when right clicking"""
         if event.button == 3:
             x = int(event.x)
             y = int(event.y)
@@ -413,8 +419,8 @@ class GtkUI(GtkPluginBase):
         rssfeeds_box = self.glade.get_widget("rssfeeds_box")
         
         self.rssfeeds_treeview = gtk.TreeView(self.rssfeeds_store)
-        #self.subscriptions_treeview.connect("cursor-changed", self.on_listitem_activated)
         self.rssfeeds_treeview.connect("row-activated", self.on_button_edit_rssfeed_clicked)
+        self.rssfeeds_treeview.get_selection().connect("changed", self.on_rssfeed_listitem_activated)
         self.rssfeeds_treeview.set_rules_hint(True)
 
         self.create_feeds_columns(self.rssfeeds_treeview)
@@ -470,6 +476,7 @@ class GtkUI(GtkPluginBase):
         viewport = self.glade.get_widget("viewport_email_messages_list")
         self.email_messages_treeview = gtk.TreeView(self.email_messages_store)
         self.email_messages_treeview.connect("row-activated", self.on_button_edit_message_clicked)
+        self.email_messages_treeview.get_selection().connect("changed", self.on_notification_list_listitem_activated)
         self.email_messages_treeview.connect('button-press-event', 
                                             self.on_notification_list_button_press_event)
         self.create_messages_columns(self.email_messages_treeview)
@@ -508,14 +515,14 @@ class GtkUI(GtkPluginBase):
         treeview.append_column(column)
 
         self.test_email_send_menu = gtk.Menu()
-        menuitem = gtk.MenuItem("Send email now!")
+        menuitem = gtk.MenuItem("Send test email now!")
         self.test_email_send_menu.append(menuitem)
         menuitem.connect("activate", self.on_button_send_email_clicked)
     
     def on_button_send_email_clicked(self, menuitem):
-        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         # Send email
-        torrents = ["Name of torrent file"]
+        torrents = ["Torrent title"]
         send_torrent_email(self.email_config,
                            self.email_messages[key],
                            torrent_name_list=torrents, 
@@ -551,6 +558,7 @@ class GtkUI(GtkPluginBase):
         viewport = self.glade.get_widget("viewport_cookies_list")
         self.cookies_treeview = gtk.TreeView(self.cookies_store)
         self.cookies_treeview.connect("row-activated", self.on_button_edit_cookie_clicked)
+        self.cookies_treeview.get_selection().connect("changed", self.on_cookies_listitem_activated)
         self.create_cookies_columns(self.cookies_treeview)
         viewport.add(self.cookies_treeview)
         viewport.show_all()
@@ -618,12 +626,12 @@ class GtkUI(GtkPluginBase):
         return values
 
     def on_button_delete_subscription_clicked(self,Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             self.save_subscription(None, subscription_key=key, delete=True)
 
     def on_button_edit_subscription_clicked(self, Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.subscriptions_treeview, self.subscriptions_store)
+        key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             if col and col.get_title() == 'Active':
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
@@ -657,12 +665,12 @@ class GtkUI(GtkPluginBase):
         rssfeed_dialog.show()
 
     def on_button_delete_rssfeed_clicked(self,Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
+        key = get_value_in_selected_row(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             self.save_rssfeed(None, rssfeed_key=key, delete=True)
             
     def on_button_edit_rssfeed_clicked(self, Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.rssfeeds_treeview, self.rssfeeds_store)
+        key = get_value_in_selected_row(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -681,7 +689,6 @@ class GtkUI(GtkPluginBase):
             self.glade.get_widget('button_edit_rssfeed').set_sensitive(False)
             self.glade.get_widget('button_delete_rssfeed').set_sensitive(False)
 
-
 #############################
 # EMAIL MESSAGE callbacks
 #############################
@@ -696,7 +703,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_message_clicked(self, Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -707,7 +714,7 @@ class GtkUI(GtkPluginBase):
                 edit_message_dialog.show()
 
     def on_button_delete_message_clicked(self, button):
-        key = get_selected_in_treeview(self.email_messages_treeview, self.email_messages_store)
+        key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         if key:
             # Delete from core config
             self.save_email_message(None, email_message_key=key, delete=True)
@@ -716,6 +723,15 @@ class GtkUI(GtkPluginBase):
         auth_enable = self.glade.get_widget("checkbox_email_enable_authentication")
         self.glade.get_widget("txt_email_username").set_sensitive(auth_enable.get_active())
         self.glade.get_widget("txt_email_password").set_sensitive(auth_enable.get_active())
+
+    def on_notification_list_listitem_activated(self, treeview):
+        tree, tree_id = self.email_messages_treeview.get_selection().get_selected()
+        if tree_id:
+            self.glade.get_widget('button_edit_message').set_sensitive(True)
+            self.glade.get_widget('button_delete_message').set_sensitive(True)
+        else:
+            self.glade.get_widget('button_edit_message').set_sensitive(False)
+            self.glade.get_widget('button_delete_message').set_sensitive(False)
 
 
 ##############################
@@ -727,7 +743,7 @@ class GtkUI(GtkPluginBase):
         dialog.show()
 
     def on_button_edit_cookie_clicked(self, Event=None, a=None, col=None):
-        key = get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
+        key = get_value_in_selected_row(self.cookies_treeview, self.cookies_store)
         if key:
             if col and col.get_title() == 'Active':
                 # Save to config
@@ -738,7 +754,16 @@ class GtkUI(GtkPluginBase):
                 dialog_cookie.show()
 
     def on_button_delete_cookie_clicked(self, button):
-        key = get_selected_in_treeview(self.cookies_treeview, self.cookies_store)
+        key = get_value_in_selected_row(self.cookies_treeview, self.cookies_store)
         if key:
             # Delete from core config
             self.save_cookie(None, cookie_key=key, delete=True)
+
+    def on_cookies_listitem_activated(self, treeview):
+        tree, tree_id = self.cookies_treeview.get_selection().get_selected()
+        if tree_id:
+            self.glade.get_widget('button_edit_cookie').set_sensitive(True)
+            self.glade.get_widget('button_delete_cookie').set_sensitive(True)
+        else:
+            self.glade.get_widget('button_edit_cookie').set_sensitive(False)
+            self.glade.get_widget('button_delete_cookie').set_sensitive(False)

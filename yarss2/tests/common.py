@@ -1,0 +1,129 @@
+# -*- coding: utf-8 -*-
+#
+# common.py
+#
+# Copyright (C) 2012 Bro
+#
+# Deluge is free software.
+#
+# You may redistribute it and/or modify it under the terms of the
+# GNU General Public License, as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option)
+# any later version.
+#
+# deluge is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with deluge.    If not, write to:
+# 	The Free Software Foundation, Inc.,
+# 	51 Franklin Street, Fifth Floor
+# 	Boston, MA  02110-1301, USA.
+#
+#    In addition, as a special exception, the copyright holders give
+#    permission to link the code of portions of this program with the OpenSSL
+#    library.
+#    You must obey the GNU General Public License in all respects for all of
+#    the code used other than OpenSSL. If you modify file(s) with this
+#    exception, you may extend this exception to your version of the file(s),
+#    but you are not obligated to do so. If you do not wish to do so, delete
+#    this exception statement from your version. If you delete this exception
+#    statement from all source files in the program, then also delete it here.
+#
+
+from twisted.trial import unittest
+
+import deluge.config
+import tempfile
+import deluge.configmanager
+
+import yarss2.common
+
+import deluge.log
+deluge.log.setupLogger("none")
+
+def get_default_subscriptions(count):
+    subscriptions = {}
+    for i in range(count):
+        subscriptions[str(i)] = {"name": "Non-matching subscription", "rssfeed_key": "0", "active": True, 
+                                 "regex_include": None, "regex_exclude": None, "regex_include_ignorecase": True, 
+                                 "regex_exclude_ignorecase": True, 
+                                 "last_update": yarss2.common.get_default_date().isoformat()}
+    return subscriptions
+
+
+def get_default_rssfeeds(count):
+    d = {}
+    for i in range(count):
+        d[str(i)] = {"name": "", "url": "", "last_update": "", "key": "0", "active": True, "site": "", "update_interval": 1}
+    return d
+
+def get_empty_test_config():
+    config_dir = get_tmp_dir()
+    deluge_config = deluge.config.Config("yarss_test.conf", yarss2.yarss_config.default_prefs(), config_dir=config_dir)
+    config = yarss2.yarss_config.YARSSConfig(deluge_config)
+    return config
+
+def get_tmp_dir():
+    config_directory = tempfile.mkdtemp()
+    deluge.configmanager.set_config_dir(config_directory)
+    return config_directory
+
+
+import deluge.common
+json = deluge.common.json
+
+# http://torrents.freebsd.org:8080/rss.xml
+testdata_rssfeed_filename = "freebsd_rss.xml"
+testdata_rss_itmes_json_filename = "freebsd_rss_items_dump.json"
+
+def load_json_testdata():
+    return json_load(testdata_rss_itmes_json_filename)
+
+def json_load(filename):
+    def datetime_parse(dct):
+        if "updated_datetime" in dct:
+            dct["updated_datetime"] = yarss2.common.isodate_to_datetime(dct["updated_datetime"])
+        return dct
+
+    filename = yarss2.common.get_resource(filename, path="tests")
+    f = open(filename, "r") 
+    d = json.load(f, object_hook=datetime_parse)
+    f.close()
+    return d
+
+def json_dump(obj, filename):
+    filename = yarss2.common.get_resource(filename, path="tests")
+    f = open(filename, "wb") 
+    json.dump(obj, f, indent=2, cls=DatetimeEncoder)
+    f.flush()
+    f.close()
+
+class DatetimeEncoder(json.JSONEncoder):
+     def default(self, obj):
+         if isinstance(obj, datetime.datetime):
+             return obj.isoformat()
+         return json.JSONEncoder.default(self, obj)
+
+
+def dicts_equals(dict1, dict2):
+    key_diff = set(dict1.keys()) - set(dict2.keys())
+    if key_diff:
+        print "keys differ:", key_diff
+        print "updated:", dict1["updated_datetime"]
+        return False
+
+    for key in dict1.keys():
+        if type(dict1[key]) is dict:
+            if not dicts_equals(dict1[key], dict2[key]):
+                return False
+        else:
+            # Compare values
+            if dict1[key] != dict2[key]:
+                #print "values differ"
+                #print "dict1[%s]:%s" % (key, dict1[key])
+                #print "dict2[%s]:%s" % (key, dict2[key])
+                return False
+    return True

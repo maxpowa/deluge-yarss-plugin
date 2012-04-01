@@ -38,14 +38,19 @@
 #
 
 import re
+import traceback
 from deluge.log import LOG as log
-from common import isodate_to_datetime
+from common import isodate_to_datetime, string_to_unicode, get_new_dict_key
 from lib import feedparser
 from datetime import datetime 
 from yarss2.http import get_cookie_header
 
 def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
-
+    """
+    rssfeed_data: A dictionary containing rss feed data as stored in the YaRSS2 config.
+    cookies: A dictionary of cookie values as stored in the YaRSS2 config. cookie_header paramamer will not be used
+    cookie_header: A dictionary of cookie values as returned by yarss2.http.get_cookie_header.
+    """
     return_dict = {}
     rssfeeds_dict = {}
 
@@ -67,19 +72,27 @@ def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
     for item in parsed_feeds['items']:
         updated = item['updated_parsed']
         dt = datetime(* updated[:6])
-        rssfeeds_dict[key] = {}
-        rssfeeds_dict[key]["title"] = item['title']
-        rssfeeds_dict[key]["link"] = item['link']
-        rssfeeds_dict[key]["updated_datetime"] = dt
-        rssfeeds_dict[key]["updated"] = dt.isoformat()
-        rssfeeds_dict[key]["matches"] = False
+        rssfeeds_dict[str(key)] = new_rssfeeds_dict_item(item['title'], item['link'], dt)
         key += 1
 
     if key > 0:
         return_dict["items"] = rssfeeds_dict
     return return_dict
 
-def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
+def new_rssfeeds_dict_item(title, link=None, updated_datetime=None, key=None):
+    d = {}
+    d["title"] = title
+    d["link"] = link
+    d["updated_datetime"] = updated_datetime
+    d["matches"] = False
+    d["updated"] = ""
+    if updated_datetime:
+        d["updated"] = updated_datetime.isoformat()
+    if key is not None:
+        d["key"] = key
+    return d
+
+def update_rssfeeds_dict_matching(rssfeed_parsed, options):
     """rssfeed_parsed: Dictionary returned by get_rssfeed_parsed_dict
     options, a dictionary with thw following keys:
     * "regex_include": str
@@ -90,26 +103,55 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
     Updates the items in rssfeed_parsed
     Return: a dictionary of the matching items only.
     """
+    # regex and title are converted from utf-8 unicode to ascii strings before matching
+    # This is because the indexes returned by span must be the byte index of the text, 
+    # because Pango attributes takes the byte index, and not character index.
+
     matching_items = {}
     p_include = p_exclude = None
+    message = None
+
+    # Remove old custom lines
+    for key in rssfeed_parsed.keys():
+        if rssfeed_parsed[key]["link"] is None:
+            del rssfeed_parsed[key]
+
+    if options.has_key("custom_text_lines") and options["custom_text_lines"]:
+        if not type(options["custom_text_lines"]) is list:
+            log.warn("YARSS: type of custom_text_lines' must be list")
+        else:
+            for l in options["custom_text_lines"]:
+                key = get_new_dict_key(rssfeed_parsed, string_key=False)
+                rssfeed_parsed[key] = new_rssfeeds_dict_item(l, key=key)
 
     if options["regex_include"] is not None:
         flags = re.IGNORECASE if options["regex_include_ignorecase"] else 0
         try:
-            p_include = re.compile(options["regex_include"], flags)
-        except:
+            regex = string_to_unicode(options["regex_include"])
+            regex = regex.encode("utf-8")
+            p_include = re.compile(regex, flags)
+        except Exception, e:
+            traceback.print_exc(e)
+            log.warn("YARSS: Regex compile error:" + str(e))
+            message = e
             p_include = None
 
     if options["regex_exclude"] is not None and options["regex_exclude"] != "":
         flags = re.IGNORECASE if options["regex_exclude_ignorecase"] else 0
         try:
-            p_exclude = re.compile(options["regex_exclude"], flags)
-        except:
+            regex = string_to_unicode(options["regex_exclude"])
+            regex = regex.encode("utf-8")
+            p_exclude = re.compile(regex, flags)
+        except Exception, e:
+            traceback.print_exc(e)
+            log.warn("YARSS: Regex compile error:" + str(e))
+            message = e
             p_exclude = None
 
     for key in rssfeed_parsed.keys():
         item = rssfeed_parsed[key]
         title = item["title"]
+        title = title.encode("utf-8")
 
         if item.has_key("regex_exclude_match"):
             del item["regex_exclude_match"]
@@ -122,7 +164,6 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
             if m:
                 item["matches"] = True
                 item["regex_include_match"] = m.span()
-        
         if p_exclude:
             m = p_exclude.search(title)
             if m:
@@ -130,7 +171,7 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options=None):
                 item["regex_exclude_match"] = m.span()
         if item["matches"]:
             matching_items[key] = rssfeed_parsed[key]
-    return matching_items
+    return matching_items, message
 
 
 def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
@@ -188,11 +229,9 @@ def fetch_subscription(subscription_data, rssfeed_data, fetch_data):
             log.warn("YARSS: No items retrieved")
             return
 
-    matches = update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=subscription_data)
+    matches, message = update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=subscription_data)
 
     last_update_dt = isodate_to_datetime(subscription_data["last_update"])
-
-    #log.info("Matches: %d" % len(matches.keys()))
 
     # Sort by time?
     for key in matches.keys():

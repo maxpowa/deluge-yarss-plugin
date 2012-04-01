@@ -44,7 +44,8 @@ from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
 from yarss2.yarss_config import YARSSConfig
-from yarss2.common import get_resource
+from yarss2.common import get_resource 
+from yarss2.http import get_cookie_header
 from yarss2 import torrent_handling
 from yarss2 import rssfeed_handling
 
@@ -69,7 +70,7 @@ class Core(CorePluginBase):
         for key in config["rssfeeds"]:
             timer = LoopingCall(self.rssfeed_update_handler, (config["rssfeeds"][key]["key"]))
             self.rssfeed_timers[key] = timer
-            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=True) # Multiply to get seconds
+            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
             log.info("YARSS: Starting timer for RSS Feed '%s' with interval %d minutes." % 
                      (config["rssfeeds"][key]['name'],
                       config["rssfeeds"][key]['update_interval']))
@@ -140,3 +141,8 @@ class Core(CorePluginBase):
         except ValueError as (v):
             log.error("save_email_message: Failed to save email message:" + str(v))
 
+    @export
+    def add_torrent(self, torrent_url):
+        cookie_header = get_cookie_header(self.yarss_config.get_config()["cookies"], torrent_url)
+        id = torrent_handling.add_torrent(torrent_url, cookie_header=cookie_header)
+        print "torrent added:", id

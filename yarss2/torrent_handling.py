@@ -72,18 +72,19 @@ def download_torrent_file(torrent_url, cookie_header):
         return None
     return filedump
 
-def add_torrent(torrent_url, cookie_header, subscription_data):
+def add_torrent(torrent_url, cookie_header, subscription_data=None):
     basename = os.path.basename(torrent_url)
     filedump = download_torrent_file(torrent_url, cookie_header)
     
     # Initialize options with default configurations
     options = TorrentOptions()
     
-    if len(subscription_data["move_completed"].strip()) > 0:
-        options["move_completed"] = True
-        options["move_completed_path"] = subscription_data["move_completed"].strip()
+    if subscription_data is not None:
+        if len(subscription_data["move_completed"].strip()) > 0:
+            options["move_completed"] = True
+            options["move_completed_path"] = subscription_data["move_completed"].strip()
+        options["add_paused"] = subscription_data["add_torrents_in_paused_state"]
 
-    options["add_paused"] = subscription_data["add_torrents_in_paused_state"]
     torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=basename, options=options)
     return torrent_id
 
