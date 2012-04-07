@@ -70,15 +70,16 @@ class DialogSubscription():
     def setup(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
         self.glade.signal_autoconnect({
-                "on_txt_regex_include_activate":       self.on_txt_regex_activate,
-                "on_txt_regex_exclude_activate":       self.on_txt_regex_activate,
+                "on_txt_regex_include_changed":        self.on_txt_regex_changed,
+                "on_txt_regex_exclude_changed":        self.on_txt_regex_changed,
                 "on_button_cancel_clicked":            self.on_button_cancel_clicked,
                 "on_button_save_clicked":              self.on_button_save_subscription_clicked,
                 "on_button_add_notication_clicked":    self.on_button_add_notication_clicked,
                 "on_button_remove_notication_clicked": self.on_button_remove_notication_clicked,
                 "on_rssfeed_selected":                 self.on_rssfeed_selected,
-                "on_panel_matching_move_handle":       self.on_panel_matching_move_handle
+                "on_panel_matching_move_handle":       self.on_panel_matching_move_handle,
                 })
+
         # This is to make testing of the GUI possible (tests/)
         self.method_perform_rssfeed_selection = self.perform_rssfeed_selection
         
@@ -94,6 +95,7 @@ class DialogSubscription():
         self.setup()
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.show()
+
 
 ########################################
 ## GUI creation
@@ -284,7 +286,7 @@ class DialogSubscription():
         d.addCallback(self.update_matching_view_with_rssfeed_results)
         return d
 
-    def on_txt_regex_activate(self, text_field):
+    def on_txt_regex_changed(self, text_field):
         """ Callback for when Enter is pressed in either of the regex fields """
         self.perform_search()
 
@@ -336,7 +338,7 @@ class DialogSubscription():
             if message is None:
                 label_status.set_text("")
             else:
-                label_status.set_text(message)
+                label_status.set_text(str(message))
         except Exception as (v):
             import traceback
             exc_str = traceback.format_exc(v)
@@ -584,7 +586,7 @@ class DialogSubscription():
         # Set active index
         self.glade.get_widget("combobox_rssfeeds").set_active(active_index)
         # Update matching
-        self.on_txt_regex_activate(None)
+        self.on_txt_regex_changed(None)
 
     def load_notifications_list_data(self):
         # Load notification messages into combo

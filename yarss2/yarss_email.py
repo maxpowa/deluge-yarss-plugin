@@ -39,16 +39,18 @@
 
 from deluge.log import LOG as log
 
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+# Mime is not included with Deluge on Windows.
+try:
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+except ImportError, e:
+    from yarss2.lib.mime.multipart import MIMEMultipart
+    from yarss2.lib.mime.text import MIMEText
+
 import smtplib
 
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
-
-    #print "send_email:", email_conf
-    #print "serve_conf:", server_conf
-
     # Send multipart message with text and html
     if email_conf.has_key("message"):
         # Send Multipart email
