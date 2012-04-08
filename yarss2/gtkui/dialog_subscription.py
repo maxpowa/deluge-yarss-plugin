@@ -78,6 +78,7 @@ class DialogSubscription():
                 "on_button_remove_notication_clicked": self.on_button_remove_notication_clicked,
                 "on_rssfeed_selected":                 self.on_rssfeed_selected,
                 "on_panel_matching_move_handle":       self.on_panel_matching_move_handle,
+                "on_button_fetch_clicked":             self.on_rssfeed_selected,
                 })
 
         # This is to make testing of the GUI possible (tests/)

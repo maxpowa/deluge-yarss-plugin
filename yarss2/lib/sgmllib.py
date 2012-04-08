@@ -8,7 +8,13 @@
 # and CDATA (character data -- only end tags are special).  RCDATA is
 # not supported at all.
 
-import _markupbase
+
+from warnings import warnpy3k
+warnpy3k("the sgmllib module has been removed in Python 3.0",
+         stacklevel=2)
+del warnpy3k
+
+import markupbase
 import re
 
 __all__ = ["SGMLParser", "SGMLParseError"]
@@ -51,7 +57,7 @@ class SGMLParseError(RuntimeError):
 # chunks).  Entity references are passed by calling
 # self.handle_entityref() with the entity reference as argument.
 
-class SGMLParser(_markupbase.ParserBase):
+class SGMLParser(markupbase.ParserBase):
     # Definition of entities -- derived classes may override
     entity_or_charref = re.compile('&(?:'
       '([a-zA-Z][-.a-zA-Z0-9]*)|#([0-9]+)'
@@ -70,7 +76,7 @@ class SGMLParser(_markupbase.ParserBase):
         self.lasttag = '???'
         self.nomoretags = 0
         self.literal = 0
-        _markupbase.ParserBase.reset(self)
+        markupbase.ParserBase.reset(self)
 
     def setnomoretags(self):
         """Enter literal mode (CDATA) till EOF.
@@ -381,8 +387,8 @@ class SGMLParser(_markupbase.ParserBase):
     # Example -- report an unbalanced </...> tag.
     def report_unbalanced(self, tag):
         if self.verbose:
-            print('*** Unbalanced </' + tag + '>')
-            print('*** Stack:', self.stack)
+            print '*** Unbalanced </' + tag + '>'
+            print '*** Stack:', self.stack
 
     def convert_charref(self, name):
         """Convert character reference, may be overridden."""
@@ -467,40 +473,40 @@ class TestSGMLParser(SGMLParser):
         data = self.testdata
         if data:
             self.testdata = ""
-            print('data:', repr(data))
+            print 'data:', repr(data)
 
     def handle_comment(self, data):
         self.flush()
         r = repr(data)
         if len(r) > 68:
             r = r[:32] + '...' + r[-32:]
-        print('comment:', r)
+        print 'comment:', r
 
     def unknown_starttag(self, tag, attrs):
         self.flush()
         if not attrs:
-            print('start tag: <' + tag + '>')
+            print 'start tag: <' + tag + '>'
         else:
-            print('start tag: <' + tag, end=' ')
+            print 'start tag: <' + tag,
             for name, value in attrs:
-                print(name + '=' + '"' + value + '"', end=' ')
-            print('>')
+                print name + '=' + '"' + value + '"',
+            print '>'
 
     def unknown_endtag(self, tag):
         self.flush()
-        print('end tag: </' + tag + '>')
+        print 'end tag: </' + tag + '>'
 
     def unknown_entityref(self, ref):
         self.flush()
-        print('*** unknown entity ref: &' + ref + ';')
+        print '*** unknown entity ref: &' + ref + ';'
 
     def unknown_charref(self, ref):
         self.flush()
-        print('*** unknown char ref: &#' + ref + ';')
+        print '*** unknown char ref: &#' + ref + ';'
 
     def unknown_decl(self, data):
         self.flush()
-        print('*** unknown decl: [' + data + ']')
+        print '*** unknown decl: [' + data + ']'
 
     def close(self):
         SGMLParser.close(self)
@@ -529,8 +535,8 @@ def test(args = None):
     else:
         try:
             f = open(file, 'r')
-        except IOError as msg:
-            print(file, ":", msg)
+        except IOError, msg:
+            print file, ":", msg
             sys.exit(1)
 
     data = f.read()

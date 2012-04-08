@@ -42,7 +42,7 @@ from setuptools import setup
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.development@gmail.com"
-__version__ = "1.0.2"
+__version__ = "1.0.2.2"
 __url__ = ""
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
