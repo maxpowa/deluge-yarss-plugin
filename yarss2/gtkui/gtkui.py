@@ -61,12 +61,12 @@ class GtkUI(GtkPluginBase):
 
     def enable(self):
         self.createUI()
+        self.on_show_prefs() # Necessary for the first time when the plugin is installed
 
     def disable(self):
         component.get("Preferences").remove_page("YaRSS2")
         component.get("PluginManager").deregister_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").deregister_hook("on_show_prefs", self.on_show_prefs)
-        pass
 
     def createUI(self):
         self.glade = gtk.glade.XML(get_resource("yarss_main.glade"))
