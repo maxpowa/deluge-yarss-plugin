@@ -195,3 +195,133 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 #Name:  FreeBSD-9.0-RELEASE-sparc64-bootonly
 #Name:  FreeBSD-9.0-RELEASE-sparc64-disc1
         
+
+
+
+####################################
+## Testing RSS Feed Timer
+####################################
+
+from yarss2.rssfeed_handling import RSSFeedTimer
+from common import get_default_rssfeeds
+
+class RSSFeedTimerTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.rssfeeds = get_default_rssfeeds(5)
+        self.rssfeeds["0"]["update_interval"] = 1
+        self.rssfeeds["1"]["update_interval"] = 3
+        self.rssfeeds["2"]["update_interval"] = 10
+        self.rssfeeds["3"]["update_interval"] = 30
+        self.rssfeeds["4"]["update_interval"] = 120
+
+        self.config = common.get_empty_test_config()     
+        self.config.set_config({"rssfeeds": self.rssfeeds, "email_configurations": {"send_email_on_torrent_events": False} })
+
+    def test_enable_timers(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        
+        # Now verify the timers
+        for key in timer.rssfeed_timers.keys():
+            # Is the timer running?
+            self.assertTrue(timer.rssfeed_timers[key]["timer"].running)
+            
+            # Does the timer have the correct interval?
+            interval = timer.rssfeed_timers[key]["timer"].interval
+            self.assertEquals(self.rssfeeds[key]["update_interval"] * 60, interval)
+            self.assertEquals(self.rssfeeds[key]["update_interval"], timer.rssfeed_timers[key]["update_interval"])
+        
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+
+    def test_disable_timers(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        timer.disable_timers()
+
+        # Now verify that the timers have been stopped
+        for key in timer.rssfeed_timers.keys():
+            # Is the timer running?
+            self.assertFalse(timer.rssfeed_timers[key]["timer"].running)
+
+    def test_delete_timer(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        # Delete timer
+        self.assertTrue(timer.delete_timer("0"))
+        self.assertFalse(timer.delete_timer("-1"))
+        
+        self.assertEquals(len(timer.rssfeed_timers.keys()), 4)
+        self.assertFalse(timer.rssfeed_timers.has_key("0"))
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+
+    def test_reschedule_timer(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        
+        # Change interval to 60 minutes
+        self.assertTrue(timer.set_timer("0", 60))
+
+        interval = timer.rssfeed_timers["0"]["timer"].interval
+        self.assertEquals(60 * 60, interval)
+        self.assertEquals(timer.rssfeed_timers["0"]["update_interval"], 60)
+        
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+
+    def test_schedule_timer(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        
+        # Add new timer (with key "5") with interval 60 minutes
+        self.assertTrue(timer.set_timer("5", 60))
+
+        # Verify timer values
+        interval = timer.rssfeed_timers["5"]["timer"].interval
+        self.assertEquals(60 * 60, interval)
+        self.assertEquals(timer.rssfeed_timers["5"]["update_interval"], 60)
+        
+        # Should now be 6 timers
+        self.assertEquals(len(timer.rssfeed_timers.keys()), 6)
+
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+
+
+    def test_interval_unchanged(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        # Set timer 0 with same interval
+        self.assertFalse(timer.set_timer("0", 1))
+        
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+
+
+    def test_rssfeed_update_handler(self):
+        timer = RSSFeedTimer(self.config)
+        timer.enable_timers()
+        
+        subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
+        self.config.set_config({"subscriptions": {"0": subscription} })
+        
+        # Check that last_update changes
+        old_last_update = self.rssfeeds["0"]["last_update"]
+        
+        # Run the rssfeed with key 0
+        timer.rssfeed_update_handler("0")
+        self.assertNotEquals(old_last_update, self.rssfeeds["0"]["last_update"])
+        
+        old_last_update = self.rssfeeds["0"]["last_update"]
+        
+        # Run the subscription with key 0 like when the user runs it manually
+        timer.rssfeed_update_handler(None, "0")
+        
+        # last_update should not have changed
+        self.assertEquals(old_last_update, self.rssfeeds["0"]["last_update"])
+        
+        # Must stop loopingcalls or test fails
+        timer.disable_timers()
+

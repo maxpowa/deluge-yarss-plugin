@@ -85,6 +85,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
     def run_select_rssfeed(self, subscription_config=None, callback_func=None):
         config = self.get_test_config()
+
         if not subscription_config:
             subscription_config = yarss_config.get_fresh_subscription_config()
         subscription_dialog = DialogSubscription(None, subscription_config, 
@@ -93,7 +94,6 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  {}, #self.email_messages,
                                                  {}) #self.cookies)
         subscription_dialog.setup()
-        #subscription_dialog.dialog.show()
     
         def pass_func(*arg):
             pass
@@ -103,7 +103,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         
         # Sets the index 0 of rssfeed combox activated.
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(0)
+        rssfeeds_combobox.set_active(1)
         
         d = subscription_dialog.perform_rssfeed_selection()
         d.addCallback(callback_func, subscription_dialog)
@@ -122,8 +122,9 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             dialog_subscription.subscription_data = subscription_config
             dialog_subscription.load_basic_fields_data()
             dialog_subscription.perform_search()
-            
+
             result = self.get_rssfeed_store_content(dialog_subscription)
+            
             p_include = re.compile(include_regex, re.IGNORECASE if subscription_config["regex_include_ignorecase"] else 0)
             p_exclude = re.compile(exclude_regex, re.IGNORECASE if subscription_config["regex_exclude_ignorecase"] else 0)
             match_count = 0
@@ -137,7 +138,6 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         d = self.run_select_rssfeed(callback_func=run_search_test)
         return d
-
 
     def compare_dicts_content(self, dict1, dict2):
         """Compares the content of two dictionaries. 

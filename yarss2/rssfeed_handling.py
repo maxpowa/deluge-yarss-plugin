@@ -37,13 +37,17 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import re
-import traceback
-from deluge.log import LOG as log
-from common import isodate_to_datetime, string_to_unicode, get_new_dict_key
+import re, traceback, datetime
+
+from twisted.internet.task import LoopingCall
+import deluge.component as component
+
 from lib import feedparser
-from datetime import datetime 
-from yarss2.http import get_cookie_header
+from yarss2 import torrent_handling
+from yarss2.yarss_config import YARSSConfigChangedEvent
+from yarss2 import http
+import common
+import yarss2.common as log
 
 def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
     """
@@ -55,29 +59,31 @@ def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
     rssfeeds_dict = {}
 
     if cookies:
-        cookie_header = get_cookie_header(cookies, rssfeed_data["site"])
+        cookie_header = http.get_cookie_header(cookies, rssfeed_data["site"])
 
-    parsed_feeds = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header)
+    log.info("Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_data["name"], cookie_header))
+
+    # Will abort after 10 seconds if server doesn't answer
+    parsed_feeds = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, timeout=10)
     return_dict["raw_result"] = parsed_feeds
-
-    log.info("YARSS: Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_data["name"], cookie_header))
 
     # Error parsing
     if parsed_feeds["bozo"] == 1:
-        log.warn("YARSS: Exception occured when fetching feed: %s" %
+        log.warn("Exception occured when fetching feed: %s" %
                  (str(parsed_feeds["bozo_exception"])))
         return_dict["bozo_exception"] = parsed_feeds["bozo_exception"]
 
     key = 0
     for item in parsed_feeds['items']:
         updated = item['updated_parsed']
-        dt = datetime(* updated[:6])
+        dt = datetime.datetime(* updated[:6])
         rssfeeds_dict[str(key)] = new_rssfeeds_dict_item(item['title'], item['link'], dt)
         key += 1
 
     if key > 0:
         return_dict["items"] = rssfeeds_dict
     return return_dict
+
 
 def new_rssfeeds_dict_item(title, link=None, updated_datetime=None, key=None):
     d = {}
@@ -91,6 +97,7 @@ def new_rssfeeds_dict_item(title, link=None, updated_datetime=None, key=None):
     if key is not None:
         d["key"] = key
     return d
+
 
 def update_rssfeeds_dict_matching(rssfeed_parsed, options):
     """rssfeed_parsed: Dictionary returned by get_rssfeed_parsed_dict
@@ -118,40 +125,37 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options):
 
     if options.has_key("custom_text_lines") and options["custom_text_lines"]:
         if not type(options["custom_text_lines"]) is list:
-            log.warn("YARSS: type of custom_text_lines' must be list")
+            log.warn("type of custom_text_lines' must be list")
         else:
             for l in options["custom_text_lines"]:
-                key = get_new_dict_key(rssfeed_parsed, string_key=False)
+                key = common.get_new_dict_key(rssfeed_parsed, string_key=False)
                 rssfeed_parsed[key] = new_rssfeeds_dict_item(l, key=key)
 
     if options["regex_include"] is not None:
         flags = re.IGNORECASE if options["regex_include_ignorecase"] else 0
         try:
-            regex = string_to_unicode(options["regex_include"])
-            regex = regex.encode("utf-8")
+            regex = common.string_to_unicode(options["regex_include"]).encode("utf-8")
             p_include = re.compile(regex, flags)
         except Exception, e:
             traceback.print_exc(e)
-            log.warn("YARSS: Regex compile error:" + str(e))
+            log.warn("Regex compile error:" + str(e))
             message = e
             p_include = None
 
     if options["regex_exclude"] is not None and options["regex_exclude"] != "":
         flags = re.IGNORECASE if options["regex_exclude_ignorecase"] else 0
         try:
-            regex = string_to_unicode(options["regex_exclude"])
-            regex = regex.encode("utf-8")
+            regex = common.string_to_unicode(options["regex_exclude"]).encode("utf-8")
             p_exclude = re.compile(regex, flags)
         except Exception, e:
             traceback.print_exc(e)
-            log.warn("YARSS: Regex compile error:" + str(e))
+            log.warn("Regex compile error:" + str(e))
             message = e
             p_exclude = None
 
     for key in rssfeed_parsed.keys():
         item = rssfeed_parsed[key]
-        title = item["title"]
-        title = title.encode("utf-8")
+        title = item["title"].encode("utf-8")
 
         if item.has_key("regex_exclude_match"):
             del item["regex_exclude_match"]
@@ -199,7 +203,7 @@ def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
             return fetch_data["matching_torrents"]
 
     rssfeed_data = config["rssfeeds"][rssfeed_key]
-    log.info("YARSS: Update handler executed on RSS Feed %s (%s) upate interval %d." %
+    log.info("Update handler executed on RSS Feed '%s (%s)' upate interval %d." %
              (rssfeed_data["name"], rssfeed_data["site"], rssfeed_data["update_interval"]))
 
     for key in config["subscriptions"].keys():
@@ -210,39 +214,114 @@ def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
 
         if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] == True:
             fetch_subscription(subscription_data, rssfeed_data, fetch_data)
+
+    if subscription_key is None:
+        # Update last_update value of the rssfeed only when rssfeed is run by the timer, 
+        # not when a subscription is run manually by the user
+        # Don't need microseconds. Remove because it requires changes to the GUI to not display them
+        dt = common.get_current_date().replace(microsecond=0)
+        rssfeed_data["last_update"] = dt.isoformat()
     return fetch_data["matching_torrents"]
 
 
 def fetch_subscription(subscription_data, rssfeed_data, fetch_data):
     """Search a feed with config 'subscription_data'"""
-    log.info("YARSS: Fetching subscription '%s'." % subscription_data["name"])
+    log.info("Fetching subscription '%s'." % subscription_data["name"])
     cookie_header = None
 
     if fetch_data["rssfeed_items"] is None:
-        fetch_data["cookie_header"] = get_cookie_header(fetch_data["cookies_dict"], rssfeed_data["site"])
+        fetch_data["cookie_header"] = http.get_cookie_header(fetch_data["cookies_dict"], rssfeed_data["site"])
         rssfeed_parsed = get_rssfeed_parsed(rssfeed_data, cookie_header=fetch_data["cookie_header"])
         if rssfeed_parsed.has_key("bozo_exception"):
-            log.warn("YARSS: bozo_exception when parsing rssfeed: %s" % str(rssfeed_parsed["bozo_exception"]))
+            log.warn("bozo_exception when parsing rssfeed: %s" % str(rssfeed_parsed["bozo_exception"]))
         if rssfeed_parsed.has_key("items"):
             fetch_data["rssfeed_items"] = rssfeed_parsed["items"]
         else:
-            log.warn("YARSS: No items retrieved")
+            log.warn("No items retrieved")
             return
 
     matches, message = update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=subscription_data)
 
-    last_update_dt = isodate_to_datetime(subscription_data["last_update"])
+    last_update_dt = common.isodate_to_datetime(subscription_data["last_update"])
 
     # Sort by time?
     for key in matches.keys():
         if last_update_dt < matches[key]["updated_datetime"]:
-            log.info("YARSS: Adding torrent:" + (matches[key]["link"]))
+            # Fixes urls with &amp.
+
+            matches[key]["link"] = http.url_fix(matches[key]["link"])
+            log.info("Adding torrent: '%s'" % (matches[key]["link"]))
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],
                                                     "cookie_header": fetch_data["cookie_header"],
                                                     "subscription_data": subscription_data})
         else:
-            log.info("YARSS: Not adding, old timestamp:" + matches[key]["title"])
+            log.info("Not adding because of old timestamp: '%s'" % matches[key]["title"])
             del matches[key]
 
+
+class RSSFeedTimer(object):
+
+    def __init__(self, config):
+        self.yarss_config = config
+        self.rssfeed_timers = {}
+
+    def enable_timers(self):
+        """Creates the LoopingCall timers, one for each RSS Feed"""
+        config = self.yarss_config.get_config()
+        for key in config["rssfeeds"]:
+            self.set_timer(config["rssfeeds"][key]["key"], config["rssfeeds"][key]['update_interval'])
+            log.info("Scheduled RSS Feed '%s' with interval %s" % 
+                     (config["rssfeeds"][key]["name"], config["rssfeeds"][key]["update_interval"]))
+
+    def disable_timers(self):
+        for key in self.rssfeed_timers.keys():
+            self.rssfeed_timers[key]["timer"].stop()
+        
+    def set_timer(self, key, interval):
+        """Schedule a timer for the specified interval."""
+        # Already exists, so reschedule if interval has changed
+        if self.rssfeed_timers.has_key(key):
+            # Interval is the same, so return
+            if self.rssfeed_timers[key]["update_interval"] == interval:
+                return False
+            self.rssfeed_timers[key]["timer"].stop()
+            self.rssfeed_timers[key]["update_interval"] = interval
+        else:
+            # New timer
+            # Second argument, the rssfeedkey is passed as argument in the callback method
+            timer = LoopingCall(self.rssfeed_update_handler, (key))
+            self.rssfeed_timers[key] = {"timer": timer, "update_interval": interval}
+        self.rssfeed_timers[key]["timer"].start(interval * 60, now=False) # Multiply to get seconds
+        return True
+
+    def delete_timer(self, key):
+        """Delete timer with the specified key."""
+        if not self.rssfeed_timers.has_key(key):
+            log.warn("Cannot delete timer. No timer with key %s" % key)
+            return False
+        self.rssfeed_timers[key]["timer"].stop()
+        del self.rssfeed_timers[key]
+        return True
+
+    def rssfeed_update_handler(self, rssfeed_key, subscription_key=None):
+        """Goes through all the feeds and runs the active ones.
+        Multiple subscriptions on one RSS Feed will download the RSS only once
+        """
+        if subscription_key:
+            log.info("Running Subscription '%s" % (self.yarss_config.get_config()["subscriptions"][subscription_key]["name"]))
+        elif rssfeed_key:
+            log.info("Running RSS Feed '%s" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
+        matching_torrents = fetch_subscription_torrents(self.yarss_config.get_config(), rssfeed_key, 
+                                                                         subscription_key=subscription_key)
+        def save_subscription_func(subscription_data):
+            self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)
+        
+        torrent_handling.add_torrents(save_subscription_func, matching_torrents, self.yarss_config.get_config())
+        # Send YARSSConfigChangedEvent to GUI with updated config.
+        try:
+            # Tests throws KeyError when running this method, so wrap this in try/except
+            component.get("EventManager").emit(YARSSConfigChangedEvent(self.yarss_config.get_config()))
+        except KeyError:
+            pass

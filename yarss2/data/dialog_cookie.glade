@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
-  <!-- interface-requires gtk+ 2.16 -->
+  <!-- interface-requires gtk+ 2.24 -->
   <!-- interface-naming-policy project-wide -->
   <widget class="GtkDialog" id="dialog_cookie">
     <property name="can_focus">False</property>
@@ -22,9 +22,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_cancel_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -38,9 +37,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_save_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -130,7 +128,7 @@
                                   <widget class="GtkLabel" id="label1">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Name/Key:</property>
+                                    <property name="label" translatable="yes">Name/Key</property>
                                   </widget>
                                   <packing>
                                     <property name="top_attach">1</property>
@@ -142,7 +140,7 @@
                                   <widget class="GtkLabel" id="label2">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Value:</property>
+                                    <property name="label" translatable="yes">Value</property>
                                   </widget>
                                   <packing>
                                     <property name="top_attach">2</property>
@@ -194,8 +192,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="use_action_appearance">False</property>
-                                    <signal name="clicked" handler="on_button_add_cookie_data_clicked" swapped="no"/>
+                                    <signal name="clicked" handler="on_button_add_cookie_data_clicked"/>
                                   </widget>
                                   <packing>
                                     <property name="right_attach">2</property>
@@ -287,8 +284,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
-                        <signal name="clicked" handler="on_button_remove_cookie_data_clicked" swapped="no"/>
+                        <signal name="clicked" handler="on_button_remove_cookie_data_clicked"/>
                       </widget>
                       <packing>
                         <property name="left_attach">2</property>

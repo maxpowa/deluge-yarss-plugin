@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 #
 # common.py
@@ -40,6 +41,7 @@ import tempfile
 import deluge.configmanager
 
 import yarss2.common
+from yarss2 import yarss_config
 
 import deluge.log
 deluge.log.setupLogger("none")
@@ -47,17 +49,15 @@ deluge.log.setupLogger("none")
 def get_default_subscriptions(count):
     subscriptions = {}
     for i in range(count):
-        subscriptions[str(i)] = {"name": "Non-matching subscription", "rssfeed_key": "0", "active": True, 
-                                 "regex_include": None, "regex_exclude": None, "regex_include_ignorecase": True, 
-                                 "regex_exclude_ignorecase": True, 
-                                 "last_update": yarss2.common.get_default_date().isoformat()}
+        subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(name="Non-matching subscription",
+                                                                           last_update=yarss2.common.get_default_date().isoformat(),
+                                                                           rssfeed_key="0", regex_include=None, regex_exclude=None)
     return subscriptions
-
 
 def get_default_rssfeeds(count):
     d = {}
     for i in range(count):
-        d[str(i)] = {"name": "", "url": "", "last_update": "", "key": "0", "active": True, "site": "", "update_interval": 1}
+        d[str(i)] = yarss_config.get_fresh_rssfeed_config(key=str(i))
     return d
 
 def get_empty_test_config():

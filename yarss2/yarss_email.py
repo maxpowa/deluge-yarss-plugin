@@ -37,7 +37,7 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from deluge.log import LOG as log
+import yarss2.common as log
 
 # Mime is not included with Deluge on Windows.
 try:
@@ -67,7 +67,7 @@ def send_email(email_conf, server_conf):
         # Send html message
         mime_message = MIMEText(email_conf["message"].encode('utf-8'), "html", _charset='utf-8')
     else:
-        log.warn("YARSS: Email config must contain either 'message' or 'message_html'")
+        log.warn("Email config must contain either 'message' or 'message_html'")
         return False
   
     mime_message["Subject"] = email_conf["subject"]
@@ -83,12 +83,12 @@ def send_email(email_conf, server_conf):
     try:
         mailServer = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
-        log.error("YARSS: There was an error sending the notification email: %s", e)
+        log.error("There was an error sending the notification email: %s" % e)
         return False
 
-    log.info("YARSS: Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" % \
+    log.info("Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" % \
                  (mime_message["To"], mime_message["From"], mime_message["Subject"]))
-    log.info("YARSS: Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"],
+    log.info("Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"],
                                                            server_conf["smtp_port"],
                                                            server_conf["smtp_authentication"]))
 
@@ -99,15 +99,15 @@ def send_email(email_conf, server_conf):
         try:
             mailServer.login(server_conf["smtp_username"], server_conf["smtp_password"])
         except smtplib.SMTPHeloError:
-            log.warning("YARSS: The server didn't reply properly to the helo greeting")
+            log.warn("The server didn't reply properly to the helo greeting")
         except smtplib.SMTPAuthenticationError:
-            log.warning("YARSS: The server didn't accept the username/password combination")
+            log.warn("The server didn't accept the username/password combination")
     try:
         mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
         mailServer.quit()
     except Exception, e:
-        log.error("YARSS: Sending email notification failed: %s", e)
+        log.error("Sending email notification failed: %s", e)
         return False
     else:
-        log.info("YARSS: Sending email notification of finished torrent was successful")
+        log.info("Sending email notification of finished torrent was successful")
     return True

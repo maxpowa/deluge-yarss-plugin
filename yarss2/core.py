@@ -37,9 +37,6 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from twisted.internet.task import LoopingCall
-
-from deluge.log import LOG as log
 from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
@@ -47,42 +44,32 @@ from yarss2.yarss_config import YARSSConfig
 from yarss2.common import get_resource 
 from yarss2.http import get_cookie_header
 from yarss2 import torrent_handling
-from yarss2 import rssfeed_handling
+from yarss2.rssfeed_handling import RSSFeedTimer
+import yarss2.common as log
+
 
 class Core(CorePluginBase):
 
-    def enable(self):
-        self.yarss_config = YARSSConfig()
-        self.setup_timers()
+    def enable(self, config=None):
+        if config is None:
+            self.yarss_config = YARSSConfig()
+        else:
+            self.yarss_config = config
+
+        self.rssfeed_timer = RSSFeedTimer(self.yarss_config)
+        self.rssfeed_timer.enable_timers()
+        log.info("Enabled YaRSS 1.0.3")
 
     def disable(self):
         self.yarss_config.save()
-        for key in self.rssfeed_timers.keys():
-            self.rssfeed_timers[key].stop()
+        self.rssfeed_timer.disable_timers()
 
     def update(self):
         pass
 
-    def setup_timers(self):
-        """Creates the LoopingCall timers, one for each RSS Feed"""
-        self.rssfeed_timers = {}
-        config = self.yarss_config.get_config()
-        for key in config["rssfeeds"]:
-            timer = LoopingCall(self.rssfeed_update_handler, (config["rssfeeds"][key]["key"]))
-            self.rssfeed_timers[key] = timer
-            timer.start(config["rssfeeds"][key]['update_interval'] * 60, now=False) # Multiply to get seconds
-            log.info("YARSS: Starting timer for RSS Feed '%s' with interval %d minutes." % 
-                     (config["rssfeeds"][key]['name'],
-                      config["rssfeeds"][key]['update_interval']))
-
     @export
-    def rssfeed_update_handler(self, rssfeed_key, subscription_key=None):
-        """Goes through all the feeds and runs the active ones.
-        Multiple subscriptions on one RSS Feed will download the RSS only once"""
-        matching_torrents = rssfeed_handling.fetch_subscription_torrents(self.yarss_config.get_config(), 
-                                                                         rssfeed_key, 
-                                                                         subscription_key=subscription_key)
-        torrent_handling.add_torrents(self, matching_torrents, self.yarss_config.get_config())
+    def initiate_rssfeed_update(self, rssfeed_key, subscription_key=None):
+        self.rssfeed_timer.rssfeed_update_handler(rssfeed_key, subscription_key=subscription_key)
 
     @export
     def set_config(self, config):
@@ -99,50 +86,72 @@ class Core(CorePluginBase):
         try:
             self.yarss_config.set_config(conf)
         except ValueError as (v):
-            log.error("save_email_configurations: Failed to save email configurations:" + str(v))
+            log.error("Failed to save email configurations:" + str(v))
 
     @export
     def save_subscription(self, dict_key=None, subscription_data=None, delete=False):
+        """Saves the subscription in subscription_data. 
+        If subscription_data is None and delete=True, delete subscription with key==dict_key
+        """
+        if delete:
+            if subscription_data is not None:
+                log.warn("save_subscription called with delete=True, but rssfeed_data is not None!")
+            else:
+                log.info("Deleting Subscription '%s'" % 
+                         self.yarss_config.get_config()["subscriptions"][dict_key]["name"])
         try:
             return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key, 
                                                          data_dict=subscription_data, delete=delete)
         except ValueError as (v):
-            log.error("save_subscription: Failed to save subscription:" + str(v))
-
+            log.error("Failed to save subscription:" + str(v))
+            
     @export
     def save_rssfeed(self, dict_key=None, rssfeed_data=None, delete=False):
+        """Saves the rssfeed in rssfeed_data. 
+        If rssfeed_data is None and delete=True, delete rssfeed with key==dict_key
+        """
         try:
-            return self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key, 
+            if delete:
+                if rssfeed_data is not None:
+                    log.warn("save_rssfeed called with delete=True, but rssfeed_data is not None!")
+                else:
+                    log.info("Stopping and deleting RSS Feed '%s'" % 
+                             self.yarss_config.get_config()["rssfeeds"][dict_key]["name"])
+
+            config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key, 
                                                          data_dict=rssfeed_data, delete=delete)
+            if delete is True:
+                self.rssfeed_timer.delete_timer(dict_key)            
+            # Successfully saved rssfeed, check if timer was changed
+            elif config:
+                if self.rssfeed_timer.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
+                    log.info("Scheduled RSS Feed '%s' with interval %s" % 
+                             (rssfeed_data["name"], rssfeed_data["update_interval"]))
+            return config
         except ValueError as (v):
-            log.error("save_rssfeed: Failed to save rssfeed:" + str(v))
+            log.error("Failed to save rssfeed:" + str(v))
 
     @export
     def save_cookie(self, dict_key=None, cookie_data=None, delete=False):
-        """Save cookie to config. If dict_key is None, create new key
-        If cookie_dict is None, delete cookie with key==dict_key"""
+        """Save cookie to config.
+        If cookie_data is None and delete=True, delete cookie with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("cookies", 
-                                                         dict_key=dict_key, 
-                                                         data_dict=cookie_data, 
-                                                         delete=delete)
+            return self.yarss_config.generic_save_config("cookies", dict_key=dict_key, 
+                                                         data_dict=cookie_data, delete=delete)
         except ValueError as (v):
-            log.error("save_cookie: Failed to save cookie:" + str(v))
+            log.error("Failed to save cookie:" + str(v))
 
     @export
     def save_email_message(self, dict_key=None, message_data=None, delete=False):
-        """Save email message to config. If dict_key is None, create new key
-        If message_dict is None, delete message with key==dict_key"""
+        """Save email message to config.
+        If message_data is None, delete message with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("email_messages", 
-                                                         dict_key=dict_key, 
-                                                         data_dict=message_data, 
-                                                         delete=delete)
+            return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key, 
+                                                         data_dict=message_data, delete=delete)
         except ValueError as (v):
-            log.error("save_email_message: Failed to save email message:" + str(v))
+            log.error("Failed to save email message:" + str(v))
 
     @export
     def add_torrent(self, torrent_url):
         cookie_header = get_cookie_header(self.yarss_config.get_config()["cookies"], torrent_url)
         id = torrent_handling.add_torrent(torrent_url, cookie_header=cookie_header)
-        print "torrent added:", id

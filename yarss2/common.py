@@ -42,7 +42,7 @@
 
 import pkg_resources
 import datetime
-import os
+import os, sys
 from deluge.log import LOG as log
 
 def get_resource(filename, path="data"):
@@ -50,6 +50,9 @@ def get_resource(filename, path="data"):
 
 def get_default_date():
     return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
+
+def get_current_date():
+    return datetime.datetime.now()
 
 def isodate_to_datetime(date_in_isoformat):
     try:
@@ -64,7 +67,7 @@ def string_to_unicode(string):
     try:
         return string.decode("utf-8")
     except:
-        log.warn("YARSS: string_to_unicode: tailed to convert '%s' to unicode." % string)
+        warn("string_to_unicode: Failed to convert '%s' to unicode." % string)
         return string
 
 def get_new_dict_key(dictionary, string_key=True):
@@ -88,6 +91,7 @@ def get_value_in_selected_row(treeview, store, column_index=0):
     return None
 
 def write_to_file(filepath, content):
+    """Used for debugging"""
     count = 0
     while os.path.isfile(filepath % count):
         count += 1
@@ -96,3 +100,28 @@ def write_to_file(filepath, content):
     local_file.write(content)
     local_file.close()
 
+def method_name():
+    return sys._getframe(3).f_code.co_name
+
+def filename():
+    fname = sys._getframe(3).f_code.co_filename
+    fname = os.path.splitext(os.path.basename(fname))[0]
+    return fname
+
+def linenumber():
+    return sys._getframe(3).f_lineno
+
+def debug(message):
+    log.debug(_msg(message))
+
+def info(message):
+    log.info(_msg(message))
+
+def warn(message):
+    log.warn(_msg(message))
+
+def error(message):
+    log.error(_msg(message))
+
+def _msg(msg):
+    return "%s.%s:%s: %s" % ("YaRSS2", filename(), linenumber(), msg)

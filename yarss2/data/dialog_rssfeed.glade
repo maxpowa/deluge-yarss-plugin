@@ -23,9 +23,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_cancel_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -39,9 +38,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_save_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -146,7 +144,7 @@
                       <widget class="GtkLabel" id="label_updatetime">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Update TIme (min):</property>
+                        <property name="label" translatable="yes">Update TIme (min)</property>
                       </widget>
                       <packing>
                         <property name="top_attach">2</property>

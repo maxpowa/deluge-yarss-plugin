@@ -65,6 +65,7 @@ class DialogRSSFeed():
         self.populate_data_fields()
         self.dialog = self.glade.get_widget("dialog_rssfeed")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
+        #self.glade.get_widget("spinbutton_updatetime").set_range(1, 30)
         self.dialog.run()
 
     def populate_data_fields(self):

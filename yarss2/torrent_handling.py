@@ -42,13 +42,14 @@ import os
 from twisted.internet import threads
 
 import deluge.component as component
-from deluge.log import LOG as log
 from deluge.core.torrent import TorrentOptions
 from deluge._libtorrent import lt
 
 from yarss2.http import get_cookie_header, url_fix
 from yarss2.yarss_email import send_email
-import common
+from yarss2 import common
+import yarss2.common as log
+
 
 def download_torrent_file(torrent_url, cookie_header):
     # Fix unicode URLs
@@ -59,8 +60,12 @@ def download_torrent_file(torrent_url, cookie_header):
     if cookie_header.has_key("Cookie"):
         opener.addheaders.append(("Cookie", cookie_header["Cookie"]))
 
-    webFile = opener.open(torrent_url)
-    filedump = webFile.read()
+    try:
+        webFile = opener.open(torrent_url)
+        filedump = webFile.read()
+    except Exception, e:
+        log.error("Failed to download torrent: %s", e)
+        return None
 
     # Get the info to see if any exceptions are raised
     try:
@@ -88,7 +93,7 @@ def add_torrent(torrent_url, cookie_header, subscription_data=None):
     torrent_id = component.get("TorrentManager").add(filedump=filedump, filename=basename, options=options)
     return torrent_id
 
-def add_torrents(core, torrent_list, config):
+def add_torrents(save_subscription_func, torrent_list, config):
 
     # Keys are the keys of the email_messages dictionary in the main config
     torrent_names = {}
@@ -96,10 +101,9 @@ def add_torrents(core, torrent_list, config):
         if not add_torrent(torrent_match["link"], 
                            torrent_match["cookie_header"], 
                            torrent_match["subscription_data"]):
-            log.info("Failed to add torrent %s." % torrent_match["title"])
-            
+            log.warn("Failed to add torrent %s." % torrent_match["title"])
         else:
-            log.info("Succesfully added torrent %s." % torrent_match["title"])
+            log.info("Succesfully added torrent '%s'." % torrent_match["title"])
             # Update subscription with date
             torrent_time = torrent_match["updated_datetime"]
             last_subscription_update = common.isodate_to_datetime(torrent_match["subscription_data"]["last_update"])
@@ -108,7 +112,7 @@ def add_torrents(core, torrent_list, config):
             if last_subscription_update < torrent_time:
                 torrent_match["subscription_data"]["last_update"] = torrent_time.isoformat()
                 # Save subsription with updated timestamp
-                core.save_subscription(subscription_data=torrent_match["subscription_data"])
+                save_subscription_func(subscription_data=torrent_match["subscription_data"])
 
             # Handle email notification
             # key is the dictionary key used in the email_messages config.
@@ -139,7 +143,7 @@ def send_torrent_email(email_configurations, email_msg, torrent_name_list=[],
     email_msg - a dictionary with the email data (as saved in the YARSS config)
     torrent_name_list - a list of strings containg the name of torrents
     """
-    log.info("YARSS: Sending email %s" % email_msg["name"])
+    log.info("Sending email '%s'" % email_msg["name"])
 
     email_conf = {}
     email_conf["to_address"] = email_msg["to_address"]

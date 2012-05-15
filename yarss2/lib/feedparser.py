@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Universal feed parser
 
 Handles RSS 0.9x, RSS 1.0, RSS 2.0, CDF, Atom 0.3, and Atom 1.0 feeds
@@ -9,9 +10,9 @@ Required: Python 2.4 or later
 Recommended: iconv_codec <http://cjkpython.i18n.org/>
 """
 
-__version__ = "5.1"
+__version__ = "5.1.2"
 __license__ = """
-Copyright (c) 2010-2011 Kurt McKee <contactme@kurtmckee.org>
+Copyright (c) 2010-2012 Kurt McKee <contactme@kurtmckee.org>
 Copyright (c) 2002-2008 Mark Pilgrim
 All rights reserved.
 
@@ -131,9 +132,10 @@ else:
 #   https://secure.wikimedia.org/wikipedia/en/wiki/URI_scheme
 # Many more will likely need to be added!
 ACCEPTABLE_URI_SCHEMES = (
-    'file', 'ftp', 'gopher', 'h323', 'hdl', 'http', 'https', 'imap', 'mailto',
-    'mms', 'news', 'nntp', 'prospero', 'rsync', 'rtsp', 'rtspu', 'sftp',
-    'shttp', 'sip', 'sips', 'snews', 'svn', 'svn+ssh', 'telnet', 'wais',
+    'file', 'ftp', 'gopher', 'h323', 'hdl', 'http', 'https', 'imap', 'magnet',
+    'mailto', 'mms', 'news', 'nntp', 'prospero', 'rsync', 'rtsp', 'rtspu',
+    'sftp', 'shttp', 'sip', 'sips', 'snews', 'svn', 'svn+ssh', 'telnet',
+    'wais',
     # Additional common-but-unofficial schemes
     'aim', 'callto', 'cvs', 'facetime', 'feed', 'git', 'gtalk', 'irc', 'ircs',
     'irc6', 'itms', 'mms', 'msnim', 'skype', 'ssh', 'smb', 'svn', 'ymsg',
@@ -142,6 +144,7 @@ ACCEPTABLE_URI_SCHEMES = (
 
 # ---------- required modules (should come with any Python distribution) ----------
 import cgi
+import codecs
 import copy
 import datetime
 import re
@@ -151,6 +154,7 @@ import types
 import urllib
 import urllib2
 import urlparse
+import warnings
 
 from htmlentitydefs import name2codepoint, codepoint2name, entitydefs
 
@@ -248,7 +252,7 @@ else:
             if match is not None:
                 # Returning a new object in the calling thread's context
                 # resolves a thread-safety.
-                return EndBracketMatch(match) 
+                return EndBracketMatch(match)
             return None
     class EndBracketMatch:
         def __init__(self, match):
@@ -280,6 +284,15 @@ try:
 except ImportError:
     BeautifulSoup = None
     PARSE_MICROFORMATS = False
+
+try:
+    # the utf_32 codec was introduced in Python 2.6; it's necessary to
+    # check this as long as feedparser supports Python 2.4 and 2.5
+    codecs.lookup('utf_32')
+except LookupError:
+    _UTF32_AVAILABLE = False
+else:
+    _UTF32_AVAILABLE = True
 
 # ---------- don't touch these ----------
 class ThingsNobodyCaresAboutButMe(Exception): pass
@@ -313,6 +326,7 @@ class FeedParserDict(dict):
               'date': 'updated',
               'date_parsed': 'updated_parsed',
               'description': ['summary', 'subtitle'],
+              'description_detail': ['summary_detail', 'subtitle_detail'],
               'url': ['href'],
               'modified': 'updated',
               'modified_parsed': 'updated_parsed',
@@ -335,6 +349,30 @@ class FeedParserDict(dict):
             for link in dict.__getitem__(self, 'links'):
                 if link['rel']==u'license' and 'href' in link:
                     return link['href']
+        elif key == 'updated':
+            # Temporarily help developers out by keeping the old
+            # broken behavior that was reported in issue 310.
+            # This fix was proposed in issue 328.
+            if not dict.__contains__(self, 'updated') and \
+                dict.__contains__(self, 'published'):
+                warnings.warn("To avoid breaking existing software while "
+                    "fixing issue 310, a temporary mapping has been created "
+                    "from `updated` to `published` if `updated` doesn't "
+                    "exist. This fallback will be removed in a future version "
+                    "of feedparser.", DeprecationWarning)
+                return dict.__getitem__(self, 'published')
+            return dict.__getitem__(self, 'updated')
+        elif key == 'updated_parsed':
+            if not dict.__contains__(self, 'updated_parsed') and \
+                dict.__contains__(self, 'published_parsed'):
+                warnings.warn("To avoid breaking existing software while "
+                    "fixing issue 310, a temporary mapping has been created "
+                    "from `updated_parsed` to `published_parsed` if "
+                    "`updated_parsed` doesn't exist. This fallback will be "
+                    "removed in a future version of feedparser.",
+                    DeprecationWarning)
+                return dict.__getitem__(self, 'published_parsed')
+            return dict.__getitem__(self, 'updated_parsed')
         else:
             realkey = self.keymap.get(key, key)
             if isinstance(realkey, list):
@@ -346,6 +384,11 @@ class FeedParserDict(dict):
         return dict.__getitem__(self, key)
 
     def __contains__(self, key):
+        if key in ('updated', 'updated_parsed'):
+            # Temporarily help developers out by keeping the old
+            # broken behavior that was reported in issue 310.
+            # This fix was proposed in issue 328.
+            return dict.__contains__(self, key)
         try:
             self.__getitem__(key)
         except KeyError:
@@ -561,7 +604,7 @@ class _FeedParserMixin:
     def unknown_starttag(self, tag, attrs):
         # increment depth counter
         self.depth += 1
-        
+
         # normalize attrs
         attrs = map(self._normalize_attributes, attrs)
 
@@ -687,7 +730,7 @@ class _FeedParserMixin:
             self.langstack.pop()
             if self.langstack: # and (self.langstack[-1] is not None):
                 self.lang = self.langstack[-1]
-        
+
         self.depth -= 1
 
     def handle_charref(self, ref):
@@ -941,6 +984,7 @@ class _FeedParserMixin:
                     # query variables in urls in link elements are improperly
                     # converted from `?a=1&b=2` to `?a=1&b;=2` as if they're
                     # unhandled character references. fix this special case.
+                    output = re.sub("&amp;", "&", output)
                     output = re.sub("&([A-Za-z0-9_]+);", "&\g<1>", output)
                     self.entries[-1][element] = output
                     if output:
@@ -1373,18 +1417,19 @@ class _FeedParserMixin:
         self.push('published', 1)
     _start_dcterms_issued = _start_published
     _start_issued = _start_published
+    _start_pubdate = _start_published
 
     def _end_published(self):
         value = self.pop('published')
         self._save('published_parsed', _parse_date(value), overwrite=True)
     _end_dcterms_issued = _end_published
     _end_issued = _end_published
+    _end_pubdate = _end_published
 
     def _start_updated(self, attrsD):
         self.push('updated', 1)
     _start_modified = _start_updated
     _start_dcterms_modified = _start_updated
-    _start_pubdate = _start_updated
     _start_dc_date = _start_updated
     _start_lastbuilddate = _start_updated
 
@@ -1394,7 +1439,6 @@ class _FeedParserMixin:
         self._save('updated_parsed', parsed_value, overwrite=True)
     _end_modified = _end_updated
     _end_dcterms_modified = _end_updated
-    _end_pubdate = _end_updated
     _end_dc_date = _end_updated
     _end_lastbuilddate = _end_updated
 
@@ -1467,8 +1511,9 @@ class _FeedParserMixin:
         self._start_category(attrsD)
 
     def _end_itunes_keywords(self):
-        for term in self.pop('itunes_keywords').split():
-            self._addTag(term, u'http://www.itunes.com/', None)
+        for term in self.pop('itunes_keywords').split(','):
+            if term.strip():
+                self._addTag(term.strip(), u'http://www.itunes.com/', None)
 
     def _start_itunes_category(self, attrsD):
         self._addTag(attrsD.get('text'), u'http://www.itunes.com/', None)
@@ -1635,8 +1680,8 @@ class _FeedParserMixin:
 
     def _start_source(self, attrsD):
         if 'url' in attrsD:
-          # This means that we're processing a source element from an RSS 2.0 feed
-          self.sourcedata['href'] = attrsD[u'url']
+            # This means that we're processing a source element from an RSS 2.0 feed
+            self.sourcedata['href'] = attrsD[u'url']
         self.push('source', 1)
         self.insource = 1
         self.title_depth = -1
@@ -1645,7 +1690,7 @@ class _FeedParserMixin:
         self.insource = 0
         value = self.pop('source')
         if value:
-          self.sourcedata['title'] = value
+            self.sourcedata['title'] = value
         self._getContext()['source'] = copy.deepcopy(self.sourcedata)
         self.sourcedata.clear()
 
@@ -1679,6 +1724,8 @@ class _FeedParserMixin:
         self.push('itunes_image', 0)
         if attrsD.get('href'):
             self._getContext()['image'] = FeedParserDict({'href': attrsD.get('href')})
+        elif attrsD.get('url'):
+            self._getContext()['image'] = FeedParserDict({'href': attrsD.get('url')})
     _start_itunes_link = _start_itunes_image
 
     def _end_itunes_block(self):
@@ -1761,7 +1808,7 @@ if _XML_AVAILABLE:
                 givenprefix = None
             prefix = self._matchnamespaces.get(lowernamespace, givenprefix)
             if givenprefix and (prefix == None or (prefix == '' and lowernamespace == '')) and givenprefix not in self.namespacesInUse:
-                    raise UndeclaredNamespace, "'%s' is not associated with a namespace" % givenprefix
+                raise UndeclaredNamespace, "'%s' is not associated with a namespace" % givenprefix
             localname = str(localname).lower()
 
             # qname implementation is horribly broken in Python 2.1 (it
@@ -1781,9 +1828,9 @@ if _XML_AVAILABLE:
                 localname = prefix.lower() + ':' + localname
             elif namespace and not qname: #Expat
                 for name,value in self.namespacesInUse.items():
-                     if name and value == namespace:
-                         localname = name + ':' + localname
-                         break
+                    if name and value == namespace:
+                        localname = name + ':' + localname
+                        break
 
             for (namespace, attrlocalname), attrvalue in attrs.items():
                 lowernamespace = (namespace or '').lower()
@@ -1810,9 +1857,9 @@ if _XML_AVAILABLE:
                 localname = prefix + ':' + localname
             elif namespace and not qname: #Expat
                 for name,value in self.namespacesInUse.items():
-                     if name and value == namespace:
-                         localname = name + ':' + localname
-                         break
+                    if name and value == namespace:
+                        localname = name + ':' + localname
+                        break
             localname = str(localname).lower()
             self.unknown_endtag(localname)
 
@@ -2512,7 +2559,7 @@ class _RelativeURIResolver(_BaseHTMLProcessor):
         self.baseuri = baseuri
 
     def resolveURI(self, uri):
-        return _makeSafeAbsoluteURI(_urljoin(self.baseuri, uri.strip()))
+        return _makeSafeAbsoluteURI(self.baseuri, uri.strip())
 
     def unknown_starttag(self, tag, attrs):
         attrs = self.normalize_attrs(attrs)
@@ -2530,15 +2577,24 @@ def _resolveRelativeURIs(htmlSource, baseURI, encoding, _type):
 def _makeSafeAbsoluteURI(base, rel=None):
     # bail if ACCEPTABLE_URI_SCHEMES is empty
     if not ACCEPTABLE_URI_SCHEMES:
-        return _urljoin(base, rel or u'')
+        try:
+            return _urljoin(base, rel or u'')
+        except ValueError:
+            return u''
     if not base:
         return rel or u''
     if not rel:
-        scheme = urlparse.urlparse(base)[0]
+        try:
+            scheme = urlparse.urlparse(base)[0]
+        except ValueError:
+            return u''
         if not scheme or scheme in ACCEPTABLE_URI_SCHEMES:
             return base
         return u''
-    uri = _urljoin(base, rel)
+    try:
+        uri = _urljoin(base, rel)
+    except ValueError:
+        return u''
     if uri.strip().split(':', 1)[0] not in ACCEPTABLE_URI_SCHEMES:
         return u''
     return uri
@@ -2887,7 +2943,7 @@ class _FeedURLHandler(urllib2.HTTPDigestAuthHandler, urllib2.HTTPRedirectHandler
         self.reset_retry_count()
         return retry
 
-def _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers):
+def _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, timeout=None):
     """URL, filename, or string --> stream
 
     This function lets you define parsers that take any input source
@@ -2951,14 +3007,21 @@ def _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, h
         opener = urllib2.build_opener(*tuple(handlers + [_FeedURLHandler()]))
         opener.addheaders = [] # RMK - must clear so we only send our custom User-Agent
         try:
-            return opener.open(request)
+            return opener.open(request, timeout=timeout)
         finally:
             opener.close() # JohnD
 
     # try to open with native open function (if url_file_stream_or_string is a filename)
     try:
         return open(url_file_stream_or_string, 'rb')
-    except IOError:
+    except (IOError, UnicodeEncodeError, TypeError):
+        # if url_file_stream_or_string is a unicode object that
+        # cannot be converted to the encoding returned by
+        # sys.getfilesystemencoding(), a UnicodeEncodeError
+        # will be thrown
+        # If url_file_stream_or_string is a string that contains NULL
+        # (such as an XML document encoded in UTF-32), TypeError will
+        # be thrown.
         pass
 
     # treat url_file_stream_or_string as string
@@ -3316,7 +3379,7 @@ def _parse_date_w3dtf(dateString):
                         day = 31
                 elif jday < julian:
                     if day + diff < 28:
-                       day = day + diff
+                        day = day + diff
                     else:
                         month = month + 1
             return year, month, day
@@ -3387,40 +3450,90 @@ def _parse_date_w3dtf(dateString):
     return time.gmtime(time.mktime(gmt) + __extract_tzd(m) - time.timezone)
 registerDateHandler(_parse_date_w3dtf)
 
-def _parse_date_rfc822(dateString):
-    '''Parse an RFC822, RFC1123, RFC2822, or asctime-style date'''
-    data = dateString.split()
-    if not data:
+# Define the strings used by the RFC822 datetime parser
+_rfc822_months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
+          'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+_rfc822_daynames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+# Only the first three letters of the month name matter
+_rfc822_month = "(?P<month>%s)(?:[a-z]*,?)" % ('|'.join(_rfc822_months))
+# The year may be 2 or 4 digits; capture the century if it exists
+_rfc822_year = "(?P<year>(?:\d{2})?\d{2})"
+_rfc822_day = "(?P<day> *\d{1,2})"
+_rfc822_date = "%s %s %s" % (_rfc822_day, _rfc822_month, _rfc822_year)
+
+_rfc822_hour = "(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
+_rfc822_tz = "(?P<tz>ut|gmt(?:[+-]\d{2}:\d{2})?|[aecmp][sd]?t|[zamny]|[+-]\d{4})"
+_rfc822_tznames = {
+    'ut': 0, 'gmt': 0, 'z': 0,
+    'adt': -3, 'ast': -4, 'at': -4,
+    'edt': -4, 'est': -5, 'et': -5,
+    'cdt': -5, 'cst': -6, 'ct': -6,
+    'mdt': -6, 'mst': -7, 'mt': -7,
+    'pdt': -7, 'pst': -8, 'pt': -8,
+    'a': -1, 'n': 1,
+    'm': -12, 'y': 12,
+ }
+# The timezone may be prefixed by 'Etc/'
+_rfc822_time = "%s (?:etc/)?%s" % (_rfc822_hour, _rfc822_tz)
+
+_rfc822_dayname = "(?P<dayname>%s)" % ('|'.join(_rfc822_daynames))
+_rfc822_match = re.compile(
+    "(?:%s, )?%s(?: %s)?" % (_rfc822_dayname, _rfc822_date, _rfc822_time)
+).match
+
+def _parse_date_rfc822(dt):
+    """Parse RFC 822 dates and times, with one minor
+    difference: years may be 4DIGIT or 2DIGIT.
+    http://tools.ietf.org/html/rfc822#section-5"""
+    try:
+        m = _rfc822_match(dt.lower()).groupdict(0)
+    except AttributeError:
         return None
-    if data[0][-1] in (',', '.') or data[0].lower() in rfc822._daynames:
-        del data[0]
-    if len(data) == 4:
-        s = data[3]
-        i = s.find('+')
-        if i > 0:
-            data[3:] = [s[:i], s[i+1:]]
-        else:
-            data.append('')
-        dateString = " ".join(data)
-    # Account for the Etc/GMT timezone by stripping 'Etc/'
-    elif len(data) == 5 and data[4].lower().startswith('etc/'):
-        data[4] = data[4][4:]
-        dateString = " ".join(data)
-    if len(data) < 5:
-        dateString += ' 00:00:00 GMT'
-    tm = rfc822.parsedate_tz(dateString)
-    if tm:
-        # Jython doesn't adjust for 2-digit years like CPython does,
-        # so account for it by shifting the year so that it's in the
-        # range 1970-2069 (1970 being the year of the Unix epoch).
-        if tm[0] < 100:
-            tm = (tm[0] + (1900, 2000)[tm[0] < 70],) + tm[1:]
-        return time.gmtime(rfc822.mktime_tz(tm))
-# rfc822.py defines several time zones, but we define some extra ones.
-# 'ET' is equivalent to 'EST', etc.
-_additional_timezones = {'AT': -400, 'ET': -500, 'CT': -600, 'MT': -700, 'PT': -800}
-rfc822._timezones.update(_additional_timezones)
+
+    # Calculate a date and timestamp
+    for k in ('year', 'day', 'hour', 'minute', 'second'):
+        m[k] = int(m[k])
+    m['month'] = _rfc822_months.index(m['month']) + 1
+    # If the year is 2 digits, assume everything in the 90's is the 1990's
+    if m['year'] < 100:
+        m['year'] += (1900, 2000)[m['year'] < 90]
+    stamp = datetime.datetime(*[m[i] for i in 
+                ('year', 'month', 'day', 'hour', 'minute', 'second')])
+
+    # Use the timezone information to calculate the difference between
+    # the given date and timestamp and Universal Coordinated Time
+    tzhour = 0
+    tzmin = 0
+    if m['tz'] and m['tz'].startswith('gmt'):
+        # Handle GMT and GMT+hh:mm timezone syntax (the trailing
+        # timezone info will be handled by the next `if` block)
+        m['tz'] = ''.join(m['tz'][3:].split(':')) or 'gmt'
+    if not m['tz']:
+        pass
+    elif m['tz'].startswith('+'):
+        tzhour = int(m['tz'][1:3])
+        tzmin = int(m['tz'][3:])
+    elif m['tz'].startswith('-'):
+        tzhour = int(m['tz'][1:3]) * -1
+        tzmin = int(m['tz'][3:]) * -1
+    else:
+        tzhour = _rfc822_tznames[m['tz']]
+    delta = datetime.timedelta(0, 0, 0, 0, tzmin, tzhour)
+
+    # Return the date and timestamp in UTC
+    return (stamp - delta).utctimetuple()
 registerDateHandler(_parse_date_rfc822)
+
+def _parse_date_asctime(dt):
+    """Parse asctime-style dates"""
+    dayname, month, day, remainder = dt.split(None, 3)
+    # Convert month and day into zero-padded integers
+    month = '%02i ' % (_rfc822_months.index(month.lower()) + 1)
+    day = '%02i ' % (int(day),)
+    dt = month + day + remainder
+    return time.strptime(dt, '%m %d %H:%M:%S %Y')[:-1] + (0, )
+registerDateHandler(_parse_date_asctime)
 
 def _parse_date_perforce(aDateString):
     """parse a date in yyyy/mm/dd hh:mm:ss TTT format"""
@@ -3550,19 +3663,23 @@ def _getCharacterEncoding(http_headers, xml_data):
         elif xml_data[:4] == _l2bytes([0x00, 0x00, 0x00, 0x3c]):
             # UTF-32BE
             sniffed_xml_encoding = u'utf-32be'
-            xml_data = unicode(xml_data, 'utf-32be').encode('utf-8')
+            if _UTF32_AVAILABLE:
+                xml_data = unicode(xml_data, 'utf-32be').encode('utf-8')
         elif xml_data[:4] == _l2bytes([0x3c, 0x00, 0x00, 0x00]):
             # UTF-32LE
             sniffed_xml_encoding = u'utf-32le'
-            xml_data = unicode(xml_data, 'utf-32le').encode('utf-8')
+            if _UTF32_AVAILABLE:
+                xml_data = unicode(xml_data, 'utf-32le').encode('utf-8')
         elif xml_data[:4] == _l2bytes([0x00, 0x00, 0xfe, 0xff]):
             # UTF-32BE with BOM
             sniffed_xml_encoding = u'utf-32be'
-            xml_data = unicode(xml_data[4:], 'utf-32be').encode('utf-8')
+            if _UTF32_AVAILABLE:
+                xml_data = unicode(xml_data[4:], 'utf-32be').encode('utf-8')
         elif xml_data[:4] == _l2bytes([0xff, 0xfe, 0x00, 0x00]):
             # UTF-32LE with BOM
             sniffed_xml_encoding = u'utf-32le'
-            xml_data = unicode(xml_data[4:], 'utf-32le').encode('utf-8')
+            if _UTF32_AVAILABLE:
+                xml_data = unicode(xml_data[4:], 'utf-32le').encode('utf-8')
         elif xml_data[:3] == _l2bytes([0xef, 0xbb, 0xbf]):
             # UTF-8 with BOM
             sniffed_xml_encoding = u'utf-8'
@@ -3655,15 +3772,15 @@ def _stripDoctype(data):
     # only allow in 'safe' inline entity definitions
     replacement=_s2bytes('')
     if len(doctype_results)==1 and entity_results:
-       safe_pattern=re.compile(_s2bytes('\s+(\w+)\s+"(&#\w+;|[^&"]*)"'))
-       safe_entities=filter(lambda e: safe_pattern.match(e),entity_results)
-       if safe_entities:
-           replacement=_s2bytes('<!DOCTYPE feed [\n  <!ENTITY') + _s2bytes('>\n  <!ENTITY ').join(safe_entities) + _s2bytes('>\n]>')
+        safe_pattern=re.compile(_s2bytes('\s+(\w+)\s+"(&#\w+;|[^&"]*)"'))
+        safe_entities=filter(lambda e: safe_pattern.match(e),entity_results)
+        if safe_entities:
+            replacement=_s2bytes('<!DOCTYPE feed [\n  <!ENTITY') + _s2bytes('>\n  <!ENTITY ').join(safe_entities) + _s2bytes('>\n]>')
     data = doctype_pattern.sub(replacement, head) + data
 
     return version, data, dict(replacement and [(k.decode('utf-8'), v.decode('utf-8')) for k, v in safe_pattern.findall(replacement)])
 
-def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, referrer=None, handlers=None, request_headers=None, response_headers=None):
+def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, referrer=None, handlers=None, request_headers=None, response_headers=None, timeout=None):
     '''Parse a feed from a URL, file, stream, or string.
 
     request_headers, if given, is a dict from http header name to value to add
@@ -3684,7 +3801,7 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
     if not isinstance(handlers, list):
         handlers = [handlers]
     try:
-        f = _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers)
+        f = _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, timeout=timeout)
         data = f.read()
     except Exception, e:
         result['bozo'] = 1
@@ -3712,22 +3829,25 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
             try:
                 data = gzip.GzipFile(fileobj=_StringIO(data)).read()
             except (IOError, struct.error), e:
-                # IOError can occur if the gzip header is bad
-                # struct.error can occur if the data is damaged
-                # Some feeds claim to be gzipped but they're not, so
-                # we get garbage.  Ideally, we should re-request the
-                # feed without the 'Accept-encoding: gzip' header,
-                # but we don't.
+                # IOError can occur if the gzip header is bad.
+                # struct.error can occur if the data is damaged.
                 result['bozo'] = 1
                 result['bozo_exception'] = e
-                data = None
+                if isinstance(e, struct.error):
+                    # A gzip header was found but the data is corrupt.
+                    # Ideally, we should re-request the feed without the
+                    # 'Accept-encoding: gzip' header, but we don't.
+                    data = None
         elif zlib and 'deflate' in http_headers.get('content-encoding', ''):
             try:
                 data = zlib.decompress(data)
             except zlib.error, e:
-                result['bozo'] = 1
-                result['bozo_exception'] = e
-                data = None
+                try:
+                    # The data may have no headers and no checksum.
+                    data = zlib.decompress(data, -15)
+                except zlib.error, e:
+                    result['bozo'] = 1
+                    result['bozo_exception'] = e
 
     # save HTTP headers
     if http_headers:
@@ -3771,9 +3891,6 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
         result['bozo'] = 1
         result['bozo_exception'] = NonXMLContentType(bozo_message)
 
-    if data is not None:
-        result['version'], data, entities = _stripDoctype(data)
-
     # ensure that baseuri is an absolute uri using an acceptable URI scheme
     contentloc = http_headers.get('content-location', u'')
     href = result.get('href', u'')
@@ -3784,7 +3901,7 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
         baselang = baselang.decode('utf-8', 'ignore')
 
     # if server sent 304, we're done
-    if result.get('status', 0) == 304:
+    if getattr(f, 'code', 0) == 304:
         result['version'] = u''
         result['debug_message'] = 'The feed has not changed since you last checked, ' + \
             'so the server sent no data.  This is a feature, not a bug!'
@@ -3814,7 +3931,7 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
             break
     # if no luck and we have auto-detection library, try that
     if (not known_encoding) and chardet:
-        proposed_encoding = chardet.detect(data)['encoding']
+        proposed_encoding = unicode(chardet.detect(data)['encoding'], 'ascii', 'ignore')
         if proposed_encoding and (proposed_encoding not in tried_encodings):
             tried_encodings.append(proposed_encoding)
             try:
@@ -3867,6 +3984,8 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
             'document declared as %s, but parsed as %s' % \
             (result['encoding'], proposed_encoding))
         result['encoding'] = proposed_encoding
+
+    result['version'], data, entities = _stripDoctype(data)
 
     if not _XML_AVAILABLE:
         use_strict_parser = 0

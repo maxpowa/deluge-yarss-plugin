@@ -43,15 +43,15 @@
 import gtk
 import gtk.glade
 
-from deluge.log import LOG as log
 import deluge.component as component
 from twisted.internet import threads
+
+from CellrendererPango import CustomAttribute, CellrendererPango
 
 from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode
 from yarss2.http import HTMLStripper
 from yarss2 import rssfeed_handling
-
-from CellrendererPango import CustomAttribute, CellrendererPango
+import yarss2.common as log
 
 class DialogSubscription():
 
@@ -169,10 +169,13 @@ class DialogSubscription():
         self.matching_treeView.append_column(col)
 
         self.list_popup_menu = gtk.Menu()
-        menuitem = gtk.MenuItem("Add this torrent now")
-        self.list_popup_menu.append(menuitem)
-        menuitem.connect("activate", self.on_button_add_torrent_clicked)
-
+        menuitem1 = gtk.MenuItem("Add this torrent now")
+        menuitem1.connect("activate", self.on_button_add_torrent_clicked)
+        menuitem2 = gtk.MenuItem("Copy text to clipboard")
+        menuitem2.connect("activate", self.on_button_copy_to_clipboard)
+        
+        self.list_popup_menu.append(menuitem1)
+        self.list_popup_menu.append(menuitem2)
         return self.matching_treeView
 
     def on_matches_list_button_press_event(self, treeview, event):
@@ -196,10 +199,17 @@ class DialogSubscription():
             return True
 
     def on_button_add_torrent_clicked(self, menuitem):
-        torrent_link = get_value_in_selected_row(self.matching_treeView, self.matching_store, column_index=3)
+        torrent_link = get_value_in_selected_row(self.matching_treeView, 
+                                                 self.matching_store, column_index=3)
         if torrent_link is not None:
             self.gtkUI.add_torrent(torrent_link)
 
+    def on_button_copy_to_clipboard(self, menuitem):
+        torrent_title = get_value_in_selected_row(self.matching_treeView, 
+                                                 self.matching_store, column_index=1)
+        if torrent_title is not None:
+            gtk.clipboard_get().set_text(torrent_title)
+            
     def setup_messages_list(self):
         # message_key, message_title, active, torrent_added, torrent_completed,
         self.messages_list_store = gtk.ListStore(str, str, bool, bool, bool)
@@ -331,7 +341,7 @@ class DialogSubscription():
         if not self.rssfeeds_dict and not match_option_dict["custom_text_lines"]:
             return
         try:
-            matchins, message = rssfeed_handling.update_rssfeeds_dict_matching(self.rssfeeds_dict,
+            matchings, message = rssfeed_handling.update_rssfeeds_dict_matching(self.rssfeeds_dict,
                                                            options=match_option_dict)
             self.update_matching_feeds_store(self.treeview, self.matching_store,
                                              self.rssfeeds_dict, regex_matching=True)
@@ -343,7 +353,7 @@ class DialogSubscription():
         except Exception as (v):
             import traceback
             exc_str = traceback.format_exc(v)
-            log.warn("YARSS: Error when matching:" + exc_str)
+            log.warn("Error when matching:" + exc_str)
 
     def update_matching_feeds_store(self, treeview, store, rssfeeds_dict, regex_matching=False):
         """Updates the liststore of matching torrents.
@@ -570,7 +580,6 @@ class DialogSubscription():
     def load_rssfeed_combobox_data(self):
         rssfeed_key = "-1"
         active_index = -1
-
         if self.subscription_data:
             # If, editing a subscription, set the rssfeed_key
             if self.subscription_data.has_key("rssfeed_key"):

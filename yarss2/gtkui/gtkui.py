@@ -41,8 +41,9 @@
 #
 
 import gtk
+import threading
+from twisted.internet import threads
 
-from deluge.log import LOG as log
 from deluge.ui.client import client
 from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
@@ -56,12 +57,14 @@ from yarss2.torrent_handling import send_torrent_email
 from yarss2.common import get_resource, get_value_in_selected_row
 from yarss2.http import encode_cookie_values
 from yarss2 import yarss_config
+import yarss2.common as log
 
 class GtkUI(GtkPluginBase):
 
     def enable(self):
         self.createUI()
         self.on_show_prefs() # Necessary for the first time when the plugin is installed
+        client.register_event_handler("YARSSConfigChangedEvent", self.cb_on_config_changed_event)
 
     def disable(self):
         component.get("Preferences").remove_page("YaRSS2")
@@ -74,37 +77,37 @@ class GtkUI(GtkPluginBase):
                 "on_button_add_subscription_clicked":       self.on_button_add_subscription_clicked,
                 "on_button_delete_subscription_clicked":    self.on_button_delete_subscription_clicked,
                 "on_button_edit_subscription_clicked" :     self.on_button_edit_subscription_clicked,
-                                                            
+
                 "on_button_add_rssfeed_clicked":            self.on_button_add_rssfeed_clicked,
                 "on_button_delete_rssfeed_clicked":         self.on_button_delete_rssfeed_clicked,
                 "on_button_edit_rssfeed_clicked" :          self.on_button_edit_rssfeed_clicked,
-                                                            
+
                 "on_button_add_cookie_clicked" :            self.on_button_add_cookie_clicked,
                 "on_button_edit_cookie_clicked" :           self.on_button_edit_cookie_clicked,
                 "on_button_delete_cookie_clicked":          self.on_button_delete_cookie_clicked,
-                                                            
+
                 "on_button_add_message_clicked" :           self.on_button_add_message_clicked,
                 "on_button_edit_message_clicked" :          self.on_button_edit_message_clicked,
                 "on_button_delete_message_clicked":         self.on_button_delete_message_clicked,
-                
+
                 "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
-                "on_checkbutton_send_email_on_torrent_events_toggled": 
+                "on_checkbutton_send_email_on_torrent_events_toggled":
                 self.on_checkbutton_send_email_on_torrent_events_toggled
                 })
-        
+
         component.get("Preferences").add_page("YaRSS2", self.glade.get_widget("notebook_main"))
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
         self.subscriptions = {}
         self.rssfeeds = {}
-        
+
         self.selected_path_subscriptions = None
         self.selected_path_rssfeeds = None
         self.selected_path_email_message = None
         self.selected_path_cookies = None
 
         # key, enabled, name, site, download_location
-        self.subscriptions_store = gtk.ListStore(str, bool, str, str, str, str)
+        self.subscriptions_store = gtk.ListStore(str, bool, str, str, str, str, str)
 
         # key, active, name, site, Update interval, Last update, subscripions, URL
         self.rssfeeds_store = gtk.ListStore(str, bool, str, str, str, str, str, str)
@@ -127,23 +130,23 @@ class GtkUI(GtkPluginBase):
     def save_subscription(self, subscription_data, subscription_key=None, delete=False):
         """Called by the RSSFeed Dialog"""
         self.selected_path_subscriptions = self.get_selection_path(self.subscriptions_treeview)
-        client.yarss2.save_subscription(dict_key=subscription_key, subscription_data=subscription_data, 
+        client.yarss2.save_subscription(dict_key=subscription_key, subscription_data=subscription_data,
                                        delete=delete).addCallback(self.cb_get_config)
 
     def save_rssfeed(self, rssfeed_data, rssfeed_key=None, delete=False):
         """Called by the RSSFeed Dialog"""
         self.selected_path_rssfeeds = self.get_selection_path(self.rssfeeds_treeview)
-        client.yarss2.save_rssfeed(dict_key=rssfeed_key, rssfeed_data=rssfeed_data, 
+        client.yarss2.save_rssfeed(dict_key=rssfeed_key, rssfeed_data=rssfeed_data,
                                   delete=delete).addCallback(self.cb_get_config)
 
     def save_email_message(self, message_data, email_message_key=None, delete=False):
         self.selected_path_email_message = self.get_selection_path(self.email_messages_treeview)
-        client.yarss2.save_email_message(dict_key=email_message_key, message_data=message_data, 
+        client.yarss2.save_email_message(dict_key=email_message_key, message_data=message_data,
                                         delete=delete).addCallback(self.cb_get_config)
 
     def save_cookie(self, cookie_data, cookie_key=None, delete=False):
         self.selected_path_cookies = self.get_selection_path(self.cookies_treeview)
-        client.yarss2.save_cookie(dict_key=cookie_key, cookie_data=cookie_data, 
+        client.yarss2.save_cookie(dict_key=cookie_key, cookie_data=cookie_data,
                                  delete=delete).addCallback(self.cb_get_config)
 
     def save_email_config(self, email_config):
@@ -156,7 +159,7 @@ class GtkUI(GtkPluginBase):
 ##############################
 # Update config and lists data
 ###############################
-        
+
     def on_apply_prefs(self):
         """Called when the 'Apply' button is pressed"""
         self.save_configuration_data()
@@ -170,7 +173,7 @@ class GtkUI(GtkPluginBase):
         # Settings -> Email Notifications -> Enable/Disable email notifcations
         # Settings -> Email configuration -> all fields
         # Settings -> Default values -> All fields
-        
+
         send_emails = self.glade.get_widget("checkbutton_send_email_on_torrent_events").get_active()
         from_addr = self.glade.get_widget("txt_email_from").get_text()
         smtp_server = self.glade.get_widget("txt_email_server").get_text()
@@ -200,10 +203,16 @@ class GtkUI(GtkPluginBase):
         """Called when showing preferences window"""
         client.yarss2.get_config().addCallback(self.cb_get_config)
 
+        
+    def cb_on_config_changed_event(self, config):
+        """Callback function called on YARSSConfigChangedEvent events"""
+        # Must defer to thread to avdoid errors when updating GUI
+        d = threads.deferToThread(self.cb_get_config, config)
+
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
         if config is None:
-            log.error("YARSS: An error has occured. Cannot load data from config")
+            log.error("An error has occured. Cannot load data from config")
         else:
             self.update_data_from_config(config)
 
@@ -213,7 +222,12 @@ class GtkUI(GtkPluginBase):
         self.cookies = config.get('cookies', {})
         self.email_messages = config.get('email_messages', {})
         self.email_config = config.get('email_configurations', {})
-        
+
+        # When connecting to a second host, the glade object returns None for all the fields, 
+        # so reload the glade file here to avoid this problem.
+        if self.glade.get_widget("textview_default_message") is None:
+            self.glade = gtk.glade.XML(get_resource("yarss_main.glade"))
+ 
         # Update GUI
         self.update_subscription_list(self.subscriptions_store)
         self.update_rssfeeds_list(self.rssfeeds_store)
@@ -221,17 +235,17 @@ class GtkUI(GtkPluginBase):
         self.update_email_messages_list(self.email_messages_store)
 
         # Set selection for each treeview
-        if self.selected_path_subscriptions:
-            self.subscriptions_treeview.get_selection().select_path(self.selected_path_subscriptions) 
+        if self.selected_path_subscriptions and self.subscriptions_treeview.get_selection():
+            self.subscriptions_treeview.get_selection().select_path(self.selected_path_subscriptions)
 
-        if self.selected_path_rssfeeds:
-            self.rssfeeds_treeview.get_selection().select_path(self.selected_path_rssfeeds) 
-        
-        if self.selected_path_email_message:
-            self.email_messages_treeview.get_selection().select_path(self.selected_path_email_message) 
+        if self.selected_path_rssfeeds and self.rssfeeds_treeview.get_selection():
+            self.rssfeeds_treeview.get_selection().select_path(self.selected_path_rssfeeds)
 
-        if self.selected_path_cookies:
-            self.cookies_treeview.get_selection().select_path(self.selected_path_cookies) 
+        if self.selected_path_email_message and self.email_messages_treeview.get_selection():
+            self.email_messages_treeview.get_selection().select_path(self.selected_path_email_message)
+
+        if self.selected_path_cookies and self.cookies_treeview.get_selection():
+            self.cookies_treeview.get_selection().select_path(self.selected_path_cookies)
 
         # Email configurations
         send_email_checkbox = self.glade.get_widget("checkbutton_send_email_on_torrent_events")
@@ -241,12 +255,12 @@ class GtkUI(GtkPluginBase):
         smtp_username = self.glade.get_widget("txt_email_username")
         smtp_password = self.glade.get_widget("txt_email_password")
         enable_auth = self.glade.get_widget("checkbox_email_enable_authentication")
-        
+
         default_to_address = self.glade.get_widget("txt_default_to_address")
         default_subject = self.glade.get_widget("txt_default_subject")
-        default_message = self.glade.get_widget("textview_default_message").get_buffer()
-
-        from_addr.set_text(self.email_config["from_address"])
+        default_message = self.glade.get_widget("textview_default_message")
+ 
+        default_message = default_message.get_buffer()
         smtp_server.set_text(self.email_config["smtp_server"])
         smtp_port.set_text(self.email_config["smtp_port"])
 
@@ -257,8 +271,8 @@ class GtkUI(GtkPluginBase):
         default_to_address.set_text(self.email_config["default_email_to_address"])
         default_subject.set_text(self.email_config["default_email_subject"])
         default_message.set_text(self.email_config["default_email_message"])
-
-        # Must be last, since it will cause callback on 
+        
+        # Must be last, since it will cause callback on
         # method on_checkbutton_send_email_on_torrent_events_toggled
         send_email_checkbox.set_active(self.email_config["send_email_on_torrent_events"])
 
@@ -271,6 +285,7 @@ class GtkUI(GtkPluginBase):
                                         self.subscriptions[key]["name"],
                                         self.rssfeeds[rssfeed_key]["name"],
                                         self.rssfeeds[rssfeed_key]["site"],
+                                        self.subscriptions[key]["last_update"],
                                         self.subscriptions[key]["move_completed"]])
 
     def update_rssfeeds_list(self, rssfeeds_store):
@@ -286,7 +301,7 @@ class GtkUI(GtkPluginBase):
                                    self.rssfeeds[key]["name"],
                                    self.rssfeeds[key]["site"],
                                    self.rssfeeds[key]["update_interval"],
-                                   self.rssfeeds[key]["last_update"], 
+                                   self.rssfeeds[key]["last_update"],
                                    active_subs,
                                    self.rssfeeds[key]["url"]])
 
@@ -312,11 +327,11 @@ class GtkUI(GtkPluginBase):
     def get_subscription_count_for_feeds(self):
         """Creates the subscription count for each RSS Feed shown in the RSS Feeds list"""
         result = {}
+        for key in self.rssfeeds.keys():
+            result[key] = [0, 0]
         for key in self.subscriptions.keys():
             rssfeed_key = self.subscriptions[key]["rssfeed_key"]
             index = 0 if self.subscriptions[key]["active"] == True else 1
-            if not result.has_key(rssfeed_key):
-                result[rssfeed_key] = [0, 0]
             result[rssfeed_key][index] += 1
         return result
 
@@ -333,6 +348,22 @@ class GtkUI(GtkPluginBase):
 # Create Subscription list
 #########################
 
+    def on_tooltip_subscription(self, widget, x, y, keyboard_tip, tooltip):
+        if not widget.get_tooltip_context(x, y, keyboard_tip):
+            return False
+        elif widget.get_path_at_pos(x, y) is None:
+            return False
+        model, path2, iter = widget.get_tooltip_context(x, y, keyboard_tip)
+        path, treeColumn, t, r = widget.get_path_at_pos(x, y)
+        if treeColumn.get_title() == "Active":
+            tooltip.set_markup("<b>Double click to toggle</b>")
+        elif treeColumn.get_title() == "Last Matched":
+            tooltip.set_markup("<b>The time this subcription last added a torrent</b>")
+        else:
+            return False
+        widget.set_tooltip_cell(tooltip, path2, None, None) 
+        return True 
+
     def create_subscription_pane(self):
         subscriptions_box = self.glade.get_widget("subscriptions_box")
         subscriptions_window = gtk.ScrolledWindow()
@@ -341,13 +372,20 @@ class GtkUI(GtkPluginBase):
         subscriptions_box.pack_start(subscriptions_window, True, True, 0)
 
         self.subscriptions_treeview = gtk.TreeView(self.subscriptions_store)
-        self.subscriptions_treeview.get_selection().connect("changed", self.on_subscription_listitem_activated)
+        self.subscriptions_treeview.get_selection().connect("changed", 
+                                                            self.on_subscription_listitem_activated)
         self.subscriptions_treeview.connect("row-activated", self.on_button_edit_subscription_clicked)
         self.subscriptions_treeview.set_rules_hint(True)
-        self.subscriptions_treeview.connect('button-press-event', 
+        self.subscriptions_treeview.connect('button-press-event',
                                             self.on_subscription_list_button_press_event)
 
+        self.subscriptions_treeview.connect('query-tooltip', self.on_tooltip_subscription) 
+        self.subscriptions_treeview.set_has_tooltip(True) 
+
         self.create_subscription_columns(self.subscriptions_treeview)
+
+        #tooltipTreeView = TooltipTreeView(self.subscriptions_treeview)
+        #subscriptions_window.add(tooltipTreeView)
         subscriptions_window.add(self.subscriptions_treeview)
         subscriptions_window.show_all()
 
@@ -356,18 +394,11 @@ class GtkUI(GtkPluginBase):
         column = gtk.TreeViewColumn("Active", rendererToggle, activatable=1, active=1)
         column.set_sort_column_id(1)
         subscriptions_treeView.append_column(column)
-        tt = gtk.Tooltip()
-        tt.set_text('Double-click to toggle')
-        subscriptions_treeView.set_tooltip_cell(tt, None, None, rendererToggle)
-
+        
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Name", rendererText, text=2)
         column.set_sort_column_id(2)
         subscriptions_treeView.append_column(column)
-        tt2 = gtk.Tooltip()
-        tt2.set_text('Double-click to edit')
-        #subscriptions_treeView.set_tooltip_cell(tt2, None, column, None)
-        subscriptions_treeView.set_has_tooltip(True)
 
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Feed name", rendererText, text=3)
@@ -380,64 +411,90 @@ class GtkUI(GtkPluginBase):
         subscriptions_treeView.append_column(column)
 
         rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Move Completed", rendererText, text=5)
+        column = gtk.TreeViewColumn("Last Matched", rendererText, text=5)
         column.set_sort_column_id(5)
+        subscriptions_treeView.append_column(column)
+
+        rendererText = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Move Completed", rendererText, text=6)
+        column.set_sort_column_id(6)
         subscriptions_treeView.append_column(column)
 
         self.run_subscription_menu = gtk.Menu()
         menuitem = gtk.MenuItem("Run this subscription")
         self.run_subscription_menu.append(menuitem)
         menuitem.connect("activate", self.on_button_run_subscription_clicked)
-    
+
     def on_button_run_subscription_clicked(self, menuitem):
         key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
             self.subscriptions[key]["last_update"] = ""
             self.save_subscription(self.subscriptions[key])
-            client.yarss2.rssfeed_update_handler(None, subscription_key=key)
+            client.yarss2.initiate_rssfeed_update(None, subscription_key=key)
 
     def on_subscription_list_button_press_event(self, treeview, event):
         """Shows popup on selected row when right clicking"""
-        if event.button == 3:
-            x = int(event.x)
-            y = int(event.y)
-            time = event.time
-            pthinfo = treeview.get_path_at_pos(x, y)
-            if pthinfo is not None:
-                path, col, cellx, celly = pthinfo
-                treeview.grab_focus()
-                treeview.set_cursor(path, col, 0)
-                self.run_subscription_menu.popup(None, None, None, event.button, time, data=path)
-                self.run_subscription_menu.show_all()
-            return True
+        if event.button != 3:
+            return False
+        x = int(event.x)
+        y = int(event.y)
+        time = event.time
+        pthinfo = treeview.get_path_at_pos(x, y)
+        if pthinfo is not None:
+            path, col, cellx, celly = pthinfo
+            treeview.grab_focus()
+            treeview.set_cursor(path, col, 0)
+            self.run_subscription_menu.popup(None, None, None, event.button, time, data=path)
+            self.run_subscription_menu.show_all()
+        return True
 
 #########################
 # Create RSS Feeds list
 #########################
 
+    def on_tooltip_rssfeed(self, widget, x, y, keyboard_tip, tooltip):
+        if not widget.get_tooltip_context(x, y, keyboard_tip):
+            return False
+        elif widget.get_path_at_pos(x, y) is None:
+            return False
+        model, path2, iter = widget.get_tooltip_context(x, y, keyboard_tip)
+        path, treeColumn, t, r = widget.get_path_at_pos(x, y)
+        if treeColumn.get_title() == "Active":
+            tooltip.set_markup("<b>Double click to toggle</b>")
+        elif treeColumn.get_title() == "Subscriptions":
+            tooltip.set_markup("<b>Active (Not active)</b>")
+        elif treeColumn.get_title() == "Last Update":
+            tooltip.set_markup("<b>When this RSS Feed was last run</b>")
+        elif treeColumn.get_title() == "Update Interval":
+            tooltip.set_markup("<b>The time in minutes between each time this RSS Feed is run</b>")
+        else:
+            return False
+        widget.set_tooltip_cell(tooltip, path2, None, None) 
+        return True 
+
     def create_rssfeeds_pane(self):
         rssfeeds_box = self.glade.get_widget("rssfeeds_box")
-        
+
         self.rssfeeds_treeview = gtk.TreeView(self.rssfeeds_store)
         self.rssfeeds_treeview.connect("row-activated", self.on_button_edit_rssfeed_clicked)
         self.rssfeeds_treeview.get_selection().connect("changed", self.on_rssfeed_listitem_activated)
         self.rssfeeds_treeview.set_rules_hint(True)
+
+        self.rssfeeds_treeview.connect('query-tooltip', self.on_tooltip_rssfeed) 
+        self.rssfeeds_treeview.set_has_tooltip(True) 
 
         self.create_feeds_columns(self.rssfeeds_treeview)
         rssfeeds_box.add(self.rssfeeds_treeview)
         rssfeeds_box.show_all()
 
     def create_feeds_columns(self, treeView):
-        # key, active, name, site, Update interval, Last update
+        # key, active, name, site, Update interval, Last update, subscriptions, URL
 
         rendererToggle = gtk.CellRendererToggle()
         column = gtk.TreeViewColumn("Active", rendererToggle, activatable=1, active=1)
         column.set_sort_column_id(1)
         treeView.append_column(column)
-        tt = gtk.Tooltip()
-        tt.set_text('Double-click to toggle')
-        treeView.set_tooltip_cell(tt, None, None, rendererToggle)
-        
+
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Feed Name", rendererText, text=2)
         column.set_sort_column_id(2)
@@ -449,12 +506,12 @@ class GtkUI(GtkPluginBase):
         treeView.append_column(column)
 
         rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Update interval", rendererText, text=4)
+        column = gtk.TreeViewColumn("Update Interval", rendererText, text=4)
         column.set_sort_column_id(4)
         treeView.append_column(column)
 
         rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Last update", rendererText, text=5)
+        column = gtk.TreeViewColumn("Last Update", rendererText, text=5)
         column.set_sort_column_id(5)
         treeView.append_column(column)
 
@@ -477,7 +534,7 @@ class GtkUI(GtkPluginBase):
         self.email_messages_treeview = gtk.TreeView(self.email_messages_store)
         self.email_messages_treeview.connect("row-activated", self.on_button_edit_message_clicked)
         self.email_messages_treeview.get_selection().connect("changed", self.on_notification_list_listitem_activated)
-        self.email_messages_treeview.connect('button-press-event', 
+        self.email_messages_treeview.connect('button-press-event',
                                             self.on_notification_list_button_press_event)
         self.create_messages_columns(self.email_messages_treeview)
         viewport.add(self.email_messages_treeview)
@@ -485,7 +542,7 @@ class GtkUI(GtkPluginBase):
 
     def create_messages_columns(self, treeview):
         #Store: key, active, name, to-address, subject, message-content
-        
+
         rendererToggle = gtk.CellRendererToggle()
         column = gtk.TreeViewColumn("Active", rendererToggle, activatable=1, active=1)
         column.set_sort_column_id(1)
@@ -498,17 +555,17 @@ class GtkUI(GtkPluginBase):
         column = gtk.TreeViewColumn("Name", rendererText, text=2)
         column.set_sort_column_id(2)
         treeview.append_column(column)
-        
+
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("To address", rendererText, text=3)
         column.set_sort_column_id(3)
         treeview.append_column(column)
-        
+
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Subject", rendererText, text=4)
         column.set_sort_column_id(4)
         treeview.append_column(column)
-        
+
         rendererText = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Message", rendererText, text=5)
         column.set_sort_column_id(5)
@@ -518,21 +575,21 @@ class GtkUI(GtkPluginBase):
         menuitem = gtk.MenuItem("Send test email now!")
         self.test_email_send_menu.append(menuitem)
         menuitem.connect("activate", self.on_button_send_email_clicked)
-    
+
     def on_button_send_email_clicked(self, menuitem):
         key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         # Send email
         torrents = ["Torrent title"]
         send_torrent_email(self.email_config,
                            self.email_messages[key],
-                           torrent_name_list=torrents, 
+                           torrent_name_list=torrents,
                            defered=True, callback_func=self.test_email_callback)
 
     def test_email_callback(self, return_value):
         if return_value:
-            log.warn("YARSS: Test email successfully sent!")
+            log.warn("Test email successfully sent!")
         else:
-            log.warn("YARSS: Failed to send test email!")
+            log.warn("Failed to send test email!")
 
     def on_notification_list_button_press_event(self, treeview, event):
         """Shows popup on selected row"""
@@ -601,18 +658,18 @@ class GtkUI(GtkPluginBase):
     def on_button_add_subscription_clicked(self,Event=None, a=None, col=None):
         # Check if any RSS Feeds exists, if not, show popup
         if len(self.rssfeeds.keys()) == 0:
-            md = gtk.MessageDialog(component.get("Preferences").pref_dialog, 
+            md = gtk.MessageDialog(component.get("Preferences").pref_dialog,
                                    gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
-                                   gtk.BUTTONS_CLOSE, 
+                                   gtk.BUTTONS_CLOSE,
                                    "You need to add a RSS Feed before creating subscriptions!")
             md.run()
             md.destroy()
             return
 
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(self, fresh_subscription_config, 
-                                                 self.rssfeeds, 
-                                                 self.get_move_completed_list(), 
+        subscription_dialog = DialogSubscription(self, fresh_subscription_config,
+                                                 self.rssfeeds,
+                                                 self.get_move_completed_list(),
                                                  self.email_messages,
                                                  self.cookies)
         subscription_dialog.show()
@@ -637,10 +694,10 @@ class GtkUI(GtkPluginBase):
                 self.subscriptions[key]["active"] = not self.subscriptions[key]["active"]
                 self.save_subscription(self.subscriptions[key])
             else:
-                edit_subscription_dialog = DialogSubscription(self, 
-                                                              self.subscriptions[key], 
-                                                              self.rssfeeds, 
-                                                              self.get_move_completed_list(), 
+                edit_subscription_dialog = DialogSubscription(self,
+                                                              self.subscriptions[key],
+                                                              self.rssfeeds,
+                                                              self.get_move_completed_list(),
                                                               self.email_messages,
                                                               self.cookies)
                 edit_subscription_dialog.show()
@@ -666,9 +723,24 @@ class GtkUI(GtkPluginBase):
 
     def on_button_delete_rssfeed_clicked(self,Event=None, a=None, col=None):
         key = get_value_in_selected_row(self.rssfeeds_treeview, self.rssfeeds_store)
-        if key:
+        if not key:
+            return
+        # Check that this rss feed has no subscriptions
+        active_subscriptions = self.get_subscription_count_for_feeds()
+
+        # Any registered subscriptions?
+        if sum(active_subscriptions[key]) > 0:
+            md = gtk.MessageDialog(component.get("Preferences").pref_dialog,
+                                   gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
+                                   gtk.BUTTONS_CLOSE,
+                                   "This RSS Feed have subscriptions registered. Delete subscriptions first!")
+            md.run()
+            md.destroy()
+            return
+        else:
             self.save_rssfeed(None, rssfeed_key=key, delete=True)
             
+
     def on_button_edit_rssfeed_clicked(self, Event=None, a=None, col=None):
         key = get_value_in_selected_row(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:

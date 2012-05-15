@@ -38,25 +38,34 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from deluge.log import LOG as log
-
-from common import get_default_date, get_new_dict_key
 import deluge.configmanager
-
+from deluge.event import DelugeEvent
 import copy
+from yarss2.common import get_default_date, get_new_dict_key
+import yarss2.common as log
 
 DEFAULT_UPDATE_INTERVAL = 120
 
 __DEFAULT_PREFS = {
     "email_configurations": {},
-    "rssfeeds":{},
-    "subscriptions":{},
-    "cookies":{},
-    "email_messages":{}
+    "rssfeeds": {},
+    "subscriptions": {},
+    "cookies": {},
+    "email_messages": {}
     }
 
 def default_prefs():
     return copy.deepcopy(__DEFAULT_PREFS)
+
+class YARSSConfigChangedEvent(DelugeEvent):
+    """
+    Emitted when the config has been changed.
+    """
+    def __init__(self, config):
+        """
+        :param config: the new config
+        """
+        self._args = [config]
 
 class YARSSConfig(object):
 
@@ -168,7 +177,7 @@ class YARSSConfig(object):
                 return key_diff
         # Set new keys
         for key in key_diff:
-            log.info("YARSS: Insert missing config key %s" % key)
+            log.info("Insert missing config key %s" % key)
             config_dict[key] = default_config[key]
         return key_diff
 
@@ -201,7 +210,7 @@ Regards
     return config_dict
 
 def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update="", 
-                       update_interval=DEFAULT_UPDATE_INTERVAL):
+                       update_interval=DEFAULT_UPDATE_INTERVAL, key=None):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["name"] = name
@@ -210,12 +219,12 @@ def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update=
     config_dict["active"] = active        
     config_dict["last_update"] = last_update
     config_dict["update_interval"] = update_interval
+    if key:
+        config_dict["key"] = key
     return config_dict
 
-
 def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", regex_exclude="", 
-                            active=True, move_completed="",
-                            last_update=get_default_date().isoformat()):
+                            active=True, move_completed="", last_update="", key=None):
     """Create a new config """
     config_dict = {}
     config_dict["rssfeed_key"] = rssfeed_key
@@ -230,6 +239,8 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     config_dict["custom_text_lines"] = ""
     config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {}
+    if key:
+        config_dict["key"] = key
     return config_dict
 
 def get_fresh_message_config():

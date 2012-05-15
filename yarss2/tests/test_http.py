@@ -67,3 +67,23 @@ class HTTPTestCase(unittest.TestCase):
         expected = "http://de.wikipedia.org/wiki/Elf%20%28Begriffskl%C3%A4rung%29"
         result = http.url_fix(url)
         self.assertEquals(expected, result)
+
+    def test_feedparser_ampersant_in_url(self):
+        """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
+        This test disables XML Parser and verifies that the URL is correct
+        """
+        from yarss2.lib import feedparser
+        from yarss2 import common
+        file_path = common.get_resource("rss_with_ampersand_link.rss", path="tests")
+        
+        # This is the link in rss_with_ampersand_link.rss
+        url = "http://hostname.com/Fetch?hash=2f21d4e59&amp;digest=865178f9bc"
+        expected = "http://hostname.com/Fetch?hash=2f21d4e59&digest=865178f9bc"
+        
+        # Disable XML Parser
+        feedparser._XML_AVAILABLE = 0
+        parsed_feeds = feedparser.parse(file_path)
+        
+        for item in parsed_feeds['items']:
+            self.assertEquals(expected, item["link"])
+            break
