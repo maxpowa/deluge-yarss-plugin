@@ -54,7 +54,7 @@ import yarss2.common as log
 def download_torrent_file(torrent_url, cookie_header):
     # Fix unicode URLs
     torrent_url = url_fix(torrent_url)
-
+    filedump = None
     opener = urllib2.build_opener()
     
     if cookie_header.has_key("Cookie"):
@@ -64,14 +64,14 @@ def download_torrent_file(torrent_url, cookie_header):
         webFile = opener.open(torrent_url)
         filedump = webFile.read()
     except Exception, e:
-        log.error("Failed to download torrent: %s", e)
+        log.error("Failed to download torrent: %s" % e)
         return None
 
     # Get the info to see if any exceptions are raised
     try:
         torrent_info = lt.torrent_info(lt.bdecode(filedump))
     except Exception, e:
-        log.error("Unable to decode torrent file!: %s", e)
+        log.error("Unable to decode torrent file!: %s" % e)
         name = "failed_torrent_%d.torrent"
         # XXX: Probably should raise an exception here..
         return None

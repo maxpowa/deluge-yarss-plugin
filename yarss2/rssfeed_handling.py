@@ -247,8 +247,6 @@ def fetch_subscription(subscription_data, rssfeed_data, fetch_data):
     # Sort by time?
     for key in matches.keys():
         if last_update_dt < matches[key]["updated_datetime"]:
-            # Fixes urls with &amp.
-
             matches[key]["link"] = http.url_fix(matches[key]["link"])
             log.info("Adding torrent: '%s'" % (matches[key]["link"]))
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
@@ -310,9 +308,12 @@ class RSSFeedTimer(object):
         Multiple subscriptions on one RSS Feed will download the RSS only once
         """
         if subscription_key:
-            log.info("Running Subscription '%s" % (self.yarss_config.get_config()["subscriptions"][subscription_key]["name"]))
+            log.info("Running Subscription '%s'" % 
+                     (self.yarss_config.get_config()["subscriptions"][subscription_key]["name"]))
         elif rssfeed_key:
-            log.info("Running RSS Feed '%s" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
+            if self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["active"] is False:
+                return
+            log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
         matching_torrents = fetch_subscription_torrents(self.yarss_config.get_config(), rssfeed_key, 
                                                                          subscription_key=subscription_key)
         def save_subscription_func(subscription_data):
