@@ -9,6 +9,12 @@ License: GPLv3
 Changelog
 =============
 
+v1.0.4 - 2012-05-29
+
+* No longer allows deleting email messages when subscriptions have them registered for a notifications.
+* Added option "Obey TTL" in RSS Feed dialog. With this checked the "Update Interval" will be updated with the TTL value of the RSS Feed.
+* Running RSS fetches in separate thread to avoid deluge server hanging.
+
 v1.0.3 - 2012-05-17
 
 * When adding a RSS Feed or changing the RSS Feed update interval the RSS Feed is now properly (re)schedules with the (new) update interval. 

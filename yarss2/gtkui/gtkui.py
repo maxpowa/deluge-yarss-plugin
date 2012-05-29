@@ -717,7 +717,7 @@ class GtkUI(GtkPluginBase):
 
     def on_button_add_rssfeed_clicked(self,Event=None, a=None, col=None):
         # Get fresh config
-        fresh_subscription_config = yarss_config.get_fresh_rssfeed_config()
+        fresh_subscription_config = yarss_config.get_fresh_rssfeed_config(obey_ttl=True)
         rssfeed_dialog = DialogRSSFeed(self, fresh_subscription_config)
         rssfeed_dialog.show()
 
@@ -726,10 +726,10 @@ class GtkUI(GtkPluginBase):
         if not key:
             return
         # Check that this rss feed has no subscriptions
-        active_subscriptions = self.get_subscription_count_for_feeds()
+        feed_subscriptions = self.get_subscription_count_for_feeds()
 
         # Any registered subscriptions?
-        if sum(active_subscriptions[key]) > 0:
+        if sum(feed_subscriptions[key]) > 0:
             md = gtk.MessageDialog(component.get("Preferences").pref_dialog,
                                    gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
                                    gtk.BUTTONS_CLOSE,
@@ -786,10 +786,29 @@ class GtkUI(GtkPluginBase):
                 edit_message_dialog.show()
 
     def on_button_delete_message_clicked(self, button):
-        key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
-        if key:
-            # Delete from core config
-            self.save_email_message(None, email_message_key=key, delete=True)
+        message_key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
+        if not message_key:
+            return
+        # Check that this message is not used by any subscriptions
+        subscriptions_with_notification = []
+        # Go through subscriptions and find those with this notification
+        for key in self.subscriptions.keys():
+            if message_key in self.subscriptions[key]["email_notifications"].keys():
+                subscriptions_with_notification.append(self.subscriptions[key]["name"])
+        # Any subscriptions that use this message?
+        if subscriptions_with_notification:
+            subscription_titles = ''.join(["* %s\n" % title for title in subscriptions_with_notification])
+            md = gtk.MessageDialog(component.get("Preferences").pref_dialog,
+                                   gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
+                                   gtk.BUTTONS_CLOSE)
+            md.set_markup("This Email Message is used by the following subscriptions:\n<b>%s</b>"
+                          "You must first remove the notication from the subscriptions "
+                          "before deleting the email message!" % subscription_titles)
+            md.run()
+            md.destroy()
+            return
+        # Delete from core config
+        self.save_email_message(None, email_message_key=message_key, delete=True)
 
     def on_checkbox_email_authentication_toggled(self, button):
         auth_enable = self.glade.get_widget("checkbox_email_enable_authentication")

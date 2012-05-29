@@ -73,7 +73,7 @@
                   <widget class="GtkTable" id="table1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="n_rows">3</property>
+                    <property name="n_rows">4</property>
                     <property name="n_columns">2</property>
                     <property name="column_spacing">5</property>
                     <property name="row_spacing">5</property>
@@ -144,7 +144,7 @@
                       <widget class="GtkLabel" id="label_updatetime">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Update TIme (min)</property>
+                        <property name="label" translatable="yes">Update Interval (min)</property>
                       </widget>
                       <packing>
                         <property name="top_attach">2</property>
@@ -174,6 +174,36 @@
                         <property name="bottom_attach">3</property>
                         <property name="x_options">GTK_FILL</property>
                         <property name="y_options"></property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Obey TTL (recommended)</property>
+                      </widget>
+                      <packing>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkCheckButton" id="checkbox_obey_ttl">
+                        <property name="label" translatable="yes">Use TTL value from RSS Feed</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="has_tooltip">True</property>
+                        <property name="tooltip" translatable="yes">Some RSS Feeds provide a TTL value to suggest the update time to be used. 
+Check this to have 'update time' set to the TTL found in the RSS Feed.</property>
+                        <property name="draw_indicator">True</property>
+                      </widget>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="right_attach">2</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
                       </packing>
                     </child>
                   </widget>

@@ -58,7 +58,7 @@ class Core(CorePluginBase):
 
         self.rssfeed_timer = RSSFeedTimer(self.yarss_config)
         self.rssfeed_timer.enable_timers()
-        log.info("Enabled YaRSS 1.0.3")
+        log.info("Enabled YaRSS 1.0.4")
 
     def disable(self):
         self.yarss_config.save()

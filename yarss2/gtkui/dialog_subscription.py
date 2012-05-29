@@ -293,9 +293,9 @@ class DialogSubscription():
 
     def perform_rssfeed_selection(self):
         rssfeed_key = self.get_selected_combobox_key(self.glade.get_widget("combobox_rssfeeds"))
-        d = threads.deferToThread(self.get_and_update_rssfeed_results, rssfeed_key)
-        d.addCallback(self.update_matching_view_with_rssfeed_results)
-        return d
+        defered = threads.deferToThread(self.get_and_update_rssfeed_results, rssfeed_key)
+        defered.addCallback(self.update_matching_view_with_rssfeed_results)
+        return defered
 
     def on_txt_regex_changed(self, text_field):
         """ Callback for when Enter is pressed in either of the regex fields """
@@ -346,9 +346,7 @@ class DialogSubscription():
             self.update_matching_feeds_store(self.treeview, self.matching_store,
                                              self.rssfeeds_dict, regex_matching=True)
             label_status = self.glade.get_widget("label_status")
-            if message is None:
-                label_status.set_text("")
-            else:
+            if message:
                 label_status.set_text(str(message))
         except Exception as (v):
             import traceback
@@ -389,12 +387,18 @@ class DialogSubscription():
             exception = rssfeeds_parsed["bozo_exception"]
             label_status = self.glade.get_widget("label_status")
             label_status.set_text(str(exception))
-
+        else:
+            label_status = self.glade.get_widget("label_status")
+            ttl_string = "TTL value: %s" % (("%s min" % rssfeeds_parsed["ttl"]) \
+                                                if rssfeeds_parsed.has_key("ttl") \
+                                                else "Not available")
+            # This can sometimes be done for some effing reason
+            if label_status:
+                label_status.set_text(ttl_string)
         # Failed to retrive items. Show content as text
         if not rssfeeds_parsed.has_key("items"):
             self.show_result_as_text(rssfeeds_parsed["raw_result"])
             return
-
         self.rssfeeds_dict = rssfeeds_parsed["items"]
                 
         # Update the matching according to the current settings

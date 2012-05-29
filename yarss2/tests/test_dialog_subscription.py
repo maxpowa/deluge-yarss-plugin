@@ -61,8 +61,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             result = self.get_rssfeed_store_content(subscription_dialog)
             self.assertTrue(self.compare_dicts_content(stored_items, result))
 
-        d = self.run_select_rssfeed(callback_func=verify_result)
-        return d
+        defered = self.run_select_rssfeed(callback_func=verify_result)
+        return defered
 
     def test_select_rssfeed_with_search(self):
         subscription_config = yarss_config.get_fresh_subscription_config()
@@ -80,8 +80,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                     self.assertTrue(p.search(result[k]["title"]))
             self.assertEquals(match_count, expected_match_count)
 
-        d = self.run_select_rssfeed(subscription_config=subscription_config, callback_func=verify_result)
-        return d
+        defered = self.run_select_rssfeed(subscription_config=subscription_config, callback_func=verify_result)
+        return defered
 
     def run_select_rssfeed(self, subscription_config=None, callback_func=None):
         config = self.get_test_config()
@@ -105,9 +105,9 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
         rssfeeds_combobox.set_active(1)
         
-        d = subscription_dialog.perform_rssfeed_selection()
-        d.addCallback(callback_func, subscription_dialog)
-        return d
+        defered = subscription_dialog.perform_rssfeed_selection()
+        defered.addCallback(callback_func, subscription_dialog)
+        return defered
 
     def test_search(self):
         def run_search_test(empty, dialog_subscription):
@@ -136,8 +136,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                     self.assertTrue(p_exclude.search(result[k]["title"]), "Expected '%s' to in '%s'" % (exclude_regex, result[k]["title"]))
             self.assertEquals(match_count, expected_match_count)
 
-        d = self.run_select_rssfeed(callback_func=run_search_test)
-        return d
+        defered = self.run_select_rssfeed(callback_func=run_search_test)
+        return defered
 
     def compare_dicts_content(self, dict1, dict2):
         """Compares the content of two dictionaries. 

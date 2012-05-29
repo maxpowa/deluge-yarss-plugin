@@ -210,7 +210,7 @@ Regards
     return config_dict
 
 def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update="", 
-                       update_interval=DEFAULT_UPDATE_INTERVAL, key=None):
+                       update_interval=DEFAULT_UPDATE_INTERVAL, obey_ttl=False, key=None):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["name"] = name
@@ -219,6 +219,7 @@ def get_fresh_rssfeed_config(name="", url="", site="", active=True, last_update=
     config_dict["active"] = active        
     config_dict["last_update"] = last_update
     config_dict["update_interval"] = update_interval
+    config_dict["obey_ttl"] = obey_ttl
     if key:
         config_dict["key"] = key
     return config_dict
@@ -238,13 +239,13 @@ def get_fresh_subscription_config(name="", rssfeed_key="", regex_include="", reg
     config_dict["move_completed"] = move_completed
     config_dict["custom_text_lines"] = ""
     config_dict["add_torrents_in_paused_state"] = False
-    config_dict["email_notifications"] = {}
+    config_dict["email_notifications"] = {} # Dictionary where keys are the keys of email_messages dictionary
     if key:
         config_dict["key"] = key
     return config_dict
 
 def get_fresh_message_config():
-    """Create a new config (dictionary) for a feed"""
+    """Create a new config (dictionary) for a email message"""
     config_dict = {}
     config_dict["name"] = ""
     config_dict["to_address"] = ""

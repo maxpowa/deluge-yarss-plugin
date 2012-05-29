@@ -73,17 +73,20 @@ class DialogRSSFeed():
             self.glade.get_widget("txt_name").set_text(self.rssfeed["name"])
             self.glade.get_widget("txt_url").set_text(self.rssfeed["url"])
             self.glade.get_widget("spinbutton_updatetime").set_value(self.rssfeed["update_interval"])
+            self.glade.get_widget("checkbox_obey_ttl").set_active(self.rssfeed["obey_ttl"])
 
     def on_button_save_clicked(self, Event=None, a=None, col=None):
         name = self.glade.get_widget("txt_name").get_text()
         url = self.glade.get_widget("txt_url").get_text()
         update_interval = self.glade.get_widget("spinbutton_updatetime").get_value()
+        obey_ttl = self.glade.get_widget("checkbox_obey_ttl").get_active()
 
         self.rssfeed["name"] = name
         self.rssfeed["url"] = url
         self.rssfeed["update_interval"] = int(update_interval)
         self.rssfeed["site"] = urlparse(url).netloc
-        
+        self.rssfeed["obey_ttl"] = obey_ttl
+
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 
