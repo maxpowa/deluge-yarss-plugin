@@ -956,9 +956,18 @@ class _FeedParserMixin:
         # address common error where people take data that is already
         # utf-8, presume that it is iso-8859-1, and re-encode it.
         if self.encoding in (u'utf-8', u'utf-8_INVALID_PYTHON_3') and isinstance(output, unicode):
+            self.error_occured = False
+            def error_handler(exc):
+                """This avoids pesky prints to stdout by decode when it fails"""
+                self.error_occured = True
+                l = []
+                return (u"".join(l), exc.end)
             try:
-                output = output.encode('iso-8859-1').decode('utf-8')
-            except (UnicodeEncodeError, UnicodeDecodeError):
+                codecs.register_error("decoding-error-handler", error_handler)
+                output2 = output.encode('iso-8859-1').decode('utf-8', "decoding-error-handler")
+                if not self.error_occured:
+                    output = output2
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
                 pass
 
         # map win-1252 extensions to the proper code points

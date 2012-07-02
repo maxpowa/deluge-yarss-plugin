@@ -86,7 +86,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         matching, msg  = update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()))
 
-        # Also make sure the items in matching correspond to the matching items in rssfeed_parsed
+        # Also make sure the items in 'matching' correspond to the matching items in rssfeed_parsed
         count = 0
         for key in rssfeed_parsed.keys():
             if rssfeed_parsed[key]["matches"]:
@@ -139,20 +139,28 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
-#    def test_label(self):
-#        #from deluge.ui.client import sclient
-#        #sclient.set_core_uri()
-#        #print sclient.get_enabled_plugins()
-#        #import deluge.component as component
-#        #from deluge.pluginmanager import PluginManager 
-#        #from deluge.core.pluginmanager import PluginManager
-#        plugins = PluginManager(self)
-#        plugins.start()
-#        #print "plugins:", plugins.get_enabled_plugins()
-#        #print "plugins:", plugins.get_available_plugins()
-#
-        
-        
+    #def test_label(self):
+    #    #from deluge.ui.client import sclient
+    #    #sclient.set_core_uri()
+    #    #print sclient.get_enabled_plugins()
+    #    import deluge.component as component
+    #    from deluge.core.pluginmanager import PluginManager
+    #    from deluge.ui.client import client
+    #    plugins = PluginManager(self)
+    #    # Enable plugins
+    #    plugins.start()
+    #
+    #    print "Enabled   plugins:", plugins.get_enabled_plugins()
+    #    print "Available plugins:", plugins.get_available_plugins()
+    #    if "Label" in plugins.get_available_plugins():
+    #        print "Label plugin found"
+    #
+    #    plugins.enable_plugin("Label")
+    #
+    #    print "info:", plugins.get_plugin_info("Label")
+    #    print "Enabled   plugins:", plugins.get_enabled_plugins()
+    #    #client.label.enable()
+    #    #print "label:", client.label.get_labels()
 
 ####################################
 ## Helper methods for test data
@@ -387,7 +395,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         timer.queue_rss_feed_update(subscription_key="1")
         timer.queue_rss_feed_update(rssfeed_key="1")
         return timer.queue_rss_feed_update(rssfeed_key="2")
-        
+
     def test_task_queue(self):
         """Test the RSSFeedRunQueue
         Test that the jobs are not run in main thread and that the jobs are run sequentially
@@ -396,18 +404,18 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         from yarss2.rssfeed_handling import RSSFeedRunQueue
         import twisted.internet.defer as defer
         import threading
-        
+
         main_thread = threading.current_thread()
         runtime_dict = {}
         def test_run(id):
             # Save the start and end time of the job
             runtime_dict[id] = {"start": yarss2.common.get_current_date()}
-            
+
             # Test that the job is not run in main thread
             self.assertNotEquals(threading.current_thread(), main_thread)
-            
+
             runtime_dict[id]["end"] = yarss2.common.get_current_date()
-                    
+
         id_count = 10
         taskq = RSSFeedRunQueue(1)
         # Start id_count jobs
@@ -425,4 +433,3 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         d_verify.addCallback(verify_times)
         d.chainDeferred(d_verify)
         return d_verify
-

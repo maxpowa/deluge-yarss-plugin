@@ -70,7 +70,13 @@ def get_rssfeed_parsed(rssfeed_data, cookies=None, cookie_header={}):
     log.info("Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_data["name"], cookie_header))
 
     # Will abort after 10 seconds if server doesn't answer
-    parsed_feeds = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, timeout=10)
+    try:
+        parsed_feeds = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, timeout=10)
+    except Exception, e:
+        log.warn("Exception occured in feedparser:" + str(e))
+        log.warn("Feedparser was called with url: '%s' and header: '%s'" % (rssfeed_data["url"], request_headers))
+        log.warn("Stacktrace:" + common.get_exception_string())
+
     return_dict["raw_result"] = parsed_feeds
 
     # Error parsing
@@ -111,7 +117,7 @@ def new_rssfeeds_dict_item(title, link=None, updated_datetime=None, key=None):
 
 def update_rssfeeds_dict_matching(rssfeed_parsed, options):
     """rssfeed_parsed: Dictionary returned by get_rssfeed_parsed_dict
-    options, a dictionary with thw following keys:
+    options, a dictionary with the following keys:
     * "regex_include": str
     * "regex_exclude": str
     * "regex_include_ignorecase": bool
@@ -121,7 +127,7 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options):
     Return: a dictionary of the matching items only.
     """
     # regex and title are converted from utf-8 unicode to ascii strings before matching
-    # This is because the indexes returned by span must be the byte index of the text, 
+    # This is because the indexes returned by span must be the byte index of the text,
     # because Pango attributes takes the byte index, and not character index.
 
     matching_items = {}
@@ -147,9 +153,9 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options):
             regex = common.string_to_unicode(options["regex_include"]).encode("utf-8")
             p_include = re.compile(regex, flags)
         except Exception, e:
-            traceback.print_exc(e)
+            #traceback.print_exc(e)
             log.warn("Regex compile error:" + str(e))
-            message = e
+            message = "Regex: %s" % e
             p_include = None
 
     if options["regex_exclude"] is not None and options["regex_exclude"] != "":
@@ -158,9 +164,9 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options):
             regex = common.string_to_unicode(options["regex_exclude"]).encode("utf-8")
             p_exclude = re.compile(regex, flags)
         except Exception, e:
-            traceback.print_exc(e)
+            #traceback.print_exc(e)
             log.warn("Regex compile error:" + str(e))
-            message = e
+            message = "Regex: %s" % e
             p_exclude = None
 
     for key in rssfeed_parsed.keys():
@@ -189,8 +195,8 @@ def update_rssfeeds_dict_matching(rssfeed_parsed, options):
 
 
 def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
-    """Called to fetch subscriptions 
-    If rssfeed_key is not None, all subscriptions linked to that RSS Feed 
+    """Called to fetch subscriptions
+    If rssfeed_key is not None, all subscriptions linked to that RSS Feed
     will be run.
     If rssfeed_key is None, only the subscription with key == subscription_key
     will be run
@@ -225,7 +231,7 @@ def fetch_subscription_torrents(config, rssfeed_key, subscription_key=None):
             fetch_subscription(subscription_data, rssfeed_data, fetch_data)
 
     if subscription_key is None:
-        # Update last_update value of the rssfeed only when rssfeed is run by the timer, 
+        # Update last_update value of the rssfeed only when rssfeed is run by the timer,
         # not when a subscription is run manually by the user
         # Don't need microseconds. Remove because it requires changes to the GUI to not display them
         dt = common.get_current_date().replace(microsecond=0)
@@ -251,7 +257,7 @@ def handle_ttl(rssfeed_data, rssfeed_parsed, fetch_data):
         except ValueError:
             log.warn("Failed to convert TTL value '%s' to int!" % rssfeed_parsed["ttl"])
     else:
-        log.warn("RSS Feed '%s' should obey TTL, but feed has no TTL value." % 
+        log.warn("RSS Feed '%s' should obey TTL, but feed has no TTL value." %
                  rssfeed_data["name"])
         log.info("Obey TTL option set to False")
         rssfeed_data["obey_ttl"] = False
@@ -272,14 +278,15 @@ def fetch_subscription(subscription_data, rssfeed_data, fetch_data):
         else:
             log.warn("No items retrieved")
             return
-    matches, message = update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=subscription_data)
+    # Remove the custom text lines before matching (not strictly necessary though, but they are only for testing in the DialogDubscription)
+    options = subscription_data.copy()
+    del options["custom_text_lines"]
+    matches, message = update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=options)
     last_update_dt = common.isodate_to_datetime(subscription_data["last_update"])
 
     # Sort by time?
     for key in matches.keys():
         if last_update_dt < matches[key]["updated_datetime"]:
-            matches[key]["link"] = http.url_fix(matches[key]["link"])
-            log.info("Adding torrent: '%s'" % (matches[key]["link"]))
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],
@@ -303,13 +310,13 @@ class RSSFeedTimer(object):
         config = self.yarss_config.get_config()
         for key in config["rssfeeds"]:
             self.set_timer(config["rssfeeds"][key]["key"], config["rssfeeds"][key]['update_interval'])
-            log.info("Scheduled RSS Feed '%s' with interval %s" % 
+            log.info("Scheduled RSS Feed '%s' with interval %s" %
                      (config["rssfeeds"][key]["name"], config["rssfeeds"][key]["update_interval"]))
 
     def disable_timers(self):
         for key in self.rssfeed_timers.keys():
             self.rssfeed_timers[key]["timer"].stop()
-        
+
     def set_timer(self, key, interval):
         """Schedule a timer for the specified interval."""
         try:
@@ -328,7 +335,7 @@ class RSSFeedTimer(object):
             # Second argument, the rssfeedkey is passed as argument in the callback method
             #timer = LoopingCall(self.rssfeed_update_handler, (key))
             timer = LoopingCall(self.queue_rss_feed_update, key)
-            
+
             self.rssfeed_timers[key] = {"timer": timer, "update_interval": interval}
         self.rssfeed_timers[key]["timer"].start(interval * 60, now=False) # Multiply to get seconds
         return True
@@ -347,25 +354,25 @@ class RSSFeedTimer(object):
         Multiple subscriptions on one RSS Feed will download the RSS only once
         """
         if subscription_key:
-            log.info("Running Subscription '%s'" % 
+            log.info("Running Subscription '%s'" %
                      (self.yarss_config.get_config()["subscriptions"][subscription_key]["name"]))
         elif rssfeed_key:
             if self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["active"] is False:
                 return
             log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
-        fetch_result = fetch_subscription_torrents(self.yarss_config.get_config(), rssfeed_key, 
+        fetch_result = fetch_subscription_torrents(self.yarss_config.get_config(), rssfeed_key,
                                                                          subscription_key=subscription_key)
         def save_subscription_func(subscription_data):
             self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)
-        
-        self.add_torrent_func(save_subscription_func, fetch_result["matching_torrents"], 
+
+        self.add_torrent_func(save_subscription_func, fetch_result["matching_torrents"],
                               self.yarss_config.get_config())
-        # Update TTL value? 
+        # Update TTL value?
         if fetch_result.has_key("ttl"):
             # Subscription is run directly. Get RSS Feed key
             if not rssfeed_key:
                 rssfeed_key = self.yarss_config.get_config()["subscriptions"][subscription_key]["rssfeed_key"]
-            log.info("Rescheduling RSS Feed '%s' with interval '%s' according to TTL." % 
+            log.info("Rescheduling RSS Feed '%s' with interval '%s' according to TTL." %
                      (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"], fetch_result["ttl"]))
             self.set_timer(rssfeed_key, fetch_result["ttl"])
             # Set new interval in config

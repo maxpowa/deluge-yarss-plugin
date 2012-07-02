@@ -69,7 +69,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         search_regex = "bootonly"
         expected_match_count = 6
         subscription_config["regex_include"] = search_regex
-        
+
         def verify_result(empty, subscription_dialog):
             result = self.get_rssfeed_store_content(subscription_dialog)
             p = re.compile(search_regex)
@@ -88,23 +88,24 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         if not subscription_config:
             subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(None, subscription_config, 
-                                                 config["rssfeeds"], 
-                                                 [],  #self.get_move_completed_list(), 
+        subscription_dialog = DialogSubscription(None, subscription_config,
+                                                 config["rssfeeds"],
+                                                 [], #self.get_move_completed_list(),
+                                                 [], #self.get_download_location_list(),
                                                  {}, #self.email_messages,
                                                  {}) #self.cookies)
         subscription_dialog.setup()
-    
+
         def pass_func(*arg):
             pass
 
         # Override the default selection callback
         subscription_dialog.method_perform_rssfeed_selection = pass_func
-        
+
         # Sets the index 0 of rssfeed combox activated.
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
         rssfeeds_combobox.set_active(1)
-        
+
         defered = subscription_dialog.perform_rssfeed_selection()
         defered.addCallback(callback_func, subscription_dialog)
         return defered
@@ -124,7 +125,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             dialog_subscription.perform_search()
 
             result = self.get_rssfeed_store_content(dialog_subscription)
-            
+
             p_include = re.compile(include_regex, re.IGNORECASE if subscription_config["regex_include_ignorecase"] else 0)
             p_exclude = re.compile(exclude_regex, re.IGNORECASE if subscription_config["regex_exclude_ignorecase"] else 0)
             match_count = 0
@@ -140,7 +141,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         return defered
 
     def compare_dicts_content(self, dict1, dict2):
-        """Compares the content of two dictionaries. 
+        """Compares the content of two dictionaries.
         If all the items of dict1 are found in dict2, returns True
         Returns True if there are items in dict2 that does not exist in dict1
         """
@@ -176,23 +177,23 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
         rssfeeds = common.get_default_rssfeeds(2)
         subscriptions = common.get_default_subscriptions(5)
-        
+
         rssfeeds["0"]["name"] = "Test RSS Feed"
         rssfeeds["0"]["url"] = file_url
         rssfeeds["1"]["name"] = "Test RSS Feed2"
         rssfeeds["1"]["active"] = False
-                
+
         subscriptions["0"]["name"] = "Matching subscription"
         subscriptions["0"]["regex_include"] = "sparc64"
         subscriptions["1"]["name"] = "Non-matching subscription"
         subscriptions["1"]["regex_include"] = None
         subscriptions["2"]["name"] = "Inactive subscription"
         subscriptions["2"]["active"] = False
-        subscriptions["3"]["name"] = "Update_time too new" 
+        subscriptions["3"]["name"] = "Update_time too new"
         subscriptions["3"]["last_update"] = datetime.datetime.now().isoformat()
         subscriptions["4"]["name"] = "Wrong rsskey subscription"
         subscriptions["4"]["rssfeed_key"] = "1"
-        
+
         config["rssfeeds"] = rssfeeds
         config["subscriptions"] = subscriptions
         return config

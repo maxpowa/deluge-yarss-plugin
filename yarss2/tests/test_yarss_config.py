@@ -51,7 +51,7 @@ class ConfigTestCase(unittest.TestCase):
 
     def test_verify_config(self):
         config = common.get_empty_test_config()
-        
+
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Remove some keys from default subscription
         del default_subscription["regex_include"]
@@ -63,11 +63,11 @@ class ConfigTestCase(unittest.TestCase):
         # Main difference between these is that config["subscriptions"] contains a dictionary
         # that contins subscription dictionaries.
         # config["email_configurations"] is a dictionary containing key/value pairs directly.
-        
+
         config.config["subscriptions"]["0"] = default_subscription
         config.config["email_configurations"] = default
 
-        config.verify_config()
+        config._verify_config()
 
         self.assertTrue(config.config["subscriptions"]["0"].has_key("regex_include") and \
             type(config.config["subscriptions"]["0"]) is dict)
@@ -76,7 +76,7 @@ class ConfigTestCase(unittest.TestCase):
 
     def test_insert_missing_dict_values(self):
         config = common.get_empty_test_config()
-        
+
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         subscription_del = yarss2.yarss_config.get_fresh_subscription_config()
 
@@ -84,17 +84,56 @@ class ConfigTestCase(unittest.TestCase):
         del subscription_del["regex_include"]
         del subscription_del["email_notifications"]
 
-        config.insert_missing_dict_values(subscription_del, default_subscription, level=1)
+        config._insert_missing_dict_values(subscription_del, default_subscription, level=1)
         key_diff = set(default_subscription.keys()) - set(subscription_del.keys())
         self.assertTrue(not key_diff)
-        
+
         subscription_del = yarss2.yarss_config.get_fresh_subscription_config()
         # Remove some keys from default subscription
         del subscription_del["regex_include"]
         del subscription_del["email_notifications"]
 
         conf = {"0": subscription_del}
-        config.insert_missing_dict_values(conf, default_subscription, level=2)
+        config._insert_missing_dict_values(conf, default_subscription, level=2)
         key_diff = set(default_subscription.keys()) - set(subscription_del.keys())
         self.assertTrue(not key_diff)
 
+    def test_very_types_config_elements(self):
+        config = common.get_empty_test_config()
+        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        subscriptions = common.get_default_subscriptions(5)
+
+        for i in range(5):
+            subscriptions[str(i)]["name"] = None
+            subscriptions[str(i)]["active"] = ""
+        config._very_types_config_elements(subscriptions, default_subscription)
+
+        for i in range(5):
+            self.assertEquals(subscriptions[str(i)]["name"], default_subscription["name"])
+            self.assertEquals(subscriptions[str(i)]["active"], default_subscription["active"])
+
+    def test_verify_types(self):
+        config = common.get_empty_test_config()
+
+        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config()
+
+        # Change type of the value for some keys
+        subscription_changed["regex_include"] = None
+        subscription_changed["email_notifications"] = []
+        subscription_changed["regex_include_ignorecase"] = ""
+
+        config._verify_types(subscription_changed, default_subscription)
+        self.assertEquals(subscription_changed["regex_include"], default_subscription["regex_include"])
+        self.assertEquals(subscription_changed["email_notifications"], default_subscription["email_notifications"])
+        self.assertEquals(subscription_changed["regex_include_ignorecase"], default_subscription["regex_include_ignorecase"])
+
+        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config()
+        # Remove some keys from default subscription
+        subscription_changed["regex_include"]
+        subscription_changed["email_notifications"]
+
+        conf = {"0": subscription_changed}
+        config._insert_missing_dict_values(conf, default_subscription, level=2)
+        key_diff = set(default_subscription.keys()) - set(subscription_changed.keys())
+        self.assertTrue(not key_diff)

@@ -71,16 +71,16 @@ def string_to_unicode(string):
         return string
 
 def get_new_dict_key(dictionary, string_key=True):
-    """Returns the first unused key in the dictionary. 
+    """Returns the first unused key in the dictionary.
     string_key: if True, use strings as key, else use int
     """
     key = 0
     while dictionary.has_key(str(key) if string_key else key):
         key += 1
     return str(key) if string_key else key
-    
+
 def get_value_in_selected_row(treeview, store, column_index=0):
-    """Helper to get the value at index 'index_column' of the selected element 
+    """Helper to get the value at index 'index_column' of the selected element
     in the given treeview.
     return None of no item is selected.
     """
@@ -125,3 +125,8 @@ def error(message):
 
 def _msg(msg):
     return "%s.%s:%s: %s" % ("YaRSS2", filename(), linenumber(), msg)
+
+def get_exception_string():
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    return ''.join('!! ' + line for line in lines)

@@ -41,7 +41,7 @@ from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
 from yarss2.yarss_config import YARSSConfig
-from yarss2.common import get_resource 
+from yarss2.common import get_resource
 from yarss2.http import get_cookie_header
 from yarss2 import torrent_handling
 from yarss2.rssfeed_handling import RSSFeedTimer
@@ -51,11 +51,11 @@ import yarss2.common as log
 class Core(CorePluginBase):
 
     def enable(self, config=None):
+        log.info("YARSS Core enable")
         if config is None:
             self.yarss_config = YARSSConfig()
         else:
             self.yarss_config = config
-
         self.rssfeed_timer = RSSFeedTimer(self.yarss_config)
         self.rssfeed_timer.enable_timers()
         log.info("Enabled YaRSS 1.0.4")
@@ -90,24 +90,24 @@ class Core(CorePluginBase):
 
     @export
     def save_subscription(self, dict_key=None, subscription_data=None, delete=False):
-        """Saves the subscription in subscription_data. 
+        """Saves the subscription in subscription_data.
         If subscription_data is None and delete=True, delete subscription with key==dict_key
         """
         if delete:
             if subscription_data is not None:
                 log.warn("save_subscription called with delete=True, but rssfeed_data is not None!")
             else:
-                log.info("Deleting Subscription '%s'" % 
+                log.info("Deleting Subscription '%s'" %
                          self.yarss_config.get_config()["subscriptions"][dict_key]["name"])
         try:
-            return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key, 
+            return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key,
                                                          data_dict=subscription_data, delete=delete)
         except ValueError as (v):
             log.error("Failed to save subscription:" + str(v))
-            
+
     @export
     def save_rssfeed(self, dict_key=None, rssfeed_data=None, delete=False):
-        """Saves the rssfeed in rssfeed_data. 
+        """Saves the rssfeed in rssfeed_data.
         If rssfeed_data is None and delete=True, delete rssfeed with key==dict_key
         """
         try:
@@ -115,17 +115,17 @@ class Core(CorePluginBase):
                 if rssfeed_data is not None:
                     log.warn("save_rssfeed called with delete=True, but rssfeed_data is not None!")
                 else:
-                    log.info("Stopping and deleting RSS Feed '%s'" % 
+                    log.info("Stopping and deleting RSS Feed '%s'" %
                              self.yarss_config.get_config()["rssfeeds"][dict_key]["name"])
 
-            config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key, 
+            config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key,
                                                          data_dict=rssfeed_data, delete=delete)
             if delete is True:
-                self.rssfeed_timer.delete_timer(dict_key)            
+                self.rssfeed_timer.delete_timer(dict_key)
             # Successfully saved rssfeed, check if timer was changed
             elif config:
                 if self.rssfeed_timer.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
-                    log.info("Scheduled RSS Feed '%s' with interval %s" % 
+                    log.info("Scheduled RSS Feed '%s' with interval %s" %
                              (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config
         except ValueError as (v):
@@ -136,7 +136,7 @@ class Core(CorePluginBase):
         """Save cookie to config.
         If cookie_data is None and delete=True, delete cookie with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("cookies", dict_key=dict_key, 
+            return self.yarss_config.generic_save_config("cookies", dict_key=dict_key,
                                                          data_dict=cookie_data, delete=delete)
         except ValueError as (v):
             log.error("Failed to save cookie:" + str(v))
@@ -146,7 +146,7 @@ class Core(CorePluginBase):
         """Save email message to config.
         If message_data is None, delete message with key==dict_key"""
         try:
-            return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key, 
+            return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key,
                                                          data_dict=message_data, delete=delete)
         except ValueError as (v):
             log.error("Failed to save email message:" + str(v))

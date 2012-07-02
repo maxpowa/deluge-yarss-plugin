@@ -1,6 +1,6 @@
 YaRSS2: Yet another RSS 2, a RSS plugin for Deluge.
 
-Author: Bro
+Author: Bro <bro.development@gmail.com>
 
 Based on YaRSS by Camillo Dell'mour
 
@@ -9,15 +9,17 @@ License: GPLv3
 Changelog
 =============
 
-v1.0.4 - 2012-05-29
+v1.0.4 - 2012-06-27
 
-* No longer allows deleting email messages when subscriptions have them registered for a notifications.
+* Added support for magnet links.
+* Running RSS feed fetches in separate thread to avoid having the deluge daemon being busy for too long.
 * Added option "Obey TTL" in RSS Feed dialog. With this checked the "Update Interval" will be updated with the TTL value of the RSS Feed.
-* Running RSS fetches in separate thread to avoid deluge server hanging.
+* Added option "Download location" in subscription dialog.
+* Fixed bug where it was possible to delete an email message used by subscriptions for notifications.
 
 v1.0.3 - 2012-05-17
 
-* When adding a RSS Feed or changing the RSS Feed update interval the RSS Feed is now properly (re)schedules with the (new) update interval. 
+* When adding a RSS Feed or changing the RSS Feed update interval the RSS Feed is now properly (re)schedules with the (new) update interval.
   (Previously a restart of deluge was required)
 * After deleting a RSS Feed it is properly stopped from running.
 * Added timeout for 10 seconds on feedparser so deluge won't hang in case the server doesn't respond properly.

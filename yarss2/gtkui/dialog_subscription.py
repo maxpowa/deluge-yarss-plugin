@@ -55,10 +55,11 @@ import yarss2.common as log
 
 class DialogSubscription():
 
-    def __init__(self, gtkUI, subscription_data, rssfeeds, move_completed_list, email_messages, cookies):
+    def __init__(self, gtkUI, subscription_data, rssfeeds, move_completed_list, download_location_list, email_messages, cookies):
         self.gtkUI = gtkUI
         self.rssfeeds = rssfeeds
         self.move_completed_list = move_completed_list
+        self.download_location_list = download_location_list
         self.email_messages = email_messages
         self.rssfeeds_dict = {}
         self.matching_store = None
@@ -83,10 +84,11 @@ class DialogSubscription():
 
         # This is to make testing of the GUI possible (tests/)
         self.method_perform_rssfeed_selection = self.perform_rssfeed_selection
-        
+
         self.dialog = self.glade.get_widget("window_subscription")
         self.setup_rssfeed_combobox()
         self.setup_move_completed_combobox()
+        self.setup_download_location_combobox()
         self.setup_messages_combobox()
         self.setup_messages_list()
         self.treeview = self.create_matching_tree()
@@ -108,12 +110,17 @@ class DialogSubscription():
         combobox_move_completed = self.glade.get_widget("combobox_move_completed")
         combobox_move_completed.set_model(self.move_completed_store)
 
+    def setup_download_location_combobox(self):
+        # Create liststore model to replace default model
+        self.download_location_store = gtk.ListStore(str)
+        combobox_download_location = self.glade.get_widget("combobox_download_location")
+        combobox_download_location.set_model(self.download_location_store)
+
     def setup_rssfeed_combobox(self):
         rssfeeds_combobox = self.glade.get_widget("combobox_rssfeeds")
         rendererText = gtk.CellRendererText()
         rssfeeds_combobox.pack_start(rendererText, False)
         rssfeeds_combobox.add_attribute(rendererText, "text", 1)
-
         # key, name
         self.rssfeeds_store = gtk.ListStore(str, str)
         rssfeeds_combobox.set_model(self.rssfeeds_store)
@@ -173,7 +180,7 @@ class DialogSubscription():
         menuitem1.connect("activate", self.on_button_add_torrent_clicked)
         menuitem2 = gtk.MenuItem("Copy text to clipboard")
         menuitem2.connect("activate", self.on_button_copy_to_clipboard)
-        
+
         self.list_popup_menu.append(menuitem1)
         self.list_popup_menu.append(menuitem2)
         return self.matching_treeView
@@ -199,17 +206,17 @@ class DialogSubscription():
             return True
 
     def on_button_add_torrent_clicked(self, menuitem):
-        torrent_link = get_value_in_selected_row(self.matching_treeView, 
+        torrent_link = get_value_in_selected_row(self.matching_treeView,
                                                  self.matching_store, column_index=3)
         if torrent_link is not None:
             self.gtkUI.add_torrent(torrent_link)
 
     def on_button_copy_to_clipboard(self, menuitem):
-        torrent_title = get_value_in_selected_row(self.matching_treeView, 
+        torrent_title = get_value_in_selected_row(self.matching_treeView,
                                                  self.matching_store, column_index=1)
         if torrent_title is not None:
             gtk.clipboard_get().set_text(torrent_title)
-            
+
     def setup_messages_list(self):
         # message_key, message_title, active, torrent_added, torrent_completed,
         self.messages_list_store = gtk.ListStore(str, str, bool, bool, bool)
@@ -250,7 +257,7 @@ class DialogSubscription():
         viewport.show_all()
 
     def on_panel_matching_move_handle(self, paned, scrolltype):
-        
+
         textview = self.glade.get_widget("textview_custom_text")
         hpaned = self.glade.get_widget("hpaned_matching")
 
@@ -259,7 +266,7 @@ class DialogSubscription():
 
         #width = textview.get_style().get_font().width("w")
         #print "width:", width
-        
+
         #print "position:", paned.get_position()
         #print "Scrolltype:", scrolltype
 
@@ -282,11 +289,11 @@ class DialogSubscription():
 ###################
 
 ## Callbacks
-    
+
     def on_rssfeed_selected(self, combobox):
         """Callback from glade when rss combobox is selected.
         Gets the results for the RSS Feed
-        Runs the code that handles the parsing in a thread with Twisted, 
+        Runs the code that handles the parsing in a thread with Twisted,
         to avoid the dialog waiting on startup.
         """
         self.method_perform_rssfeed_selection()
@@ -320,9 +327,7 @@ class DialogSubscription():
         match_option_dict["regex_exclude"] = regex_exclude if (len(regex_exclude) > 0) else None
         match_option_dict["regex_include_ignorecase"] = not regex_include_case
         match_option_dict["regex_exclude_ignorecase"] = not regex_exclude_case
-
-        custom_lines = self.get_custom_text_lines()
-        match_option_dict["custom_text_lines"] = custom_lines
+        match_option_dict["custom_text_lines"] = self.get_custom_text_lines()
         return match_option_dict
 
     def perform_search(self):
@@ -346,8 +351,9 @@ class DialogSubscription():
             self.update_matching_feeds_store(self.treeview, self.matching_store,
                                              self.rssfeeds_dict, regex_matching=True)
             label_status = self.glade.get_widget("label_status")
-            if message:
-                label_status.set_text(str(message))
+            if message is None:
+                message = ""
+            label_status.set_text(str(message))
         except Exception as (v):
             import traceback
             exc_str = traceback.format_exc(v)
@@ -366,11 +372,11 @@ class DialogSubscription():
                 if rssfeeds_dict[key].has_key("regex_exclude_match"):
                     attr["regex_exclude_match"] = rssfeeds_dict[key]["regex_exclude_match"]
                 customAttributes = CustomAttribute(attributes_dict=attr)
-            store.append([rssfeeds_dict[key]['matches'], rssfeeds_dict[key]['title'], 
+            store.append([rssfeeds_dict[key]['matches'], rssfeeds_dict[key]['title'],
                           rssfeeds_dict[key]['updated'], rssfeeds_dict[key]['link'], customAttributes])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
-        rssfeeds_parsed = rssfeed_handling.get_rssfeed_parsed(self.rssfeeds[rssfeed_key], 
+        rssfeeds_parsed = rssfeed_handling.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
                                                               cookies=self.cookies)
         return rssfeeds_parsed
 
@@ -400,7 +406,7 @@ class DialogSubscription():
             self.show_result_as_text(rssfeeds_parsed["raw_result"])
             return
         self.rssfeeds_dict = rssfeeds_parsed["items"]
-                
+
         # Update the matching according to the current settings
         self.perform_search()
 
@@ -443,7 +449,7 @@ class DialogSubscription():
 ###################
 
     def on_notification_list_clicked(self, Event=None, a=None, col=None):
-        """Callback for when the checkboxes (or actually just the row) 
+        """Callback for when the checkboxes (or actually just the row)
         in notification list is clicked"""
         tree, row_iter = self.messages_treeview.get_selection().get_selected()
         if not row_iter or not col:
@@ -499,7 +505,7 @@ class DialogSubscription():
         if row_iter:
             self.messages_list_store.remove(row_iter)
 
- 
+
 ## Save / Close
 ###################
 
@@ -513,13 +519,13 @@ class DialogSubscription():
         regex_exclude = self.glade.get_widget("txt_regex_exclude").get_text()
         regex_include_case_sensitive = self.glade.get_widget("regex_include_case").get_active()
         regex_exclude_case_sensitive = self.glade.get_widget("regex_exclude_case").get_active()
-        move_completed = self.glade.get_widget("combobox_move_completed").get_active_text()
+        move_completed = self.glade.get_widget("combobox_move_completed").get_active_text().strip()
+        download_location = self.glade.get_widget("combobox_download_location").get_active_text().strip()
         add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
 
-
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
-        custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())   
-        
+        custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
+
         rss_key = self.get_selected_combobox_key(self.glade.get_widget("combobox_rssfeeds"))
 
         # RSS feed is mandatory
@@ -533,6 +539,7 @@ class DialogSubscription():
         self.subscription_data["regex_include_ignorecase"] = not regex_include_case_sensitive
         self.subscription_data["regex_exclude_ignorecase"] = not regex_exclude_case_sensitive
         self.subscription_data["move_completed"] = move_completed
+        self.subscription_data["download_location"] = download_location
         self.subscription_data["custom_text_lines"] = custom_text_lines
         self.subscription_data["rssfeed_key"] = rss_key
         self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
@@ -562,6 +569,7 @@ class DialogSubscription():
         self.load_rssfeed_combobox_data()
         self.load_notifications_list_data()
         self.load_move_completed_combobox_data()
+        self.load_download_location_combobox_data()
 
     def load_basic_fields_data(self):
         if self.subscription_data is None:
@@ -629,3 +637,17 @@ class DialogSubscription():
         # Set active value in combobox
         if move_completed_index != -1:
             self.glade.get_widget("combobox_move_completed").set_active(move_completed_index)
+
+    def load_download_location_combobox_data(self):
+        download_location_value = None
+        download_location_index = -1
+
+        # Load the download location values
+        for i in range(len(self.download_location_list)):
+            if self.download_location_list[i] == self.subscription_data["download_location"]:
+                download_location_index = i
+            self.download_location_store.append([self.download_location_list[i]])
+
+        # Set active value in combobox
+        if download_location_index != -1:
+            self.glade.get_widget("combobox_download_location").set_active(download_location_index)
