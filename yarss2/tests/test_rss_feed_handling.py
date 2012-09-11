@@ -33,8 +33,8 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from twisted.trial import unittest
 import datetime
+from twisted.trial import unittest
 
 from deluge.config import Config
 import deluge.configmanager
@@ -42,21 +42,20 @@ from deluge.log import LOG as log
 
 import yarss2.common
 import yarss2.yarss_config
-from yarss2.rssfeed_handling import get_rssfeed_parsed, update_rssfeeds_dict_matching, \
-    fetch_subscription_torrents
-
+from yarss2.rssfeed_handling import RSSFeedHandler
 import common
 
 class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.log = log
+        self.rssfeedhandler = RSSFeedHandler(self.log)
 
     def test_get_rssfeed_parsed(self):
         file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
 
         rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
-        parsed_feed = get_rssfeed_parsed(rssfeed_data)
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
 
         self.assertTrue(parsed_feed.has_key("items"))
 
@@ -83,7 +82,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
     def test_update_rssfeeds_dict_matching(self):
         options, rssfeed_parsed = self.get_default_rssfeeds_dict()
         options["regex_include"] = "FreeBSD"
-        matching, msg  = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg  = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()))
 
         # Also make sure the items in 'matching' correspond to the matching items in rssfeed_parsed
@@ -96,12 +95,12 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                           "The number of items in matches dict (%d) does not match the number of matching items (%d)" % (count, len(matching.keys())))
 
         options["regex_include_ignorecase"] = False
-        matching, msg = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()) - 1)
 
         #options["regex_include_ignorecase"] = True
         options["regex_exclude"] = "i386"
-        matching, msg = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()) - 2)
 
         # Fresh options
@@ -110,14 +109,14 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         # Custom line with unicode characters, norwegian ø and å, as well as Latin Small Letter Lambda with stroke
         options["custom_text_lines"] = [u"Test line with æ and å, as well as ƛ"]
         options["regex_include"] = "æ"
-        matching, msg = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), 1)
         for key in matching.keys():
             self.assertEquals(matching[key]["title"], options["custom_text_lines"][0])
             self.assertEquals(matching[key]["regex_include_match"], (15, 17))
 
         options["regex_include"] = "with.*ƛ"
-        matching, msg = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), 1)
         for key in matching.keys():
             self.assertEquals(matching[key]["title"], options["custom_text_lines"][0])
@@ -126,7 +125,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         # Test exclude span
         options["regex_include"] = ".*"
         options["regex_exclude"] = "line.*å"
-        matching, msg = update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         for key in rssfeed_parsed.keys():
             if not rssfeed_parsed[key]["matches"]:
                 self.assertEquals(rssfeed_parsed[key]["title"], options["custom_text_lines"][0])
@@ -135,7 +134,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def test_fetch_subscription_torrents(self):
         config = get_test_config()
-        matche_result = fetch_subscription_torrents(config, "0")
+        matche_result = self.rssfeedhandler.fetch_subscription_torrents(config, "0")
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
@@ -228,6 +227,7 @@ def get_test_config():
 from yarss2.rssfeed_handling import RSSFeedTimer
 from common import get_default_rssfeeds
 
+from deluge.log import LOG as log
 
 class RSSFeedTimerTestCase(unittest.TestCase):
 
@@ -243,7 +243,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         self.config.set_config({"rssfeeds": self.rssfeeds, "email_configurations": {"send_email_on_torrent_events": False} })
 
     def test_enable_timers(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
 
         # Now verify the timers
@@ -260,7 +260,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         timer.disable_timers()
 
     def test_disable_timers(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
         timer.disable_timers()
 
@@ -270,7 +270,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
             self.assertFalse(timer.rssfeed_timers[key]["timer"].running)
 
     def test_delete_timer(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
         # Delete timer
         self.assertTrue(timer.delete_timer("0"))
@@ -282,7 +282,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         timer.disable_timers()
 
     def test_reschedule_timer(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
 
         # Change interval to 60 minutes
@@ -296,7 +296,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         timer.disable_timers()
 
     def test_schedule_timer(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
 
         # Add new timer (with key "5") with interval 60 minutes
@@ -315,7 +315,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
 
 
     def test_interval_unchanged(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
         # Set timer 0 with same interval
         self.assertFalse(timer.set_timer("0", 1))
@@ -325,7 +325,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
 
 
     def test_rssfeed_update_handler(self):
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         timer.enable_timers()
 
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
@@ -359,7 +359,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         yarss_config = common.get_empty_test_config()
         yarss_config.set_config(config)
 
-        timer = RSSFeedTimer(yarss_config)
+        timer = RSSFeedTimer(yarss_config, log)
         timer.enable_timers()
 
         def add_torrents_pass(*arg):
@@ -383,7 +383,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         from yarss2.rssfeed_handling import RSSFeedRunQueue
 
         self.config.set_config(get_test_config())
-        timer = RSSFeedTimer(self.config)
+        timer = RSSFeedTimer(self.config, log)
         def add_torrents_pass(*arg):
             pass
         timer.add_torrent_func = add_torrents_pass

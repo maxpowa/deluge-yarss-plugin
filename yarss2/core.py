@@ -1,6 +1,9 @@
 #
 # core.py
 #
+# Copyright (C) 2012 Bro
+#
+# Based on work by:
 # Copyright (C) 2009 Camillo Dell'mour <cdellmour@gmail.com>
 #
 # Basic plugin template created by:
@@ -41,24 +44,24 @@ from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
 from yarss2.yarss_config import YARSSConfig
-from yarss2.common import get_resource
 from yarss2.http import get_cookie_header
-from yarss2 import torrent_handling
+from yarss2.torrent_handling import TorrentHandler
 from yarss2.rssfeed_handling import RSSFeedTimer
-import yarss2.common as log
-
+import yarss2.logger
+import yarss2.common
 
 class Core(CorePluginBase):
 
     def enable(self, config=None):
-        log.info("YARSS Core enable")
+        self.log = yarss2.logger.Logger()
+        self.torrent_handler = TorrentHandler(self.log)
         if config is None:
-            self.yarss_config = YARSSConfig()
+            self.yarss_config = YARSSConfig(self.log)
         else:
             self.yarss_config = config
-        self.rssfeed_timer = RSSFeedTimer(self.yarss_config)
+        self.rssfeed_timer = RSSFeedTimer(self.yarss_config, self.log)
         self.rssfeed_timer.enable_timers()
-        log.info("Enabled YaRSS 1.0.4")
+        self.log.info("Enabled YaRSS2 %s" % yarss2.common.get_version())
 
     def disable(self):
         self.yarss_config.save()
@@ -77,7 +80,7 @@ class Core(CorePluginBase):
 
     @export
     def get_config(self):
-        "returns the config dictionary"
+        "Returns the config dictionary"
         return self.yarss_config.get_config()
 
     @export
@@ -86,7 +89,7 @@ class Core(CorePluginBase):
         try:
             self.yarss_config.set_config(conf)
         except ValueError as (v):
-            log.error("Failed to save email configurations:" + str(v))
+            self.log.error("Failed to save email configurations:" + str(v))
 
     @export
     def save_subscription(self, dict_key=None, subscription_data=None, delete=False):
@@ -95,15 +98,15 @@ class Core(CorePluginBase):
         """
         if delete:
             if subscription_data is not None:
-                log.warn("save_subscription called with delete=True, but rssfeed_data is not None!")
+                self.log.warn("save_subscription called with delete=True, but rssfeed_data is not None!")
             else:
-                log.info("Deleting Subscription '%s'" %
+                self.log.info("Deleting Subscription '%s'" %
                          self.yarss_config.get_config()["subscriptions"][dict_key]["name"])
         try:
             return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key,
                                                          data_dict=subscription_data, delete=delete)
         except ValueError as (v):
-            log.error("Failed to save subscription:" + str(v))
+            self.log.error("Failed to save subscription:" + str(v))
 
     @export
     def save_rssfeed(self, dict_key=None, rssfeed_data=None, delete=False):
@@ -113,9 +116,9 @@ class Core(CorePluginBase):
         try:
             if delete:
                 if rssfeed_data is not None:
-                    log.warn("save_rssfeed called with delete=True, but rssfeed_data is not None!")
+                    self.log.warn("save_rssfeed called with delete=True, but rssfeed_data is not None!")
                 else:
-                    log.info("Stopping and deleting RSS Feed '%s'" %
+                    self.log.info("Stopping and deleting RSS Feed '%s'" %
                              self.yarss_config.get_config()["rssfeeds"][dict_key]["name"])
 
             config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key,
@@ -125,11 +128,11 @@ class Core(CorePluginBase):
             # Successfully saved rssfeed, check if timer was changed
             elif config:
                 if self.rssfeed_timer.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
-                    log.info("Scheduled RSS Feed '%s' with interval %s" %
+                    self.log.info("Scheduled RSS Feed '%s' with interval %s" %
                              (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config
         except ValueError as (v):
-            log.error("Failed to save rssfeed:" + str(v))
+            self.log.error("Failed to save rssfeed:" + str(v))
 
     @export
     def save_cookie(self, dict_key=None, cookie_data=None, delete=False):
@@ -139,7 +142,7 @@ class Core(CorePluginBase):
             return self.yarss_config.generic_save_config("cookies", dict_key=dict_key,
                                                          data_dict=cookie_data, delete=delete)
         except ValueError as (v):
-            log.error("Failed to save cookie:" + str(v))
+            self.log.error("Failed to save cookie:" + str(v))
 
     @export
     def save_email_message(self, dict_key=None, message_data=None, delete=False):
@@ -149,9 +152,9 @@ class Core(CorePluginBase):
             return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key,
                                                          data_dict=message_data, delete=delete)
         except ValueError as (v):
-            log.error("Failed to save email message:" + str(v))
+            self.log.error("Failed to save email message:" + str(v))
 
     @export
     def add_torrent(self, torrent_url):
         cookie_header = get_cookie_header(self.yarss_config.get_config()["cookies"], torrent_url)
-        id = torrent_handling.add_torrent(torrent_url, cookie_header=cookie_header)
+        id = self.torrent_handler.add_torrent(torrent_url, cookie_header=cookie_header)

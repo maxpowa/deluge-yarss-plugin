@@ -35,12 +35,6 @@
 
 from twisted.trial import unittest
 
-import deluge.configmanager
-import tempfile
-import os
-
-import os.path
-
 import yarss2.yarss_config
 import common
 

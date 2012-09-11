@@ -41,8 +41,7 @@
 import deluge.configmanager
 from deluge.event import DelugeEvent
 import copy
-from yarss2.common import get_default_date, get_new_dict_key
-import yarss2.common as log
+from yarss2.common import get_new_dict_key
 
 DEFAULT_UPDATE_INTERVAL = 120
 
@@ -69,7 +68,8 @@ class YARSSConfigChangedEvent(DelugeEvent):
 
 class YARSSConfig(object):
 
-    def __init__(self, config=None):
+    def __init__(self, logger, config=None):
+        self.log = logger
         # Used for testing
         if config is not None:
             self.config = config
@@ -172,19 +172,20 @@ class YARSSConfig(object):
         changed = False
         for key in default_config.keys():
             if not config.has_key(key):
-                log.warn("Config is missing a dictionary key: '%s'. Inserting default value. Affected config: %s\n" % (key, str(config)))
+                self.log.warn("Config is missing a dictionary key: '%s'. Inserting default value. Affected config: %s\n" % (key, str(config)))
                 config[key] = default_config[key]
                 changed = True
             else:
                 if type(default_config[key]) != type(config[key]):
                     if key == "key" or key == "dict_key":
-                        log.warn("The value of the dictionary key '%s' has the wrong type! Value: '%s'."\
+                        self.log.warn("The value of the dictionary key '%s' has the wrong type! Value: '%s'."\
                                  "Excpected '%s' but found '%s'. Must be fixed manually."\
                                  "\nAffected config: %s\n" % (key,  str(type(default_config[key])), str(type(config[key])), str(config[key]), str(config)))
-                    else:
-                        log.warn("Config value is the wrong data type! dictionary key: '%s'. "\
-                                 "Expected '%s' but found '%s'. Iserting default value. Affected config: %s" % \
-                                 (key, str(type(default_config[key])), str(type(config[key])), str(config)))
+                    # Ignore if value is an empty string
+                    elif len(config[key]) > 0:
+                        self.log.warn("Config value ('%s') is the wrong data type! dictionary key: '%s'. "\
+                                 "Expected '%s' but found '%s'. Inserting default value. Affected config: %s" % \
+                                 (config[key], key, str(type(default_config[key])), str(type(config[key])), str(config)))
                         config[key] = default_config[key]
                         changed = True
         return changed
@@ -210,7 +211,7 @@ class YARSSConfig(object):
                 return key_diff
         # Set new keys
         for key in key_diff:
-            log.info("Insert missing config key %s" % key)
+            self.log.info("Insert missing config key '%s'" % key)
             config_dict[key] = default_config[key]
         return key_diff
 
