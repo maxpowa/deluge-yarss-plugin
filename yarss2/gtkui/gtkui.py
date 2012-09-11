@@ -48,16 +48,17 @@ from deluge.ui.client import client
 from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 
+from yarss2.logger import Logger
+from yarss2.gtkui_log import GTKUI_logger
+from yarss2.torrent_handling import TorrentHandler
+from yarss2.common import get_resource, get_value_in_selected_row
+from yarss2.http import encode_cookie_values
+from yarss2 import yarss_config
+
 from dialog_subscription import DialogSubscription
 from dialog_rssfeed import DialogRSSFeed
 from dialog_email_message import DialogEmailMessage
 from dialog_cookie import DialogCookie
-
-from yarss2.torrent_handling import send_torrent_email
-from yarss2.common import get_resource, get_value_in_selected_row
-from yarss2.http import encode_cookie_values
-from yarss2 import yarss_config
-import yarss2.common as log
 
 class GtkUI(GtkPluginBase):
 
@@ -65,6 +66,7 @@ class GtkUI(GtkPluginBase):
         self.createUI()
         self.on_show_prefs() # Necessary for the first time when the plugin is installed
         client.register_event_handler("YARSSConfigChangedEvent", self.cb_on_config_changed_event)
+        client.register_event_handler("GtkUILogMessageEvent", self.cb_on_log_message_arrived_event)
 
     def disable(self):
         component.get("Preferences").remove_page("YaRSS2")
@@ -98,6 +100,10 @@ class GtkUI(GtkPluginBase):
         component.get("Preferences").add_page("YaRSS2", self.glade.get_widget("notebook_main"))
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
+        self.gtkui_log = GTKUI_logger(self.glade.get_widget('textview_log'))
+        self.log = Logger(gtkui_logger=self.gtkui_log)
+        self.torrent_handler = TorrentHandler(self.log)
+
         self.subscriptions = {}
         self.rssfeeds = {}
 
@@ -203,11 +209,17 @@ class GtkUI(GtkPluginBase):
         """Called when showing preferences window"""
         client.yarss2.get_config().addCallback(self.cb_get_config)
 
-
     def cb_on_config_changed_event(self, config):
         """Callback function called on YARSSConfigChangedEvent events"""
-        # Must defer to thread to avdoid errors when updating GUI
-        d = threads.deferToThread(self.cb_get_config, config)
+        # Tried to fix error where glade.get_widget("label_status") in dialog_subscription returns None. (Why??)
+        # DeferToThread actually works, but it seems to add a new error, where Deluge crashes, probably
+        # caused by the GUI being updated in another thread than the main thread.
+        # d = threads.deferToThread(self.cb_get_config, config)
+        self.cb_get_config(config)
+
+    def cb_on_log_message_arrived_event(self, message):
+        """Callback function called on GtkUILogMessageEvent events"""
+        self.gtkui_log.gtkui_log_message(message)
 
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
@@ -580,7 +592,7 @@ class GtkUI(GtkPluginBase):
         key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         # Send email
         torrents = ["Torrent title"]
-        send_torrent_email(self.email_config,
+        self.torrent_handler.send_torrent_email(self.email_config,
                            self.email_messages[key],
                            torrent_name_list=torrents,
                            defered=True, callback_func=self.test_email_callback)
@@ -667,7 +679,9 @@ class GtkUI(GtkPluginBase):
             return
 
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(self, fresh_subscription_config,
+        subscription_dialog = DialogSubscription(self,
+                                                 self.log,
+                                                 fresh_subscription_config,
                                                  self.rssfeeds,
                                                  self.get_move_completed_list(),
                                                  self.get_download_location_list(),
@@ -704,6 +718,7 @@ class GtkUI(GtkPluginBase):
                 self.save_subscription(self.subscriptions[key])
             else:
                 edit_subscription_dialog = DialogSubscription(self,
+                                                              self.log,
                                                               self.subscriptions[key],
                                                               self.rssfeeds,
                                                               self.get_move_completed_list(),
@@ -868,3 +883,5 @@ class GtkUI(GtkPluginBase):
         else:
             self.glade.get_widget('button_edit_cookie').set_sensitive(False)
             self.glade.get_widget('button_delete_cookie').set_sensitive(False)
+
+

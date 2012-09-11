@@ -42,20 +42,27 @@
 
 import gtk
 import gtk.glade
-
-import deluge.component as component
-from twisted.internet import threads
-
 from CellrendererPango import CustomAttribute, CellrendererPango
 
-from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode
+from twisted.internet import threads
+
+import deluge.component as component
+
+from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode, get_current_date, isodate_to_datetime
 from yarss2.http import HTMLStripper
-from yarss2 import rssfeed_handling
-import yarss2.common as log
+import yarss2.logger as log
+from yarss2.rssfeed_handling import RSSFeedHandler
 
 class DialogSubscription():
 
-    def __init__(self, gtkUI, subscription_data, rssfeeds, move_completed_list, download_location_list, email_messages, cookies):
+    def __init__(self, gtkUI,
+                 logger,
+                 subscription_data,
+                 rssfeeds,
+                 move_completed_list,
+                 download_location_list,
+                 email_messages,
+                 cookies):
         self.gtkUI = gtkUI
         self.rssfeeds = rssfeeds
         self.move_completed_list = move_completed_list
@@ -67,19 +74,23 @@ class DialogSubscription():
         self.icon_nonmatching = gtk.gdk.pixbuf_new_from_file(get_resource("no_match.png"))
         self.subscription_data = subscription_data
         self.cookies = cookies
+        self.log = logger
+        self.rssfeedhandler = RSSFeedHandler(self.log)
 
     def setup(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
         self.glade.signal_autoconnect({
-                "on_txt_regex_include_changed":        self.on_txt_regex_changed,
-                "on_txt_regex_exclude_changed":        self.on_txt_regex_changed,
-                "on_button_cancel_clicked":            self.on_button_cancel_clicked,
-                "on_button_save_clicked":              self.on_button_save_subscription_clicked,
-                "on_button_add_notication_clicked":    self.on_button_add_notication_clicked,
-                "on_button_remove_notication_clicked": self.on_button_remove_notication_clicked,
-                "on_rssfeed_selected":                 self.on_rssfeed_selected,
-                "on_panel_matching_move_handle":       self.on_panel_matching_move_handle,
-                "on_button_fetch_clicked":             self.on_rssfeed_selected,
+                "on_txt_regex_include_changed":         self.on_txt_regex_changed,
+                "on_txt_regex_exclude_changed":         self.on_txt_regex_changed,
+                "on_button_cancel_clicked":             self.on_button_cancel_clicked,
+                "on_button_save_clicked":               self.on_button_save_subscription_clicked,
+                "on_button_add_notication_clicked":     self.on_button_add_notication_clicked,
+                "on_button_remove_notication_clicked":  self.on_button_remove_notication_clicked,
+                "on_rssfeed_selected":                  self.on_rssfeed_selected,
+                "on_panel_matching_move_handle":        self.on_panel_matching_move_handle,
+                "on_button_fetch_clicked":              self.on_rssfeed_selected,
+                "on_button_last_matched_reset_clicked": self.on_button_last_matched_reset_clicked,
+                "on_button_last_matched_now_clicked":   self.on_button_last_matched_now_clicked,
                 })
 
         # This is to make testing of the GUI possible (tests/)
@@ -99,7 +110,6 @@ class DialogSubscription():
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.show()
 
-
 ########################################
 ## GUI creation
 ########################################
@@ -118,11 +128,14 @@ class DialogSubscription():
 
     def setup_rssfeed_combobox(self):
         rssfeeds_combobox = self.glade.get_widget("combobox_rssfeeds")
-        rendererText = gtk.CellRendererText()
-        rssfeeds_combobox.pack_start(rendererText, False)
-        rssfeeds_combobox.add_attribute(rendererText, "text", 1)
-        # key, name
-        self.rssfeeds_store = gtk.ListStore(str, str)
+        rendererName = gtk.CellRendererText()
+        rendererSite = gtk.CellRendererText()
+        rssfeeds_combobox.pack_start(rendererName, False)
+        rssfeeds_combobox.pack_end(rendererSite, False)
+        rssfeeds_combobox.add_attribute(rendererName, "text", 1)
+        rssfeeds_combobox.add_attribute(rendererSite, "text", 2)
+        # key, name, site url
+        self.rssfeeds_store = gtk.ListStore(str, str, str)
         rssfeeds_combobox.set_model(self.rssfeeds_store)
 
     def setup_messages_combobox(self):
@@ -136,7 +149,7 @@ class DialogSubscription():
         messages_combobox.set_model(self.messages_combo_store)
 
     def create_matching_tree(self):
-        # Matches, Title, Updated, torrent link, CustomAttribute for PangoCellrenderer
+        # Matches, Title, Published, torrent link, CustomAttribute for PangoCellrenderer
         self.matching_store = gtk.ListStore(bool, str, str, str, CustomAttribute)
 
         self.matching_treeView = gtk.TreeView(self.matching_store)
@@ -167,7 +180,7 @@ class DialogSubscription():
         self.matching_treeView.append_column(column)
 
         cellrenderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Updated", cellrenderer, text=2)
+        column = gtk.TreeViewColumn("Published", cellrenderer, text=2)
         column.set_sort_column_id(2)
         self.matching_treeView.append_column(column)
 
@@ -250,7 +263,6 @@ class DialogSubscription():
         renderer.connect("toggled", self.message_checkbox_toggled_cb, self.messages_list_store)
         column = gtk.TreeViewColumn("On torrent completed", renderer, active=4)
         self.columns_dict["4"] = column
-        #self.messages_treeview.append_column(column)
 
         viewport = self.glade.get_widget("viewport_email_notifications")
         viewport.add(self.messages_treeview)
@@ -346,18 +358,17 @@ class DialogSubscription():
         if not self.rssfeeds_dict and not match_option_dict["custom_text_lines"]:
             return
         try:
-            matchings, message = rssfeed_handling.update_rssfeeds_dict_matching(self.rssfeeds_dict,
+            matchings, message = self.rssfeedhandler.update_rssfeeds_dict_matching(self.rssfeeds_dict,
                                                            options=match_option_dict)
             self.update_matching_feeds_store(self.treeview, self.matching_store,
                                              self.rssfeeds_dict, regex_matching=True)
             label_status = self.glade.get_widget("label_status")
-            if message is None:
-                message = ""
-            label_status.set_text(str(message))
+            if message:
+                label_status.set_text(str(message))
         except Exception as (v):
             import traceback
             exc_str = traceback.format_exc(v)
-            log.warn("Error when matching:" + exc_str)
+            self.log.warn("Error when matching:" + exc_str)
 
     def update_matching_feeds_store(self, treeview, store, rssfeeds_dict, regex_matching=False):
         """Updates the liststore of matching torrents.
@@ -372,11 +383,12 @@ class DialogSubscription():
                 if rssfeeds_dict[key].has_key("regex_exclude_match"):
                     attr["regex_exclude_match"] = rssfeeds_dict[key]["regex_exclude_match"]
                 customAttributes = CustomAttribute(attributes_dict=attr)
+            updated = rssfeeds_dict[key]['updated']
             store.append([rssfeeds_dict[key]['matches'], rssfeeds_dict[key]['title'],
-                          rssfeeds_dict[key]['updated'], rssfeeds_dict[key]['link'], customAttributes])
+                          updated if updated else "Not available", rssfeeds_dict[key]['link'], customAttributes])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
-        rssfeeds_parsed = rssfeed_handling.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
+        rssfeeds_parsed = self.rssfeedhandler.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
                                                               cookies=self.cookies)
         return rssfeeds_parsed
 
@@ -388,19 +400,28 @@ class DialogSubscription():
         to current settings.
         If no valid items, show the result as text instead.
         """
-        # Bozo Exception, still elements might have been successfully parsed
+        if rssfeeds_parsed is None:
+            return
+        # Reset status to not display an older status
+        label_status = self.glade.get_widget("label_status")
+        label_text = ""
+        # Bozo Exception (feedbparser error), still elements might have been successfully parsed
         if rssfeeds_parsed.has_key("bozo_exception"):
             exception = rssfeeds_parsed["bozo_exception"]
-            label_status = self.glade.get_widget("label_status")
-            label_status.set_text(str(exception))
+            label_text = str(exception)
         else:
-            label_status = self.glade.get_widget("label_status")
-            ttl_string = "TTL value: %s" % (("%s min" % rssfeeds_parsed["ttl"]) \
+            message_text = "TTL value: %s" % (("%s min" % rssfeeds_parsed["ttl"]) \
                                                 if rssfeeds_parsed.has_key("ttl") \
                                                 else "Not available")
-            # This can sometimes be done for some effing reason
+            # This can sometimes be None for some effing reason
             if label_status:
-                label_status.set_text(ttl_string)
+                label_text = message_text
+        try:
+            # label_status is sometimes None, for som effin reason
+            label_status.set_text(label_text)
+        except:
+            self.log.warn("label_status is None", gtkui=False)
+            pass
         # Failed to retrive items. Show content as text
         if not rssfeeds_parsed.has_key("items"):
             self.show_result_as_text(rssfeeds_parsed["raw_result"])
@@ -506,6 +527,15 @@ class DialogSubscription():
             self.messages_list_store.remove(row_iter)
 
 
+### Options
+###################
+
+    def on_button_last_matched_reset_clicked(self, button):
+        self.glade.get_widget("txt_last_matched").set_text("")
+
+    def on_button_last_matched_now_clicked(self, button):
+        self.glade.get_widget("txt_last_matched").set_text(get_current_date().isoformat())
+
 ## Save / Close
 ###################
 
@@ -522,6 +552,7 @@ class DialogSubscription():
         move_completed = self.glade.get_widget("combobox_move_completed").get_active_text().strip()
         download_location = self.glade.get_widget("combobox_download_location").get_active_text().strip()
         add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
+        last_update = self.glade.get_widget("txt_last_matched").get_text()
 
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
         custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
@@ -543,6 +574,8 @@ class DialogSubscription():
         self.subscription_data["custom_text_lines"] = custom_text_lines
         self.subscription_data["rssfeed_key"] = rss_key
         self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
+        self.subscription_data["last_update"] = last_update
+
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
         # Call save method in gtui. Saves to core
@@ -570,6 +603,7 @@ class DialogSubscription():
         self.load_notifications_list_data()
         self.load_move_completed_combobox_data()
         self.load_download_location_combobox_data()
+        self.load_last_matched_timestamp()
 
     def load_basic_fields_data(self):
         if self.subscription_data is None:
@@ -593,18 +627,16 @@ class DialogSubscription():
         rssfeed_key = "-1"
         active_index = -1
         if self.subscription_data:
-            # If, editing a subscription, set the rssfeed_key
+            # If editing a subscription, set the rssfeed_key
             if self.subscription_data.has_key("rssfeed_key"):
                 rssfeed_key = self.subscription_data["rssfeed_key"]
-
         # Load rssfeeds into the combobox
         count = 0
         for key in self.rssfeeds:
-            self.rssfeeds_store.append([self.rssfeeds[key]["key"], self.rssfeeds[key]["name"]])
+            self.rssfeeds_store.append([self.rssfeeds[key]["key"], self.rssfeeds[key]["name"], "(%s)" % self.rssfeeds[key]["site"]])
             if key == rssfeed_key:
                 active_index = count
             count += 1
-
         # Set active index
         self.glade.get_widget("combobox_rssfeeds").set_active(active_index)
         # Update matching
@@ -614,7 +646,6 @@ class DialogSubscription():
         # Load notification messages into combo
         for key in self.email_messages.keys():
             self.messages_combo_store.append([key, self.email_messages[key]["name"]])
-
         # Load notifications into notifications list
         # The dict keys in email_notifications are the email messages dict keys.
         for key in self.subscription_data["email_notifications"].keys():
@@ -651,3 +682,7 @@ class DialogSubscription():
         # Set active value in combobox
         if download_location_index != -1:
             self.glade.get_widget("combobox_download_location").set_active(download_location_index)
+
+    def load_last_matched_timestamp(self):
+        self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_update"])
+

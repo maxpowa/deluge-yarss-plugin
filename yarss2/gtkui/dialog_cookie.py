@@ -68,10 +68,10 @@ class DialogCookie():
             for v in self.cookie_data["value"]:
                 self.values.append(v)
             self.glade.get_widget("text_site").set_text(self.cookie_data["site"])
-        
+
         # Update cookie data list
         self.update_cookie_values_list()
-                
+
         cookie_list = self.glade.get_widget("viewport_list_cookie_values")
         cookie_list.add(self.treeview)
         cookie_list.show_all()
@@ -92,7 +92,7 @@ class DialogCookie():
             self.cookie_data["site"] = site
             self.cookie_data["value"] = self.values
             self.gtkUI.save_cookie(self.cookie_data)
-            self.dialog.destroy()        
+            self.dialog.destroy()
 
     def on_button_remove_cookie_data_clicked(self, button):
         tree_sel = self.treeview.get_selection()
@@ -111,7 +111,7 @@ class DialogCookie():
     def on_button_add_cookie_data_clicked(self, button):
         key = self.glade.get_widget("text_key").get_text().strip()
         value = self.glade.get_widget("text_value").get_text().strip()
-        
+
         if len(key) > 0 and len(value):
             if self.add_cookie_data(key, value):
                 self.update_cookie_values_list()
@@ -132,7 +132,7 @@ class DialogCookie():
         treeView = gtk.TreeView(self.list_store)
 
         rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Key(Name", rendererText, text=0)
+        column = gtk.TreeViewColumn("Key/Name", rendererText, text=0)
         treeView.append_column(column)
 
         rendererText = gtk.CellRendererText()
