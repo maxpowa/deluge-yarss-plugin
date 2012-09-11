@@ -63,7 +63,8 @@ def get_default_rssfeeds(count):
 def get_empty_test_config():
     config_dir = get_tmp_dir()
     deluge_config = deluge.config.Config("yarss_test.conf", yarss2.yarss_config.default_prefs(), config_dir=config_dir)
-    config = yarss2.yarss_config.YARSSConfig(deluge_config)
+    from deluge.log import LOG as log
+    config = yarss2.yarss_config.YARSSConfig(log, deluge_config)
     return config
 
 def get_tmp_dir():

@@ -9,6 +9,14 @@ License: GPLv3
 Changelog
 =============
 
+v1.1.0 - 2012-09-12
+
+* Added panel for log messages.
+* Added functionality to reset the last matched timestamp for subscriptions. (Options tab in subscription dialog)
+* Fixed bug where RSS feeds with no proper tag for the timestamp when the torrent was published would crash YaRSS2.
+* Fixed bug where the 'Published' column in matching panel for subscriptions wasn't properly populated.
+* Hopefully fixed bug in GUI that could result in Deluge crashing.
+
 v1.0.4 - 2012-06-27
 
 * Added support for magnet links.

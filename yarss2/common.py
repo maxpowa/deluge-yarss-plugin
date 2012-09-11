@@ -43,7 +43,9 @@
 import pkg_resources
 import datetime
 import os, sys
-from deluge.log import LOG as log
+
+def get_version():
+    return "1.1.0"
 
 def get_resource(filename, path="data"):
     return pkg_resources.resource_filename("yarss2", os.path.join(path, filename))
@@ -53,6 +55,9 @@ def get_default_date():
 
 def get_current_date():
     return datetime.datetime.now()
+
+def get_current_date_in_isoformat():
+    return get_current_date().strftime("%Y-%m-%dT%H:%M:%S")
 
 def isodate_to_datetime(date_in_isoformat):
     try:
@@ -103,30 +108,16 @@ def write_to_file(filepath, content):
 def method_name():
     return sys._getframe(3).f_code.co_name
 
-def filename():
-    fname = sys._getframe(3).f_code.co_filename
+def filename(level=3):
+    fname = sys._getframe(level).f_code.co_filename
     fname = os.path.splitext(os.path.basename(fname))[0]
     return fname
 
-def linenumber():
-    return sys._getframe(3).f_lineno
-
-def debug(message):
-    log.debug(_msg(message))
-
-def info(message):
-    log.info(_msg(message))
-
-def warn(message):
-    log.warn(_msg(message))
-
-def error(message):
-    log.error(_msg(message))
-
-def _msg(msg):
-    return "%s.%s:%s: %s" % ("YaRSS2", filename(), linenumber(), msg)
+def linenumber(level=3):
+    return sys._getframe(level).f_lineno
 
 def get_exception_string():
+    import traceback
     exc_type, exc_value, exc_traceback = sys.exc_info()
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     return ''.join('!! ' + line for line in lines)

@@ -47,13 +47,14 @@ json = deluge.common.json
 from yarss2.gtkui.dialog_subscription import DialogSubscription
 import yarss2.common
 from yarss2 import yarss_config
+from yarss2.logger import Logger
 
 import common
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.log = Logger()
 
     def test_rssfeed_selected(self):
         def verify_result(empty, subscription_dialog):
@@ -88,7 +89,9 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         if not subscription_config:
             subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(None, subscription_config,
+        subscription_dialog = DialogSubscription(None, # GTKUI
+                                                 self.log, # logger
+                                                 subscription_config,
                                                  config["rssfeeds"],
                                                  [], #self.get_move_completed_list(),
                                                  [], #self.get_download_location_list(),
