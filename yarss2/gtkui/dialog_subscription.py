@@ -269,6 +269,8 @@ class DialogSubscription():
         viewport.show_all()
 
     def on_panel_matching_move_handle(self, paned, scrolltype):
+        """Supposed to handle resizing of the splitpane when the Window size is changed
+        Haven't found a good way to handle this"""
 
         textview = self.glade.get_widget("textview_custom_text")
         hpaned = self.glade.get_widget("hpaned_matching")
@@ -365,6 +367,9 @@ class DialogSubscription():
             label_status = self.glade.get_widget("label_status")
             if message:
                 label_status.set_text(str(message))
+
+            label_count = self.glade.get_widget("label_torrent_count")
+            label_count.set_text("Torrent count: %d, Matches: %d" % (len(self.rssfeeds_dict.keys()), len(matchings.keys())))
         except Exception as (v):
             import traceback
             exc_str = traceback.format_exc(v)
@@ -374,7 +379,7 @@ class DialogSubscription():
         """Updates the liststore of matching torrents.
         This updates the GUI"""
         store.clear()
-        for key in rssfeeds_dict.keys():
+        for key in sorted(rssfeeds_dict.keys()):
             customAttributes = CustomAttribute()
             if regex_matching:
                 attr = {}

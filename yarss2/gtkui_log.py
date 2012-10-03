@@ -32,9 +32,6 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import gtk
-import gtk.glade
-
 from deluge.event import DelugeEvent
 
 from yarss2.common import get_current_date_in_isoformat

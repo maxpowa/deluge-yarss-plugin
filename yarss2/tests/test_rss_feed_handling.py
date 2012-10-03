@@ -57,12 +57,13 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
 
-        self.assertTrue(parsed_feed.has_key("items"))
+        #common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
 
-        #self.json_dump(parsed_feed["items"], self.rss_itmes_json_filename)
+        self.assertTrue(parsed_feed.has_key("items"))
 
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
+
         self.assertTrue(common.dicts_equals(items, stored_items))
 
     def get_default_rssfeeds_dict(self):
