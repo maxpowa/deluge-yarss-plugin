@@ -3471,7 +3471,7 @@ _rfc822_year = "(?P<year>(?:\d{2})?\d{2})"
 _rfc822_day = "(?P<day> *\d{1,2})"
 _rfc822_date = "%s %s %s" % (_rfc822_day, _rfc822_month, _rfc822_year)
 
-_rfc822_hour = "(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
+_rfc822_hour = "(?P<hour>\d{1,2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
 _rfc822_tz = "(?P<tz>ut|gmt(?:[+-]\d{2}:\d{2})?|[aecmp][sd]?t|[zamny]|[+-]\d{4})"
 _rfc822_tznames = {
     'ut': 0, 'gmt': 0, 'z': 0,

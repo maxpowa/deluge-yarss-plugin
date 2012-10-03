@@ -45,7 +45,14 @@ import datetime
 import os, sys
 
 def get_version():
-    return "1.1.0"
+    """
+    Returns the program version from the egg metadata
+
+    :returns: the version of Deluge
+    :rtype: string
+
+    """
+    return pkg_resources.require("YaRSS2")[0].version
 
 def get_resource(filename, path="data"):
     return pkg_resources.resource_filename("yarss2", os.path.join(path, filename))

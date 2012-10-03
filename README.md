@@ -9,6 +9,12 @@ License: GPLv3
 Changelog
 =============
 
+v1.1.1 - 2012-10-03
+
+* Fixed import error when running YaRSS2 on daemon without gtk installed.
+* feedparser library was unable to parse some timestamps.
+* The order of the torrents in the torrent list in the subscription dialog was incorrect.
+
 v1.1.0 - 2012-09-12
 
 * Added panel for log messages.

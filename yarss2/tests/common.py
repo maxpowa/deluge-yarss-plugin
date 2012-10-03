@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 #
 # common.py
@@ -35,6 +34,7 @@
 #
 
 from twisted.trial import unittest
+import datetime
 
 import deluge.config
 import tempfile
@@ -49,9 +49,10 @@ deluge.log.setupLogger("none")
 def get_default_subscriptions(count):
     subscriptions = {}
     for i in range(count):
-        subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(name="Non-matching subscription",
-                                                                           last_update=yarss2.common.get_default_date().isoformat(),
-                                                                           rssfeed_key="0", regex_include=None, regex_exclude=None)
+        subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(
+            name="Non-matching subscription",
+            last_update=yarss2.common.get_default_date().isoformat(),
+            rssfeed_key="0", regex_include=None, regex_exclude=None)
     return subscriptions
 
 def get_default_rssfeeds(count):
@@ -62,7 +63,8 @@ def get_default_rssfeeds(count):
 
 def get_empty_test_config():
     config_dir = get_tmp_dir()
-    deluge_config = deluge.config.Config("yarss_test.conf", yarss2.yarss_config.default_prefs(), config_dir=config_dir)
+    deluge_config = deluge.config.Config("yarss_test.conf",
+                                         yarss2.yarss_config.default_prefs(), config_dir=config_dir)
     from deluge.log import LOG as log
     config = yarss2.yarss_config.YARSSConfig(log, deluge_config)
     return config
@@ -81,23 +83,29 @@ testdata_rssfeed_filename = "freebsd_rss.xml"
 testdata_rss_itmes_json_filename = "freebsd_rss_items_dump.json"
 
 def load_json_testdata():
-    return json_load(testdata_rss_itmes_json_filename)
+    return json_load(testdata_rss_itmes_json_filename, dict_int_keys=True)
 
-def json_load(filename):
+def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
         if "updated_datetime" in dct:
             dct["updated_datetime"] = yarss2.common.isodate_to_datetime(dct["updated_datetime"])
         return dct
 
     filename = yarss2.common.get_resource(filename, path="tests")
-    f = open(filename, "r") 
+    f = open(filename, "r")
     d = json.load(f, object_hook=datetime_parse)
     f.close()
+
+    # Must change keys from string to int
+    if dict_int_keys:
+        for key in d.keys():
+            d[int(key)] = d[key]
+            del d[key]
     return d
 
 def json_dump(obj, filename):
     filename = yarss2.common.get_resource(filename, path="tests")
-    f = open(filename, "wb") 
+    f = open(filename, "wb")
     json.dump(obj, f, indent=2, cls=DatetimeEncoder)
     f.flush()
     f.close()
@@ -113,7 +121,7 @@ def dicts_equals(dict1, dict2):
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
         print "keys differ:", key_diff
-        print "updated:", dict1["updated_datetime"]
+        #print "updated:", dict1["updated_datetime"]
         return False
 
     for key in dict1.keys():

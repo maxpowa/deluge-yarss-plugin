@@ -89,6 +89,7 @@ class RSSFeedHandler(object):
         if parsed_feeds["feed"].has_key("ttl"):
             return_dict["ttl"] = parsed_feeds["feed"]["ttl"]
         key = 0
+        no_publish_time = False
         for item in parsed_feeds['items']:
             # Some RSS feeds do not have a proper timestamp
             dt = None
@@ -96,10 +97,12 @@ class RSSFeedHandler(object):
                 published = item['published_parsed']
                 dt = datetime.datetime(* published[:6])
             else:
-                self.log.warn("Publishing time is not available!")
+                no_publish_time = True
                 return_dict["warning"] = "Published time not available!"
-            rssfeeds_dict[str(key)] = self._new_rssfeeds_dict_item(item['title'], link=item['link'], published_datetime=dt)
+            rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=item['link'], published_datetime=dt)
             key += 1
+        if no_publish_time:
+            self.log.warn("Published time is not available!")
         if key > 0:
             return_dict["items"] = rssfeeds_dict
         return return_dict
