@@ -7,7 +7,6 @@ Based on YaRSS by Camillo Dell'mour
 License: GPLv3
 
 Changelog
-=============
 
 v1.1.1 - 2012-10-03
 

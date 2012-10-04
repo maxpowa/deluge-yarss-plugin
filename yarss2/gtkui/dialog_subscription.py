@@ -367,7 +367,6 @@ class DialogSubscription():
             label_status = self.glade.get_widget("label_status")
             if message:
                 label_status.set_text(str(message))
-
             label_count = self.glade.get_widget("label_torrent_count")
             label_count.set_text("Torrent count: %d, Matches: %d" % (len(self.rssfeeds_dict.keys()), len(matchings.keys())))
         except Exception as (v):

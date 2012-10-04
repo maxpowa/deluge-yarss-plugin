@@ -49,7 +49,11 @@ __description__ = "Yet another RSS 2"
 __long_description__ = """
 Yet another RSS 2, a simple RSS plugin for Deluge, based on
 YaRSS written by Camillo Dell'mour <cdellmour@gmail.com>.
+<<<<<<< HEAD
 Last updated on 2012-10-03, tested with Deluge 1.3.5.
+=======
+Last updated on 2012-09-12, tested with Deluge 1.3.5.
+>>>>>>> 0be8b3d38fdd5359a12902a5a189532b6d63c657
 Requires PyGTK 2.24
 """
 __pkg_data__ = {__plugin_name__.lower(): ["gtkui/*", "data/*", "lib/*.py", "lib/mime/*"]}
