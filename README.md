@@ -9,6 +9,11 @@ License: GPLv3
 Changelog
 =============
 
+v1.1.2 - 2012-10-05
+
+* Fixed error where ComboBox.get_active_text would return None.
+* The current value in "Move completed" and "Download location" was added twice. 
+
 v1.1.1 - 2012-10-03
 
 * Fixed import error when running YaRSS2 on daemon without gtk installed.
