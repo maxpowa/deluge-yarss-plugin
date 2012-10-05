@@ -693,7 +693,7 @@ class GtkUI(GtkPluginBase):
         values = []
         for key in self.subscriptions.keys():
             value = self.subscriptions[key]["move_completed"].strip()
-            if len(value) > 0:
+            if len(value) > 0 and not value in values:
                 values.append(value)
         return values
 
@@ -701,7 +701,7 @@ class GtkUI(GtkPluginBase):
         values = []
         for key in self.subscriptions.keys():
             value = self.subscriptions[key]["download_location"].strip()
-            if len(value) > 0:
+            if len(value) > 0 and not value in values:
                 values.append(value)
         return values
 
