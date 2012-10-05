@@ -181,8 +181,8 @@ class YARSSConfig(object):
                         self.log.warn("The value of the dictionary key '%s' has the wrong type! Value: '%s'."\
                                  "Excpected '%s' but found '%s'. Must be fixed manually."\
                                  "\nAffected config: %s\n" % (key,  str(type(default_config[key])), str(type(config[key])), str(config[key]), str(config)))
-                    # Ignore if value is an empty string
-                    elif len(config[key]) > 0:
+                    # Ignore if default is unicode and value is an empty string, (No point in replacing empty unicode string with ascii string)
+                    elif not (type(default_config[key]) is unicode and config[key] == ""):
                         self.log.warn("Config value ('%s') is the wrong data type! dictionary key: '%s'. "\
                                  "Expected '%s' but found '%s'. Inserting default value. Affected config: %s" % \
                                  (config[key], key, str(type(default_config[key])), str(type(config[key])), str(config)))
