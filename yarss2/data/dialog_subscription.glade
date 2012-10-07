@@ -110,7 +110,8 @@
                                 <property name="secondary_icon_activatable">False</property>
                                 <property name="primary_icon_sensitive">True</property>
                                 <property name="secondary_icon_sensitive">True</property>
-                                <signal name="changed" handler="on_txt_regex_include_changed"/>
+                                <signal name="changed" handler="on_txt_regex_include_changed" swapped="no"/>
+                                <signal name="activate" handler="on_txt_regex_include_changed" swapped="no"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -124,7 +125,7 @@
                               <widget class="GtkComboBox" id="combobox_rssfeeds">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <signal name="changed" handler="on_rssfeed_selected"/>
+                                <signal name="changed" handler="on_rssfeed_selected" swapped="no"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -145,7 +146,8 @@
                                 <property name="secondary_icon_activatable">False</property>
                                 <property name="primary_icon_sensitive">True</property>
                                 <property name="secondary_icon_sensitive">True</property>
-                                <signal name="changed" handler="on_txt_regex_exclude_changed"/>
+                                <signal name="changed" handler="on_txt_regex_exclude_changed" swapped="no"/>
+                                <signal name="activate" handler="on_txt_regex_include_changed" swapped="no"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -210,7 +212,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
-                                <signal name="clicked" handler="on_button_fetch_clicked"/>
+                                <signal name="clicked" handler="on_button_fetch_clicked" swapped="no"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">2</property>
@@ -248,9 +250,9 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="position_set">True</property>
-                        <signal name="move_handle" handler="on_panel_matching_move_handle"/>
-                        <signal name="accept_position" handler="on_panel_matching_move_handle"/>
-                        <signal name="notify" handler="on_panel_matching_move_handle"/>
+                        <signal name="move_handle" handler="on_panel_matching_move_handle" swapped="no"/>
+                        <signal name="accept_position" handler="on_panel_matching_move_handle" swapped="no"/>
+                        <signal name="notify" handler="on_panel_matching_move_handle" swapped="no"/>
                         <child>
                           <widget class="GtkScrolledWindow" id="matching_window_upper">
                             <property name="visible">True</property>
@@ -295,7 +297,7 @@
                                           <widget class="GtkTextView" id="textview_custom_text">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
-                                            <signal name="move_cursor" handler="on_textview_custom_text_move_cursor"/>
+                                            <signal name="move_cursor" handler="on_textview_custom_text_move_cursor" swapped="no"/>
                                           </widget>
                                         </child>
                                       </widget>
@@ -432,7 +434,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
-                                                <signal name="clicked" handler="on_button_add_notication_clicked"/>
+                                                <signal name="clicked" handler="on_button_add_notication_clicked" swapped="no"/>
                                               </widget>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -494,7 +496,7 @@
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="yalign">0.95999997854232788</property>
-                                            <signal name="clicked" handler="on_button_remove_notication_clicked"/>
+                                            <signal name="clicked" handler="on_button_remove_notication_clicked" swapped="no"/>
                                           </widget>
                                         </child>
                                       </widget>
@@ -682,7 +684,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <signal name="clicked" handler="on_button_last_matched_reset_clicked"/>
+                                    <signal name="clicked" handler="on_button_last_matched_reset_clicked" swapped="no"/>
                                   </widget>
                                   <packing>
                                     <property name="left_attach">2</property>
@@ -699,7 +701,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <signal name="clicked" handler="on_button_last_matched_now_clicked"/>
+                                    <signal name="clicked" handler="on_button_last_matched_now_clicked" swapped="no"/>
                                   </widget>
                                   <packing>
                                     <property name="left_attach">3</property>
@@ -811,7 +813,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">5</property>
-                        <signal name="clicked" handler="on_button_cancel_clicked"/>
+                        <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -827,7 +829,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">4</property>
-                        <signal name="clicked" handler="on_button_save_clicked"/>
+                        <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>

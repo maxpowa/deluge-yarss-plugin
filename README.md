@@ -22,6 +22,25 @@ v1.1.0 - 2012-09-12
 * Fixed bug where the 'Published' column in matching panel for subscriptions wasn't properly populated.
 * Hopefully fixed bug in GUI that could result in Deluge crashing.
 
+v1.1.2 - 2012-10-05
+
+* Fixed error where ComboBox.get_active_text would return None.
+* The current value in "Move completed" and "Download location" was added twice. 
+
+v1.1.1 - 2012-10-03
+
+* Fixed import error when running YaRSS2 on daemon without gtk installed.
+* feedparser library was unable to parse some timestamps.
+* The order of the torrents in the torrent list in the subscription dialog was incorrect.
+
+v1.1.0 - 2012-09-12
+
+* Added panel for log messages.
+* Added functionality to reset the last matched timestamp for subscriptions. (Options tab in subscription dialog)
+* Fixed bug where RSS feeds with no proper tag for the timestamp when the torrent was published would crash YaRSS2.
+* Fixed bug where the 'Published' column in matching panel for subscriptions wasn't properly populated.
+* Hopefully fixed bug in GUI that could result in Deluge crashing.
+
 v1.0.4 - 2012-06-27
 
 * Added support for magnet links.

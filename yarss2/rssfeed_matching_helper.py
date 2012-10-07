@@ -55,14 +55,15 @@ from lib.numrangeregex import numrangeregex
 def pattern_to_regex(pattern):
     """Convert named pattern to named regex"""
 
-    patterns = [('%Y(?P<restrict>\((?P<start>\d{4})(?P<to>-)?(?P<end>\d{4})\))?', '(?P<Y>[0-9]{4})'),
-                ('%y(?P<restrict>\((?P<start>\d{2})(?P<to>-)?(?P<end>\d{2})\))?', '(?P<y>[0-9]{2})'),
-                ('%m(?P<restrict>\((?P<start>\d{1,2})(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<m>[0-9]{1,2})'),
-                ('%d(?P<restrict>\((?P<start>\d{1,2})(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<d>[0-9]{1,2})'),
-                ('%s(?P<restrict>\((?P<start>\d{1,2})(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<s>\d{1,2})'),
-                ('%S(?P<restrict>\((?P<start>\d{1})(?P<to>-)?(?P<end>\d{1})\))?', '(?P<s>[0-9]+){1}'),
-                ('%e(?P<restrict>\((?P<start>[0-9]+)(?P<to>-)?(?P<end>[0-9]+)\))?', '(?P<e>[0-9]+)'),
-                ('%E(?P<restrict>\((?P<start>\d{2})(?P<to>-)?(?P<end>\d{2})\))?', '(?P<e>[0-9]{2})')]
+    patterns = [('%m(?P<restrict>\((?P<start>\d{1,2})?(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<m>%s)', "\d{1,2}"),
+                ('%d(?P<restrict>\((?P<start>\d{1,2})?(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<d>%s)', "\d{1,2}"),
+                ('%s(?P<restrict>\((?P<start>\d{1,2})?(?P<to>-)?(?P<end>\d{1,2})\))?', '(?P<s>%s)', "\d{1,2}"),
+                ('%Y(?P<restrict>\((?P<start>\d{4})?(?P<to>-)?(?P<end>\d{4})\))?', '(?P<Y>%s)', "\d{4}"),
+                ('%y(?P<restrict>\((?P<start>\d{2})?(?P<to>-)?(?P<end>\d{2})\))?', '(?P<y>%s)', "\d{2}"),
+                ('%E(?P<restrict>\((?P<start>\d{2})?(?P<to>-)?(?P<end>\d{2})\))?', '(?P<e>%s)', "\d{2}"),
+                ('%S(?P<restrict>\((?P<start>\d{1})?(?P<to>-)?(?P<end>\d{1})\))?', '(?P<s>%s)', "\d+{1}"),
+                ('%e(?P<restrict>\((?P<start>\d+)?(?P<to>-)?(?P<end>\d+)\))?', '(?P<e>%s)', "\d+"),
+            ]
 
 #    patterns = [('%Y', '(?P<Y>[0-9]{4})'),
 #                ('%y', '(?P<y>[0-9]{2})'),
@@ -74,27 +75,36 @@ def pattern_to_regex(pattern):
 #                ('%E', '(?P<e>[0-9]{2})')]
     out = pattern
     for p in patterns:
-        exp = re.compile(p[0], re.IGNORECASE)
-        match = exp.match(pattern)
+        #exp = re.compile(p[0], re.IGNORECASE)
+        exp = re.compile(p[0])
+        match = exp.search(pattern)
+        print "MATCH %s: %s" % (p[0], match)
         if match:
             print "Matches:", p
+            #print "replace: '%s'" % match.group(0)
             groupdict = match.groupdict()
-            print "groupdict:", groupdict
-            # Patttern has destrictions
-            if groupdict.has_key("restrict") and groupdict["restrict"] is not None:
-                start_year = groupdict["start_year"]
-                print "start_year:", start_year
-                print "start: %s" % numrangeregex.generate_to_bound(start_year, "upper")
-                if groupdict.has_key("to_year"):
-                    print "to_year found"
-
-                if groupdict.has_key("end_year"):
-                    end_year = groupdict["end_year"]
-                    print "end_year:", end_year
-                    print "start: %s, end: %s : %s" % (start_year, end_year, numrangeregex.generate_numeric_range_regex(start_year, end_year))
-
+            #print "groupdict:", groupdict
+            # No restrictions
+            if not groupdict.has_key("restrict") or groupdict["restrict"] is None:
+                out = out.replace(match.group(0), p[1] % p[2])
             else:
-                out = out.replace(p[0], p[1])
+                # Pattern has destrictions
+                start = None if not groupdict.has_key("start") else groupdict["start"]
+                to = None if not groupdict.has_key("to") else True
+                end = None if not groupdict.has_key("end") else groupdict["end"]
+
+                if start and not to and not end:
+                    replace_with = start
+                elif start and to and not end:
+                    replace_with = numrangeregex.generate_to_bound(start, "upper")
+                elif start and to and end:
+                    replace_with = numrangeregex.generate_numeric_range_regex(start, end)
+                elif to and end:
+                    replace_with = numrangeregex.generate_to_bound(end, "lower")
+                elif to:
+                    # Only to is present (-). Means all, same as nothing
+                    replace_with = p[1]
+                out = p[1] % out.replace(match.group(0), replace_with)
     return out
 
 
@@ -182,9 +192,10 @@ def suggest_pattern(filename):
 
 
 def test(title, pattern):
-    print "Title:", title
+    print "Title  :", title
+    print "Pattern:", pattern
     regex = pattern_to_regex(pattern)
-    print "regex:", regex
+    print "regex  :", regex
 
     exp = re.compile(regex, re.IGNORECASE)
     m = exp.match(title)
@@ -197,23 +208,35 @@ def test(title, pattern):
 
 if __name__ == '__main__':
     import sys
+    print "\n" * 6
 
-    print "\n", test("2012", "%Y(2011-2012)")
-    print "\n", test("2012", "%Y(2011-2030)")
-    print "\n", test("2012", "%Y")
-    sys.exit()
+    pattern = "%Y(2011-2014)"
+
+    title = "2011"
+    print "%s  : %s : %s" % (title, pattern, test(title, pattern))
+
+    #print "\n", test("2012", "%Y(2011-2030)")
+    pattern = "%Y"
+    print "%s   : %s : %s" % (title, pattern, test(title, pattern))
 
     title = "Tron Uprising S01E01 HDTV x264-2HD"
-    patterns = suggest_pattern(title)
-    #pattern = "Tron Uprising S%sE%e HDTV x264-2HD"
-    print "\n", test(title, patterns[0])
+    #patterns = suggest_pattern(title)[0]
+    pattern = "Tron Uprising S%sE%e HDTV x264-2HD"
 
+    print "%s   : %s : %s" % (title, pattern, test(title, pattern))
+    print
     title = "My Favourite Show 108"
     pattern = "My Favourite Show %s(?P<e>[0-9]{2})"
-    patterns = suggest_pattern(title)
-    print "\n", test(title, patterns[0])
-
+    #patterns = suggest_pattern(title)[9]
+    print "%s   : %s : %s" % (title, pattern, test(title, pattern))
+    print
     title = "The Colbert Report - 2012x10.02 - Jorge Ramos (.mp4)"
     pattern = "The Colbert Report - %Yxm%.%d - Jorge Ramos (.mp4)"
-    patterns = suggest_pattern(title)
-    print "\n", test(title, patterns[0])
+    #print "%s   : %s : %s" % (title, pattern, test(title, pattern))
+    #patterns = suggest_pattern(title)
+    #print "\n", test(title, patterns[0])
+
+    title = "Tron Uprising S01E01 HDTV x264-2HD"
+    #patterns = suggest_pattern(title)[0]
+    pattern = "Tron Uprising S%sE%e HDTV %sE%e %y %S %S"
+    print "%s   : %s : %s" % (title, pattern, test(title, pattern))

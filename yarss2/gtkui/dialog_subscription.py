@@ -553,8 +553,14 @@ class DialogSubscription():
         regex_exclude = self.glade.get_widget("txt_regex_exclude").get_text()
         regex_include_case_sensitive = self.glade.get_widget("regex_include_case").get_active()
         regex_exclude_case_sensitive = self.glade.get_widget("regex_exclude_case").get_active()
-        move_completed = self.glade.get_widget("combobox_move_completed").get_active_text().strip()
-        download_location = self.glade.get_widget("combobox_download_location").get_active_text().strip()
+        move_completed = ""
+        active_string = self.glade.get_widget("combobox_move_completed").get_active_text()
+        if active_string is not None:
+            move_completed = active_string.strip()
+        download_location = ""
+        active_string = self.glade.get_widget("combobox_download_location").get_active_text()
+        if active_string is not None:
+            download_location = active_string.strip()
         add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
         last_update = self.glade.get_widget("txt_last_matched").get_text()
 
