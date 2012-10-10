@@ -128,3 +128,21 @@ def get_exception_string():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     return ''.join('!! ' + line for line in lines)
+
+
+def dicts_equals(dict1, dict2):
+    """Compares two dictionaries, checking that they have the same key/values"""
+    if not (type(dict1) is dict and  type(dict2) is dict):
+        print "dicts_equals: Both arguments are not dictionaries!"
+    key_diff = set(dict1.keys()) - set(dict2.keys())
+    if key_diff:
+        return False
+    for key in dict1.keys():
+        if type(dict1[key]) is dict:
+            if not dicts_equals(dict1[key], dict2[key]):
+                return False
+        else:
+            # Compare values
+            if dict1[key] != dict2[key]:
+                return False
+    return True

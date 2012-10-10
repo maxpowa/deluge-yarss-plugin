@@ -41,9 +41,11 @@
 import deluge.configmanager
 from deluge.event import DelugeEvent
 import copy
-from yarss2.common import get_new_dict_key
+from yarss2 import common
 
 DEFAULT_UPDATE_INTERVAL = 120
+
+DUMMY_RSSFEED_KEY = "9999"
 
 __DEFAULT_PREFS = {
     "email_configurations": {},
@@ -125,7 +127,7 @@ class YARSSConfig(object):
         else: # Save config
             # The entry to save does not have an item 'key'. This means it's a new entry in the config
             if not data_dict.has_key("key"):
-                dict_key = get_new_dict_key(config)
+                dict_key = common.get_new_dict_key(config)
                 data_dict["key"] = dict_key
             else:
                 dict_key = data_dict["key"]
@@ -136,60 +138,144 @@ class YARSSConfig(object):
 
     def _verify_config(self):
         """Adding missing keys, in case a new version adds more config fields"""
-
-        default_config = get_fresh_subscription_config()
+        default_config = get_fresh_subscription_config(key="")
         changed = False
-        if self._insert_missing_dict_values(self.config["subscriptions"], default_config) or \
-           self._very_types_config_elements(self.config["subscriptions"], default_config):
+
+        if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
+            changed = True
+        if self._verify_types_config_elements(self.config["subscriptions"], default_config):
             changed = True
 
         default_config = get_fresh_rssfeed_config()
-        if self._insert_missing_dict_values(self.config["rssfeeds"], default_config) or \
-           self._very_types_config_elements(self.config["rssfeeds"], default_config):
+        if self._insert_missing_dict_values(self.config["rssfeeds"], default_config):
+            changed = True
+        if self._verify_types_config_elements(self.config["rssfeeds"], default_config):
             changed = True
 
         default_config = get_fresh_message_config()
-        if self._insert_missing_dict_values(self.config["email_messages"], default_config) or \
-           self._very_types_config_elements(self.config["email_messages"], default_config):
+        if self._insert_missing_dict_values(self.config["email_messages"], default_config):
+            changed = True
+        if self._verify_types_config_elements(self.config["email_messages"], default_config):
             changed = True
 
         default_config = get_fresh_email_configurations()
-        if self._insert_missing_dict_values(self.config["email_configurations"], default_config, level=1) or \
-           self._verify_types(self.config["email_configurations"], default_config):
+        if self._insert_missing_dict_values(self.config["email_configurations"], default_config, level=1):
+            changed = True
+        if self._verify_types(None, self.config["email_configurations"], default_config):
             changed = True
 
         if changed:
             self.config.save()
 
-    def _very_types_config_elements(self, config_dict, default_config):
+    def _verify_types_config_elements(self, config_dict, default_config):
+        """Takes a dictinoary and calls _verify_types with each element
+        (which is also a dictionary)"""
         changed = False
         for key in config_dict.keys():
-            if self._verify_types(config_dict[key], default_config):
+            if self._verify_types(key, config_dict[key], default_config):
                 changed = True
+                # Elements have been removed, so remove from config
+                if len(config_dict[key].keys()) == 0:
+                    del config_dict[key]
         return changed
 
-    def _verify_types(self, config, default_config):
+    def _verify_types(self, config_key, config, default_config):
+        """Takes a dictinoary and checks each key/value pair"""
         changed = False
         for key in default_config.keys():
+            rssfeed_key_invalid = False
             if not config.has_key(key):
-                self.log.warn("Config is missing a dictionary key: '%s'. Inserting default value. Affected config: %s\n" % (key, str(config)))
-                config[key] = default_config[key]
+                # We have a problem. Cannot use the default value for a key
+                if key == "key":
+                    # The key value is missing, so reinsert it.
+                    config[key] = config_key
+                    changed = True
+                elif key == "rssfeed_key":
+                    # Cannot insert default value, and cannot know the correct value.
+                    rssfeed_key_invalid = True
+                else:
+                    self.log.warn("Config is missing a dictionary key: '%s'. Inserting "\
+                                  "default value ('%s'). Affected config: %s\n" %
+                                  (key, str(default_config[key]), str(config)))
+                    config[key] = default_config[key]
                 changed = True
             else:
                 if type(default_config[key]) != type(config[key]):
-                    if key == "key" or key == "dict_key":
-                        self.log.warn("The value of the dictionary key '%s' has the wrong type! Value: '%s'."\
-                                 "Excpected '%s' but found '%s'. Must be fixed manually."\
-                                 "\nAffected config: %s\n" % (key,  str(type(default_config[key])), str(type(config[key])), str(config[key]), str(config)))
-                    # Ignore if default is unicode and value is an empty string, (No point in replacing empty unicode string with ascii string)
-                    elif not (type(default_config[key]) is unicode and config[key] == ""):
+                    if key == "key":
+                        config[key] = config_key
+                        changed = True
+                    # We have a problem
+                    elif key == "rssfeed_key":
+                        if type(config[key]) is unicode:
+                            try:
+                                # Verify it's an integer
+                                int(config[key])
+                                config[key] = str(config[key])
+                            except ValueError:
+                                rssfeed_key_invalid = True
+                        else:
+                            rssfeed_key_invalid = True
+                            self.log.warn("The value of the dictionary key '%s' has the wrong type! Value: '%s'."\
+                                          "Excpected '%s' but found '%s'. Must be fixed manually."\
+                                          "\nAffected config: %s\n" % (key,  str(type(default_config[key])),
+                                                                       str(type(config[key])), str(config[key]), str(config)))
+                    # If default is unicode, and value is str
+                    elif (type(default_config[key]) is unicode and type(config[key]) is str):
+                        # Ignore if default is unicode and value is an empty string,
+                        # (No point in replacing empty unicode string with ascii string)
+                        if config[key] != "":
+                            # Try to convert to unicode
+                            try:
+                                config[key] = config[key].decode("utf8")
+                            except:
+                                config[key] = default_config[key]
+                            changed = True
+                    else:
                         self.log.warn("Config value ('%s') is the wrong data type! dictionary key: '%s'. "\
                                  "Expected '%s' but found '%s'. Inserting default value. Affected config: %s" % \
                                  (config[key], key, str(type(default_config[key])), str(type(config[key])), str(config)))
                         config[key] = default_config[key]
                         changed = True
+                # Test if key and rssfeed_key are valid
+                if key == "key" or (key == "rssfeed_key" and not rssfeed_key_invalid):
+                    # Test that they are numbers
+                    if not config[key].isdigit():
+                        # Replace with config_key
+                        if key == "key":
+                            config[key] = config_key
+                            changed = True
+                            # We have a problem
+                        else:
+                            #print "rssfeed_dict_key not integer: '%s'" % config[key]
+                            rssfeed_key_invalid = True
+                    else:
+                        # Test that rssfeed_key points to a rssfeed that exists in the config
+                        if key == "rssfeed_key":
+                            # The rsfeed_key is invalid (no rssfeed with that key exists)
+                            if not self.config["rssfeeds"].has_key(config[key]):
+                                print "\n\nRSSFEED DOES NOT EXIST\n\n"
+                                rssfeed_key_invalid = True
+            # Must handle missing rssfeed_key in a subscription
+            if rssfeed_key_invalid:
+                # Check first if the subscription has the default values. In that case, just delete it.
+                # If it has the key 'key', use that as key, else None
+                default_config = get_fresh_subscription_config(key=None if not config.has_key("key") else config["key"],
+                                                               rssfeed_key=None if not config.has_key("rssfeed_key") else config["rssfeed_key"])
+                if common.dicts_equals(config, default_config):
+                    self.log.warn("Found subscription with missing rssfeed_key. The subscription is empty, so it will be deleted.")
+                    for key in config.keys():
+                        del config[key]
+                    return True
+                else:
+                    # The subscription has non-default values. Use a dummy rssfeed
+                    if self.config["rssfeeds"].has_key(DUMMY_RSSFEED_KEY):
+                        dummy_rssfeed = self.config["rssfeeds"][DUMMY_RSSFEED_KEY]
+                    else:
+                        dummy_rssfeed = get_fresh_rssfeed_config(name=u"Dummy Feed (error in config was detected)", active=False, key=DUMMY_RSSFEED_KEY)
+                        self.config["rssfeeds"][DUMMY_RSSFEED_KEY] = dummy_rssfeed
+                    config["rssfeed_key"] = DUMMY_RSSFEED_KEY
+                    self.log.warn("Found subscription with missing rssfeed_key. A dummy rssfeed was created for this subscription.")
         return changed
-
 
     def _insert_missing_dict_values(self, config_dict, default_config, key_diff=None, level=2):
         if level == 1:
@@ -257,7 +343,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
         config_dict["key"] = key
     return config_dict
 
-def get_fresh_subscription_config(name=u"", rssfeed_key=u"", regex_include=u"", regex_exclude=u"",
+def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", regex_exclude=u"",
                                   active=True, move_completed=u"", download_location=u"", last_update=u"", key=None):
     """Create a new config """
     config_dict = {}
@@ -274,7 +360,7 @@ def get_fresh_subscription_config(name=u"", rssfeed_key=u"", regex_include=u"", 
     config_dict["custom_text_lines"] = u""
     config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {} # Dictionary where keys are the keys of email_messages dictionary
-    if key:
+    if key is not None:
         config_dict["key"] = key
     return config_dict
 

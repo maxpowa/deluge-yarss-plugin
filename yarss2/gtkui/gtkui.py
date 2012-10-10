@@ -290,6 +290,9 @@ class GtkUI(GtkPluginBase):
 
     def update_subscription_list(self, subscriptions_store):
         subscriptions_store.clear()
+        print "subs keys:", self.subscriptions.keys()
+        print "feed keys:", self.rssfeeds.keys()
+
         for key in self.subscriptions.keys():
             rssfeed_key = self.subscriptions[key]["rssfeed_key"]
             subscriptions_store.append([self.subscriptions[key]["key"],

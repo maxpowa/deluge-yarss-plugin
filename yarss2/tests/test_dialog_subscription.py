@@ -50,6 +50,7 @@ from yarss2 import yarss_config
 from yarss2.logger import Logger
 
 import common
+import yarss2.common
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
@@ -151,7 +152,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         for k1 in dict1.keys():
             found = False
             for k2 in dict2.keys():
-                if common.dicts_equals(dict1[k1], dict2[k2]):
+                if yarss2.common.dicts_equals(dict1[k1], dict2[k2]):
                     break
             else:
                 return False

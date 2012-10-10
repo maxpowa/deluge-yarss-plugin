@@ -52,7 +52,7 @@ def get_default_subscriptions(count):
         subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(
             name="Non-matching subscription",
             last_update=yarss2.common.get_default_date().isoformat(),
-            rssfeed_key="0", regex_include=None, regex_exclude=None)
+            rssfeed_key="0", key=str(i), regex_include=None, regex_exclude=None)
     return subscriptions
 
 def get_default_rssfeeds(count):
@@ -116,23 +116,3 @@ class DatetimeEncoder(json.JSONEncoder):
              return obj.isoformat()
          return json.JSONEncoder.default(self, obj)
 
-
-def dicts_equals(dict1, dict2):
-    key_diff = set(dict1.keys()) - set(dict2.keys())
-    if key_diff:
-        print "keys differ:", key_diff
-        #print "updated:", dict1["updated_datetime"]
-        return False
-
-    for key in dict1.keys():
-        if type(dict1[key]) is dict:
-            if not dicts_equals(dict1[key], dict2[key]):
-                return False
-        else:
-            # Compare values
-            if dict1[key] != dict2[key]:
-                #print "values differ"
-                #print "dict1[%s]:%s" % (key, dict1[key])
-                #print "dict2[%s]:%s" % (key, dict2[key])
-                return False
-    return True

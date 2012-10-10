@@ -43,6 +43,7 @@ from deluge.log import LOG as log
 import yarss2.common
 import yarss2.yarss_config
 from yarss2.rssfeed_handling import RSSFeedHandler
+
 import common
 
 class RSSFeedHandlingTestCase(unittest.TestCase):
@@ -64,7 +65,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
 
-        self.assertTrue(common.dicts_equals(items, stored_items))
+        self.assertTrue(yarss2.common.dicts_equals(items, stored_items))
 
     def get_default_rssfeeds_dict(self):
         match_option_dict = {}
