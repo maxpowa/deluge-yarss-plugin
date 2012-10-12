@@ -89,6 +89,9 @@ class ConfigTestCase(unittest.TestCase):
         self.assertTrue(not key_diff)
 
     def test_verify_types_config_elements(self):
+        # Need a valid rssfeed in the config
+        rssfeed_key = "0"
+        self.config.config["rssfeeds"][rssfeed_key] = yarss2.yarss_config.get_fresh_rssfeed_config(key=rssfeed_key)
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         subscriptions = common.get_default_subscriptions(2)
 
@@ -96,6 +99,8 @@ class ConfigTestCase(unittest.TestCase):
             subscriptions[str(i)]["name"] = None
             subscriptions[str(i)]["active"] = ""
             subscriptions[str(i)]["key"] = ""
+            subscriptions[str(i)]["rssfeed_key"] = rssfeed_key
+
         changed = self.config._verify_types_config_elements(subscriptions, default_subscription)
         self.assertTrue(changed)
 
@@ -105,45 +110,51 @@ class ConfigTestCase(unittest.TestCase):
 
     def test_verify_types_values_changed(self):
         # 0 is just a key value (could be any number)
-        config_key = "0"
+        rssfeed_key = "0"
+        subscription_key = "0"
         # Default must have a different key than the test subscription, so set to ""
+        # Need a valid rssfeed in the config
+        self.config.config["rssfeeds"][rssfeed_key] = yarss2.yarss_config.get_fresh_rssfeed_config(key=rssfeed_key)
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config(key="")
-        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=config_key)
+        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=subscription_key)
 
         # Change type of the value for some keys
         #subscription_changed["name"] = u"Non default"
         subscription_changed["regex_include"] = None              # Should be unicode
         subscription_changed["email_notifications"] = []          # Should be dict
         subscription_changed["regex_include_ignorecase"] = ""     # Should be boolean
-        subscription_changed["rssfeed_key"] = unicode(config_key) # Should be str
+        subscription_changed["rssfeed_key"] = unicode(rssfeed_key) # Should be str
         subscription_changed["key"] = None                        # Should be str
 
-        changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
+        changed = self.config._verify_types(subscription_key, subscription_changed, default_subscription)
         self.assertTrue(changed)
         self.assertEquals(subscription_changed["regex_include"], default_subscription["regex_include"])
         self.assertEquals(subscription_changed["email_notifications"], default_subscription["email_notifications"])
         self.assertEquals(subscription_changed["regex_include_ignorecase"], default_subscription["regex_include_ignorecase"])
-        self.assertEquals(subscription_changed["key"], config_key)
+        self.assertEquals(subscription_changed["key"], subscription_key)
 
     def test_verify_types_values_deleted(self):
-        config_key = "0"
-        default_subscription = yarss2.yarss_config.get_fresh_subscription_config(key=config_key)
-        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=config_key)
+        rssfeed_key = "0"
+        subscription_key = "0"
+        # Need a valid rssfeed in the config
+        self.config.config["rssfeeds"][rssfeed_key] = yarss2.yarss_config.get_fresh_rssfeed_config(key=rssfeed_key)
+        default_subscription = yarss2.yarss_config.get_fresh_subscription_config(key=subscription_key)
+        subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=subscription_key)
 
         # Remove some keys from default subscription
         subscription_changed["name"] = "Not default"
-        subscription_changed["rssfeed_key"] = "0"
+        subscription_changed["rssfeed_key"] = rssfeed_key
         del subscription_changed["regex_include"]
         del subscription_changed["email_notifications"]
         del subscription_changed["key"]
 
-        changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
+        changed = self.config._verify_types(subscription_key, subscription_changed, default_subscription)
         self.assertTrue(changed)
         self.assertEquals(subscription_changed["regex_include"], default_subscription["regex_include"])
         self.assertEquals(subscription_changed["email_notifications"], default_subscription["email_notifications"])
 
-        # Here, the missing key value should be set to config_key, and not the default value (which doesn't exist)
-        self.assertEquals(subscription_changed["key"], config_key)
+        # Here, the missing key value should be set to subscription_key, and not the default value (which doesn't exist)
+        self.assertEquals(subscription_changed["key"], subscription_key)
 
         # Verify that the value of regex_exclude has been converted to unicode
         self.assertEquals(type(subscription_changed["regex_exclude"]), unicode)
@@ -190,7 +201,7 @@ class ConfigTestCase(unittest.TestCase):
         subscription_changed["rssfeed_key"] = ""
         subscription_changed["name"] = u"Not default"
         changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
-        self.assertTrue(changed)
+        self.assertTrue(changed, "_verify_types did not change the config")
         # rssfeed_key should be the DUMMY_RSSFEED_KEY
         self.assertTrue(self.config.config["rssfeeds"].has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
 

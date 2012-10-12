@@ -106,11 +106,11 @@ class TorrentHandler(object):
                 self.log.info("Succesfully added torrent '%s'." % torrent_match["title"])
                 # Update subscription with date
                 torrent_time = torrent_match["updated_datetime"]
-                last_subscription_update = common.isodate_to_datetime(torrent_match["subscription_data"]["last_update"])
+                last_subscription_update = common.isodate_to_datetime(torrent_match["subscription_data"]["last_match"])
                 # Update subscription time if this is newer
                 # The order of the torrents is unknown, so the latest doesn't necessarily come last
                 if torrent_time and last_subscription_update < torrent_time:
-                    torrent_match["subscription_data"]["last_update"] = torrent_time.isoformat()
+                    torrent_match["subscription_data"]["last_match"] = torrent_time.isoformat()
                     # Save subsription with updated timestamp
                     save_subscription_func(subscription_data=torrent_match["subscription_data"])
 

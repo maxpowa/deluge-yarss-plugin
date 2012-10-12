@@ -185,7 +185,7 @@ def get_test_config():
     subscriptions["2"]["name"] = "Inactive subscription"
     subscriptions["2"]["active"] = False
     subscriptions["3"]["name"] = "Update_time too new"
-    subscriptions["3"]["last_update"] = datetime.datetime.now().isoformat()
+    subscriptions["3"]["last_match"] = datetime.datetime.now().isoformat()
     subscriptions["4"]["name"] = "Wrong rsskey subscription"
     subscriptions["4"]["rssfeed_key"] = "1"
 

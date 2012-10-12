@@ -562,7 +562,7 @@ class DialogSubscription():
         if active_string is not None:
             download_location = active_string.strip()
         add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
-        last_update = self.glade.get_widget("txt_last_matched").get_text()
+        last_match = self.glade.get_widget("txt_last_matched").get_text()
 
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
         custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
@@ -584,7 +584,7 @@ class DialogSubscription():
         self.subscription_data["custom_text_lines"] = custom_text_lines
         self.subscription_data["rssfeed_key"] = rss_key
         self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
-        self.subscription_data["last_update"] = last_update
+        self.subscription_data["last_match"] = last_match
 
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
@@ -694,5 +694,5 @@ class DialogSubscription():
             self.glade.get_widget("combobox_download_location").set_active(download_location_index)
 
     def load_last_matched_timestamp(self):
-        self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_update"])
+        self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])
 

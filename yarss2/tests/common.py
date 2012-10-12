@@ -51,7 +51,7 @@ def get_default_subscriptions(count):
     for i in range(count):
         subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(
             name="Non-matching subscription",
-            last_update=yarss2.common.get_default_date().isoformat(),
+            last_match=yarss2.common.get_default_date().isoformat(),
             rssfeed_key="0", key=str(i), regex_include=None, regex_exclude=None)
     return subscriptions
 

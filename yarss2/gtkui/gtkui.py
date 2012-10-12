@@ -300,7 +300,7 @@ class GtkUI(GtkPluginBase):
                                         self.subscriptions[key]["name"],
                                         self.rssfeeds[rssfeed_key]["name"],
                                         self.rssfeeds[rssfeed_key]["site"],
-                                        self.subscriptions[key]["last_update"],
+                                        self.subscriptions[key]["last_match"],
                                         self.subscriptions[key]["move_completed"]])
 
     def update_rssfeeds_list(self, rssfeeds_store):
@@ -373,7 +373,7 @@ class GtkUI(GtkPluginBase):
         if treeColumn.get_title() == "Active":
             tooltip.set_markup("<b>Double click to toggle</b>")
         elif treeColumn.get_title() == "Last Matched":
-            tooltip.set_markup("<b>The time this subcription last added a torrent</b>")
+            tooltip.set_markup("<b>The publish time of the last torrent that was added by this subscription.</b>")
         else:
             return False
         widget.set_tooltip_cell(tooltip, path2, None, None)
@@ -443,7 +443,7 @@ class GtkUI(GtkPluginBase):
     def on_button_run_subscription_clicked(self, menuitem):
         key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
-            self.subscriptions[key]["last_update"] = ""
+            self.subscriptions[key]["last_match"] = ""
             self.save_subscription(self.subscriptions[key])
             client.yarss2.initiate_rssfeed_update(None, subscription_key=key)
 

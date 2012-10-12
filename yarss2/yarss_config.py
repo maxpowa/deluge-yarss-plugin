@@ -143,6 +143,8 @@ class YARSSConfig(object):
 
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
             changed = True
+            self.update_subscription_config_with_changes(self.config["subscriptions"])
+
         if self._verify_types_config_elements(self.config["subscriptions"], default_config):
             changed = True
 
@@ -246,14 +248,12 @@ class YARSSConfig(object):
                             changed = True
                             # We have a problem
                         else:
-                            #print "rssfeed_dict_key not integer: '%s'" % config[key]
                             rssfeed_key_invalid = True
                     else:
                         # Test that rssfeed_key points to a rssfeed that exists in the config
                         if key == "rssfeed_key":
                             # The rsfeed_key is invalid (no rssfeed with that key exists)
                             if not self.config["rssfeeds"].has_key(config[key]):
-                                print "\n\nRSSFEED DOES NOT EXIST\n\n"
                                 rssfeed_key_invalid = True
             # Must handle missing rssfeed_key in a subscription
             if rssfeed_key_invalid:
@@ -271,10 +271,14 @@ class YARSSConfig(object):
                     if self.config["rssfeeds"].has_key(DUMMY_RSSFEED_KEY):
                         dummy_rssfeed = self.config["rssfeeds"][DUMMY_RSSFEED_KEY]
                     else:
-                        dummy_rssfeed = get_fresh_rssfeed_config(name=u"Dummy Feed (error in config was detected)", active=False, key=DUMMY_RSSFEED_KEY)
+                        dummy_rssfeed = get_fresh_rssfeed_config(name=u"Dummy Feed (error in config was detected) "\
+                                                                 "Please reassign this subscription to the correct Feed and delete this RSS feed.",
+                                                                 active=False, key=DUMMY_RSSFEED_KEY)
                         self.config["rssfeeds"][DUMMY_RSSFEED_KEY] = dummy_rssfeed
+                    self.log.warn("Found subscription with missing or invalid rssfeed_key ('%s'). "\
+                                  "A dummy rssfeed will be used for this subscription." % config["rssfeed_key"])
                     config["rssfeed_key"] = DUMMY_RSSFEED_KEY
-                    self.log.warn("Found subscription with missing rssfeed_key. A dummy rssfeed was created for this subscription.")
+                    changed = True
         return changed
 
     def _insert_missing_dict_values(self, config_dict, default_config, key_diff=None, level=2):
@@ -288,6 +292,13 @@ class YARSSConfig(object):
                 if not key_diff:
                     return key_diff
         return key_diff
+
+    def update_subscription_config_with_changes(self, subscription_config):
+        """Renamed last_update to last_match"""
+        for key in subscription_config.keys():
+            if subscription_config[key].has_key("last_update"):
+                subscription_config[key]["last_match"] = subscription_config[key]["last_update"]
+                del subscription_config[key]["last_update"]
 
     def _do_insert(self, config_dict, default_config, key_diff):
         if key_diff is None:
@@ -344,7 +355,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
     return config_dict
 
 def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", regex_exclude=u"",
-                                  active=True, move_completed=u"", download_location=u"", last_update=u"", key=None):
+                                  active=True, move_completed=u"", download_location=u"", last_match=u"", key=None):
     """Create a new config """
     config_dict = {}
     config_dict["rssfeed_key"] = rssfeed_key
@@ -354,7 +365,7 @@ def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", r
     config_dict["regex_exclude_ignorecase"] = True
     config_dict["name"] = name
     config_dict["active"] = active
-    config_dict["last_update"] = last_update
+    config_dict["last_match"] = last_match
     config_dict["move_completed"] = move_completed
     config_dict["download_location"] = download_location
     config_dict["custom_text_lines"] = u""

@@ -293,12 +293,12 @@ class RSSFeedHandler(object):
         matches, message = self.update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=options)
         self.log.info("Retrived %d items. %d matches the filter." % (len(fetch_data["rssfeed_items"]), len(matches.keys())))
 
-        last_update_dt = common.isodate_to_datetime(subscription_data["last_update"])
+        last_match_dt = common.isodate_to_datetime(subscription_data["last_match"])
 
         for key in matches.keys():
             # Discard match only if timestamp is available,
             # and the timestamp is older or equal to the last matching timestamp
-            if matches[key]["updated_datetime"] and last_update_dt >= matches[key]["updated_datetime"]:
+            if matches[key]["updated_datetime"] and last_match_dt >= matches[key]["updated_datetime"]:
                 self.log.info("Not adding because of old timestamp: '%s'" % matches[key]["title"])
                 del matches[key]
                 continue
