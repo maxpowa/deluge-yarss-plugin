@@ -55,6 +55,7 @@ from yarss2.common import get_resource, get_value_in_selected_row
 from yarss2.http import encode_cookie_values
 from yarss2 import yarss_config
 
+
 from dialog_subscription import DialogSubscription
 from dialog_rssfeed import DialogRSSFeed
 from dialog_email_message import DialogEmailMessage
@@ -772,6 +773,9 @@ class GtkUI(GtkPluginBase):
         key = get_value_in_selected_row(self.rssfeeds_treeview, self.rssfeeds_store)
         if key:
             if col and col.get_title() == 'Active':
+                # Check if dummy
+                if key == yarss_config.DUMMY_RSSFEED_KEY:
+                    return
                 # Save to config
                 self.rssfeeds[key]["active"] = not self.rssfeeds[key]["active"]
                 self.save_rssfeed(self.rssfeeds[key])

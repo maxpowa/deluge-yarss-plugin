@@ -23,7 +23,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_cancel_clicked"/>
+                <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -38,7 +38,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_save_clicked"/>
+                <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -85,7 +85,7 @@
                       <packing>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+                        <property name="x_options"></property>
                         <property name="y_options"></property>
                       </packing>
                     </child>
@@ -96,7 +96,7 @@
                         <property name="label" translatable="yes">RSS Feed Name</property>
                       </widget>
                       <packing>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+                        <property name="x_options"></property>
                         <property name="y_options"></property>
                       </packing>
                     </child>
@@ -148,7 +148,7 @@
                       <packing>
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+                        <property name="x_options"></property>
                         <property name="y_options"></property>
                         <property name="y_padding">11</property>
                       </packing>
@@ -164,7 +164,7 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
-                        <property name="adjustment">120 15 10000 1 10 0</property>
+                        <property name="adjustment">120 1 10000 1 10 0</property>
                       </widget>
                       <packing>
                         <property name="left_attach">1</property>
@@ -184,6 +184,7 @@
                       <packing>
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
+                        <property name="x_options"></property>
                         <property name="y_options"></property>
                       </packing>
                     </child>

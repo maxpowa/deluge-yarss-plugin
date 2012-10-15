@@ -47,7 +47,7 @@ from deluge.log import LOG as log
 import deluge.component as component
 
 from yarss2.common import get_resource
-
+import yarss2
 
 class DialogRSSFeed():
 
@@ -55,7 +55,6 @@ class DialogRSSFeed():
         self.gtkUI = gtkUI
         self.rssfeed = rssfeed
 
-    def show(self):
         self.glade = gtk.glade.XML(get_resource("dialog_rssfeed.glade"))
         self.glade.signal_autoconnect({
                 "on_button_cancel_clicked":self.on_button_cancel_clicked,
@@ -63,6 +62,8 @@ class DialogRSSFeed():
         })
 
         self.populate_data_fields()
+
+    def show(self):
         self.dialog = self.glade.get_widget("dialog_rssfeed")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         #self.glade.get_widget("spinbutton_updatetime").set_range(1, 30)
@@ -74,6 +75,17 @@ class DialogRSSFeed():
             self.glade.get_widget("txt_url").set_text(self.rssfeed["url"])
             self.glade.get_widget("spinbutton_updatetime").set_value(self.rssfeed["update_interval"])
             self.glade.get_widget("checkbox_obey_ttl").set_active(self.rssfeed["obey_ttl"])
+
+            # Disable the fields field
+            if self.rssfeed.has_key("key") and self.rssfeed["key"] == yarss2.yarss_config.DUMMY_RSSFEED_KEY:
+                self.glade.get_widget("txt_name").set_property("editable", False)
+                self.glade.get_widget("txt_name").unset_flags(gtk.CAN_FOCUS)
+                self.glade.get_widget("txt_url").set_property("editable", False)
+                self.glade.get_widget("txt_url").unset_flags(gtk.CAN_FOCUS)
+                self.glade.get_widget("spinbutton_updatetime").set_sensitive(False)
+                self.glade.get_widget("checkbox_obey_ttl").set_active(False)
+                self.glade.get_widget("checkbox_obey_ttl").set_sensitive(False)
+                self.glade.get_widget("button_save").set_sensitive(False)
 
     def on_button_save_clicked(self, Event=None, a=None, col=None):
         name = self.glade.get_widget("txt_name").get_text()

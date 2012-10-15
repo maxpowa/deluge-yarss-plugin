@@ -128,7 +128,7 @@ class TorrentHandler(object):
             if not config["email_messages"][email_key]["active"]:
                 continue
             # Send email in
-            send_torrent_email(config["email_configurations"],
+            self.send_torrent_email(config["email_configurations"],
                                config["email_messages"][email_key],
                                torrent_name_list=torrent_names[key],
                                defered=True)
@@ -138,7 +138,7 @@ class TorrentHandler(object):
         """Send email with optional list of torrents
 
         Arguments:
-        email_configurations - the main email configuration of YARSS
+        email_configurations - the main email configuration of YARSS2
         email_msg - a dictionary with the email data (as saved in the YARSS config)
         torrent_name_list - a list of strings containg the name of torrents
         """

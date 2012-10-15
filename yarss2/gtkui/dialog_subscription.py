@@ -498,7 +498,7 @@ class DialogSubscription():
             if c_key == key:
                 return
         self.messages_list_store.append([key, self.email_messages[key]["name"],
-                                         self.email_messages[key]["active"], False, False])
+                                         self.email_messages[key]["active"], True, False])
 
     def get_current_notifications(self):
         """ Retrieves the notifications from the notifications list"""
@@ -585,6 +585,14 @@ class DialogSubscription():
         self.subscription_data["rssfeed_key"] = rss_key
         self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
         self.subscription_data["last_match"] = last_match
+
+        #self.subscription_data["max_connections"] = 
+        #self.subscription_data["max_upload_slots"] = 
+        #self.subscription_data["max_upload_slots"] = 
+        #self.subscription_data["max_upload_speed"] = 
+        #self.subscription_data["max_download_speed"] = 
+        #self.subscription_data["auto_managed"] = 
+
 
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
