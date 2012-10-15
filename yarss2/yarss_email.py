@@ -37,6 +37,7 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
+import yarss2.logger
 import yarss2.common as log
 
 # Mime is not included with Deluge on Windows.
@@ -48,6 +49,8 @@ except ImportError, e:
     from yarss2.lib.mime.text import MIMEText
 
 import smtplib
+
+log = yarss2.logger.Logger()
 
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
@@ -69,7 +72,7 @@ def send_email(email_conf, server_conf):
     else:
         log.warn("Email config must contain either 'message' or 'message_html'")
         return False
-  
+
     mime_message["Subject"] = email_conf["subject"]
     mime_message["From"] = server_conf["from_address"]
     mime_message["To"] = email_conf["to_address"]

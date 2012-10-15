@@ -19,7 +19,6 @@ def fix_glade_file(filepath):
 
 if __name__ == '__main__':
     path = "yarss2/data/"
-    #path = "/home/bro/programmer/deluge/deluge/deluge/ui/gtkui/glade/"
 
     dirList = os.listdir(path)
     for fname in dirList:

@@ -25,7 +25,7 @@ v1.1.0 - 2012-09-12
 v1.1.2 - 2012-10-05
 
 * Fixed error where ComboBox.get_active_text would return None.
-* The current value in "Move completed" and "Download location" was added twice. 
+* The current value in "Move completed" and "Download location" was added twice.
 
 v1.1.1 - 2012-10-03
 

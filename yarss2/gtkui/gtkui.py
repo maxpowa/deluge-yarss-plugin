@@ -224,7 +224,7 @@ class GtkUI(GtkPluginBase):
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
         if config is None:
-            log.error("An error has occured. Cannot load data from config")
+            self.log.error("An error has occured. Cannot load data from config")
         else:
             self.update_data_from_config(config)
 
@@ -273,6 +273,7 @@ class GtkUI(GtkPluginBase):
         default_message = self.glade.get_widget("textview_default_message")
 
         default_message = default_message.get_buffer()
+        from_addr.set_text(self.email_config["from_address"])
         smtp_server.set_text(self.email_config["smtp_server"])
         smtp_port.set_text(self.email_config["smtp_port"])
 
@@ -290,8 +291,6 @@ class GtkUI(GtkPluginBase):
 
     def update_subscription_list(self, subscriptions_store):
         subscriptions_store.clear()
-        print "subs keys:", self.subscriptions.keys()
-        print "feed keys:", self.rssfeeds.keys()
 
         for key in self.subscriptions.keys():
             rssfeed_key = self.subscriptions[key]["rssfeed_key"]
@@ -602,9 +601,9 @@ class GtkUI(GtkPluginBase):
 
     def test_email_callback(self, return_value):
         if return_value:
-            log.warn("Test email successfully sent!")
+            self.log.warn("Test email successfully sent!")
         else:
-            log.warn("Failed to send test email!")
+            self.log.warn("Failed to send test email!")
 
     def on_notification_list_button_press_event(self, treeview, event):
         """Shows popup on selected row"""
