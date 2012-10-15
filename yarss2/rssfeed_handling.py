@@ -52,7 +52,7 @@ class RSSFeedHandler(object):
 
     def __init__(self, log):
         self.log = log
-        self.agent = "Deluge YaRSS2 v%s" % common.get_version()
+        self.agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
 
     def get_rssfeed_parsed(self, rssfeed_data, cookies=None, cookie_header={}):
         """

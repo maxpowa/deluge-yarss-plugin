@@ -8,19 +8,11 @@ License: GPLv3
 
 Changelog
 
-v1.1.1 - 2012-10-03
+v1.1.3 - 2012-10-17
 
-* Fixed import error when running YaRSS2 on daemon without gtk installed.
-* feedparser library was unable to parse some timestamps.
-* The order of the torrents in the torrent list in the subscription dialog was incorrect.
-
-v1.1.0 - 2012-09-12
-
-* Added panel for log messages.
-* Added functionality to reset the last matched timestamp for subscriptions. (Options tab in subscription dialog)
-* Fixed bug where RSS feeds with no proper tag for the timestamp when the torrent was published would crash YaRSS2.
-* Fixed bug where the 'Published' column in matching panel for subscriptions wasn't properly populated.
-* Hopefully fixed bug in GUI that could result in Deluge crashing.
+* Fixed bug with sending emails.
+* The 'From email address' field value in configurations was not loaded.
+* Improved verification of the config on startup. (Fix errors)
 
 v1.1.2 - 2012-10-05
 

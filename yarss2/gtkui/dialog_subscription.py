@@ -586,6 +586,14 @@ class DialogSubscription():
         self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
         self.subscription_data["last_match"] = last_match
 
+        #self.subscription_data["max_connections"] = 
+        #self.subscription_data["max_upload_slots"] = 
+        #self.subscription_data["max_upload_slots"] = 
+        #self.subscription_data["max_upload_speed"] = 
+        #self.subscription_data["max_download_speed"] = 
+        #self.subscription_data["auto_managed"] = 
+
+
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
         # Call save method in gtui. Saves to core

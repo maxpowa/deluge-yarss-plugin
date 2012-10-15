@@ -260,7 +260,8 @@ class YARSSConfig(object):
                 # Check first if the subscription has the default values. In that case, just delete it.
                 # If it has the key 'key', use that as key, else None
                 default_config = get_fresh_subscription_config(key=None if not config.has_key("key") else config["key"],
-                                                               rssfeed_key=None if not config.has_key("rssfeed_key") else config["rssfeed_key"])
+                                                               rssfeed_key=None if not config.has_key("rssfeed_key")\
+                                                               else config["rssfeed_key"])
                 if common.dicts_equals(config, default_config):
                     self.log.warn("Found subscription with missing rssfeed_key. The subscription is empty, so it will be deleted.")
                     for key in config.keys():
@@ -272,11 +273,13 @@ class YARSSConfig(object):
                         dummy_rssfeed = self.config["rssfeeds"][DUMMY_RSSFEED_KEY]
                     else:
                         dummy_rssfeed = get_fresh_rssfeed_config(name=u"Dummy Feed (error in config was detected) "\
-                                                                 "Please reassign this subscription to the correct Feed and delete this RSS feed.",
+                                                                 "Please reassign this subscription to the correct "\
+                                                                 "Feed and delete this RSS feed.",
                                                                  active=False, key=DUMMY_RSSFEED_KEY)
                         self.config["rssfeeds"][DUMMY_RSSFEED_KEY] = dummy_rssfeed
+                    invalid_rssfeed_key = "Missing" if not config.has_key("rssfeed_key") else config["rssfeed_key"]
                     self.log.warn("Found subscription with missing or invalid rssfeed_key ('%s'). "\
-                                  "A dummy rssfeed will be used for this subscription." % config["rssfeed_key"])
+                                  "A dummy rssfeed will be used for this subscription." % invalid_rssfeed_key)
                     config["rssfeed_key"] = DUMMY_RSSFEED_KEY
                     changed = True
         return changed

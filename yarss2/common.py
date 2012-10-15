@@ -54,6 +54,10 @@ def get_version():
     """
     return pkg_resources.require("YaRSS2")[0].version
 
+def get_deluge_version():
+    import deluge.common
+    return deluge.common.get_version()
+
 def get_resource(filename, path="data"):
     return pkg_resources.resource_filename("yarss2", os.path.join(path, filename))
 
@@ -132,8 +136,9 @@ def get_exception_string():
 
 def dicts_equals(dict1, dict2):
     """Compares two dictionaries, checking that they have the same key/values"""
-    if not (type(dict1) is dict and  type(dict2) is dict):
+    if not (type(dict1) is dict and type(dict2) is dict):
         print "dicts_equals: Both arguments are not dictionaries!"
+        return False
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
         return False

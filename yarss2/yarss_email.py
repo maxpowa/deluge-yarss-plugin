@@ -40,7 +40,7 @@
 import yarss2.logger
 import yarss2.common as log
 
-# Mime is not included with Deluge on Windows.
+# Mime (might) not be included with Deluge on Windows.
 try:
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -86,7 +86,7 @@ def send_email(email_conf, server_conf):
     try:
         mailServer = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
-        log.error("There was an error sending the notification email: %s" % e)
+        log.error("There was an error sending the notification email: %s" % str(e))
         return False
 
     log.info("Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" % \
