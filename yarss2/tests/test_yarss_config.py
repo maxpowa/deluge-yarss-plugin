@@ -37,11 +37,12 @@ from twisted.trial import unittest
 
 import yarss2.yarss_config
 import common
+from yarss2.common import GeneralSubsConf
 
 class ConfigTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.config = common.get_empty_test_config()
+        self.config = common.get_test_config()
 
     def test_verify_config(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
@@ -49,7 +50,7 @@ class ConfigTestCase(unittest.TestCase):
         del default_subscription["regex_include"]
         del default_subscription["email_notifications"]
         # Remove key from email configuration.
-        default = yarss2.yarss_config.get_fresh_email_configurations()
+        default = yarss2.yarss_config.get_fresh_email_config()
         del default["default_email_to_address"]
 
         # Main difference between these is that config["subscriptions"] contains a dictionary
@@ -249,3 +250,70 @@ class ConfigTestCase(unittest.TestCase):
         self.assertEquals(test_subscriptions["2"]["rssfeed_key"], yarss2.yarss_config.DUMMY_RSSFEED_KEY)
         # The dummy should now exist in rssfeeds dict
         self.assertTrue(test_feeds.has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
+
+    def test_verify_config_update_config_to_version2(self):
+        self.config = common.get_test_config(verify_config=False)
+        self.update_config_to_version2(self.config._verify_config)
+
+    def test_update_config_to_version2(self):
+        self.config = common.get_test_config(verify_config=False)
+        self.update_config_to_version2(self.config.config.run_converter, (0, 1), 2, self.config.update_config_to_version2)
+
+    def update_config_to_version2(self, update_func, *args):
+        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        # Create 2 feeds
+        test_feeds = common.get_default_rssfeeds(2)
+        # Create 3 subscriptions
+        test_subscriptions = common.get_default_subscriptions(2)
+
+        last_match_value = test_subscriptions["0"]["last_match"]
+        # Old config had last_update instead of last_match
+        test_subscriptions["0"]["last_update"] = test_subscriptions["0"]["last_match"]
+        del test_subscriptions["0"]["last_match"]
+
+        # Replace field last_update with last_match
+        self.config.config["rssfeeds"] = test_feeds
+        self.config.config["subscriptions"] = test_subscriptions
+        self.config.config["cookies"] = {"0": {
+            "active": True,
+            "value": [["uid", "175728"], ["pass", "3421d1a00b48397a874454626decec04"]],
+            "site": "bitmetv.org",
+            "key": "0"}}
+
+        test_subscriptions["0"]["add_torrents_in_paused_state"] = True
+        test_subscriptions["1"]["add_torrents_in_paused_state"] = False
+
+        # Call the function that makes the changes
+        update_func(*args)
+
+        # Test changes for "replace_last_update_with_last_match"
+        self.assertTrue(test_subscriptions["0"].has_key("last_match"))
+        self.assertFalse(test_subscriptions["0"].has_key("last_update"))
+        self.assertEquals(test_subscriptions["0"]["last_match"], last_match_value)
+
+        # Test changes for "add_torrents_in_paused_state_to_GeneralSubsConf"
+        self.assertEquals(test_subscriptions["0"]["add_torrents_in_paused_state"], GeneralSubsConf.ENABLED)
+        self.assertEquals(test_subscriptions["1"]["add_torrents_in_paused_state"], GeneralSubsConf.DISABLED)
+
+        # Test changes for "change_value_from_list_to_dict"
+        values = self.config.config["cookies"]["0"]["value"]
+        self.assertTrue(type(values) is dict)
+        self.assertTrue(values.has_key("uid"))
+        self.assertEquals(values["uid"], "175728")
+        self.assertTrue(values.has_key("pass"))
+        self.assertEquals(values["pass"], "3421d1a00b48397a874454626decec04")
+
+    def test_update_config_from_1_0(self):
+        tmp_dir = common.get_tmp_dir()
+        import shutil
+        # Copy the yarss2_1.0.conf file to test dir to avoid changes to the file.
+        filename = yarss2.common.get_resource("yarss2_1.0.conf", path="tests/data/")
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=filename, config_dir=tmp_dir, verify_config=True)
+
+        for key in self.config.config["cookies"].keys():
+            self.assertEquals(type(self.config.config["cookies"][key]["value"]), dict)
+        for key in self.config.config["subscriptions"].keys():
+            self.assertTrue(self.config.config["subscriptions"][key].has_key("last_match"))
+            self.assertFalse(self.config.config["subscriptions"][key].has_key("last_update"))
+            self.assertEquals(type(self.config.config["subscriptions"][key]["add_torrents_in_paused_state"]), unicode)

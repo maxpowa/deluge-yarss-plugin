@@ -5,6 +5,7 @@
   <widget class="GtkDialog" id="dialog_cookie">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
+    <property name="destroy_with_parent">True</property>
     <property name="type_hint">normal</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
@@ -81,7 +82,7 @@
                       </widget>
                       <packing>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -98,7 +99,7 @@
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                         <property name="x_padding">6</property>
                       </packing>
                     </child>
@@ -133,7 +134,7 @@
                                   <packing>
                                     <property name="top_attach">1</property>
                                     <property name="bottom_attach">2</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
@@ -145,7 +146,7 @@
                                   <packing>
                                     <property name="top_attach">2</property>
                                     <property name="bottom_attach">3</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
@@ -164,7 +165,7 @@
                                     <property name="right_attach">2</property>
                                     <property name="top_attach">1</property>
                                     <property name="bottom_attach">2</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
@@ -183,7 +184,7 @@
                                     <property name="right_attach">2</property>
                                     <property name="top_attach">2</property>
                                     <property name="bottom_attach">3</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
@@ -197,7 +198,7 @@
                                   <packing>
                                     <property name="right_attach">2</property>
                                     <property name="x_options">GTK_EXPAND</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                     <property name="y_padding">5</property>
                                   </packing>
                                 </child>
@@ -221,7 +222,7 @@
                         <property name="right_attach">2</property>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">5</property>
-                        <property name="x_options"></property>
+                        <property name="x_options"/>
                       </packing>
                     </child>
                     <child>
@@ -289,8 +290,8 @@
                       <packing>
                         <property name="left_attach">2</property>
                         <property name="right_attach">4</property>
-                        <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="x_options"/>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                   </widget>

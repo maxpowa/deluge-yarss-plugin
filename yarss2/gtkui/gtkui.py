@@ -94,8 +94,6 @@ class GtkUI(GtkPluginBase):
                 "on_button_delete_message_clicked":         self.on_button_delete_message_clicked,
 
                 "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
-                "on_checkbutton_send_email_on_torrent_events_toggled":
-                self.on_checkbutton_send_email_on_torrent_events_toggled
                 })
 
         component.get("Preferences").add_page("YaRSS2", self.glade.get_widget("notebook_main"))
@@ -159,8 +157,8 @@ class GtkUI(GtkPluginBase):
     def save_email_config(self, email_config):
         client.yarss2.save_email_configurations(email_config)
 
-    def add_torrent(self, torrent_link):
-        client.yarss2.add_torrent(torrent_link)
+    def add_torrent(self, torrent_link, subscription_data=None):
+        client.yarss2.add_torrent(torrent_link, subscription_data=subscription_data)
 
 
 ##############################
@@ -169,10 +167,6 @@ class GtkUI(GtkPluginBase):
 
     def on_apply_prefs(self):
         """Called when the 'Apply' button is pressed"""
-        self.save_configuration_data()
-
-    def on_checkbutton_send_email_on_torrent_events_toggled(self, button):
-        """Called when email notification button is toggled"""
         self.save_configuration_data()
 
     def save_configuration_data(self):
@@ -235,6 +229,7 @@ class GtkUI(GtkPluginBase):
         self.cookies = config.get('cookies', {})
         self.email_messages = config.get('email_messages', {})
         self.email_config = config.get('email_configurations', {})
+        self.default_values = config.get('default_values', {})
 
         # When connecting to a second host, the glade object returns None for all the fields,
         # so reload the glade file here to avoid this problem.
@@ -364,11 +359,9 @@ class GtkUI(GtkPluginBase):
 #########################
 
     def on_tooltip_subscription(self, widget, x, y, keyboard_tip, tooltip):
-        if not widget.get_tooltip_context(x, y, keyboard_tip):
+        x, y = self.subscriptions_treeview.convert_widget_to_bin_window_coords(x, y)
+        if widget.get_path_at_pos(x, y) is None:
             return False
-        elif widget.get_path_at_pos(x, y) is None:
-            return False
-        model, path2, iter = widget.get_tooltip_context(x, y, keyboard_tip)
         path, treeColumn, t, r = widget.get_path_at_pos(x, y)
         if treeColumn.get_title() == "Active":
             tooltip.set_markup("<b>Double click to toggle</b>")
@@ -376,7 +369,7 @@ class GtkUI(GtkPluginBase):
             tooltip.set_markup("<b>The publish time of the last torrent that was added by this subscription.</b>")
         else:
             return False
-        widget.set_tooltip_cell(tooltip, path2, None, None)
+        widget.set_tooltip_cell(tooltip, path, None, None)
         return True
 
     def create_subscription_pane(self):
@@ -435,17 +428,26 @@ class GtkUI(GtkPluginBase):
         column.set_sort_column_id(6)
         subscriptions_treeView.append_column(column)
 
-        self.run_subscription_menu = gtk.Menu()
+        self.subscription_popup_menu = gtk.Menu()
+
         menuitem = gtk.MenuItem("Run this subscription")
-        self.run_subscription_menu.append(menuitem)
+        self.subscription_popup_menu.append(menuitem)
         menuitem.connect("activate", self.on_button_run_subscription_clicked)
+
+        menuitem = gtk.MenuItem("Reset last matched timestamp")
+        self.subscription_popup_menu.append(menuitem)
+        menuitem.connect("activate", self.on_button_reset_last_matched)
 
     def on_button_run_subscription_clicked(self, menuitem):
         key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
         if key:
+            client.yarss2.initiate_rssfeed_update(None, subscription_key=key)
+
+    def on_button_reset_last_matched(self, menuitem):
+        key = get_value_in_selected_row(self.subscriptions_treeview, self.subscriptions_store)
+        if key:
             self.subscriptions[key]["last_match"] = ""
             self.save_subscription(self.subscriptions[key])
-            client.yarss2.initiate_rssfeed_update(None, subscription_key=key)
 
     def on_subscription_list_button_press_event(self, treeview, event):
         """Shows popup on selected row when right clicking"""
@@ -459,8 +461,8 @@ class GtkUI(GtkPluginBase):
             path, col, cellx, celly = pthinfo
             treeview.grab_focus()
             treeview.set_cursor(path, col, 0)
-            self.run_subscription_menu.popup(None, None, None, event.button, time, data=path)
-            self.run_subscription_menu.show_all()
+            self.subscription_popup_menu.popup(None, None, None, event.button, time, data=path)
+            self.subscription_popup_menu.show_all()
         return True
 
 #########################
@@ -468,23 +470,21 @@ class GtkUI(GtkPluginBase):
 #########################
 
     def on_tooltip_rssfeed(self, widget, x, y, keyboard_tip, tooltip):
-        if not widget.get_tooltip_context(x, y, keyboard_tip):
+        x, y = self.rssfeeds_treeview.convert_widget_to_bin_window_coords(x, y)
+        if widget.get_path_at_pos(x, y) is None:
             return False
-        elif widget.get_path_at_pos(x, y) is None:
-            return False
-        model, path2, iter = widget.get_tooltip_context(x, y, keyboard_tip)
         path, treeColumn, t, r = widget.get_path_at_pos(x, y)
         if treeColumn.get_title() == "Active":
             tooltip.set_markup("<b>Double click to toggle</b>")
         elif treeColumn.get_title() == "Subscriptions":
             tooltip.set_markup("<b>Active (Not active)</b>")
         elif treeColumn.get_title() == "Last Update":
-            tooltip.set_markup("<b>When this RSS Feed was last run</b>")
+            tooltip.set_markup("<b>When this RSS Feed was last checked</b>")
         elif treeColumn.get_title() == "Update Interval":
-            tooltip.set_markup("<b>The time in minutes between each time this RSS Feed is run</b>")
+            tooltip.set_markup("<b>The time in minutes between each time this RSS Feed is checked</b>")
         else:
             return False
-        widget.set_tooltip_cell(tooltip, path2, None, None)
+        widget.set_tooltip_cell(tooltip, path, None, None)
         return True
 
     def create_rssfeeds_pane(self):
@@ -596,9 +596,10 @@ class GtkUI(GtkPluginBase):
         # Send email
         torrents = ["Torrent title"]
         self.torrent_handler.send_torrent_email(self.email_config,
-                           self.email_messages[key],
-                           torrent_name_list=torrents,
-                           defered=True, callback_func=self.test_email_callback)
+                                                self.email_messages[key],
+                                                subscription_data={"name": "Test subscription"},
+                                                torrent_name_list=torrents,
+                                                defered=True, callback_func=self.test_email_callback)
 
     def test_email_callback(self, return_value):
         if return_value:
@@ -670,7 +671,7 @@ class GtkUI(GtkPluginBase):
 # SUBSCRIPTION callbacks
 #############################
 
-    def on_button_add_subscription_clicked(self,Event=None, a=None, col=None):
+    def on_button_add_subscription_clicked(self, Event=None, a=None, col=None):
         # Check if any RSS Feeds exists, if not, show popup
         if len(self.rssfeeds.keys()) == 0:
             md = gtk.MessageDialog(component.get("Preferences").pref_dialog,
@@ -682,6 +683,9 @@ class GtkUI(GtkPluginBase):
             return
 
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
+        # Add the default values from deluge config
+        for key in self.default_values.keys():
+            fresh_subscription_config[key] = self.default_values[key]
         subscription_dialog = DialogSubscription(self,
                                                  self.log,
                                                  fresh_subscription_config,
@@ -889,5 +893,3 @@ class GtkUI(GtkPluginBase):
         else:
             self.glade.get_widget('button_edit_cookie').set_sensitive(False)
             self.glade.get_widget('button_delete_cookie').set_sensitive(False)
-
-

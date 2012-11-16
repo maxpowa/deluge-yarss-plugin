@@ -36,23 +36,35 @@
 #    this exception statement from your version. If you delete this exception
 #    statement from all source files in the program, then also delete it here.
 #
-
+from __future__ import print_function
 from deluge.plugins.init import PluginInitBase
+#from deluge.log import LOG as log
+
+import yarss2.logger
+log = yarss2.logger.Logger()
+
+def load_libs():
+    import pkg_resources, sys
+    egg = pkg_resources.require("YaRSS2")[0]
+    for name in egg.get_entry_map("yarss2.libpaths"):
+        ep = egg.get_entry_info("yarss2.libpaths", name)
+        location = "%s/%s" % (egg.location, ep.module_name.replace(".", "/"))
+        sys.path.append(location)
+        log.info("Appending to sys.path: '%s'" % location)
 
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
+        try:
+            load_libs()
+        except Exception, e:
+            print("Exception:", e)
         from core import Core as _plugin_cls
         self._plugin_cls = _plugin_cls
         super(CorePlugin, self).__init__(plugin_name)
 
 class GtkUIPlugin(PluginInitBase):
     def __init__(self, plugin_name):
+        load_libs()
         from gtkui.gtkui import GtkUI as _plugin_cls
         self._plugin_cls = _plugin_cls
         super(GtkUIPlugin, self).__init__(plugin_name)
-
-class WebUIPlugin(PluginInitBase):
-    def __init__(self, plugin_name):
-        from webui import WebUI as _plugin_cls
-        self._plugin_cls = _plugin_cls
-        super(WebUIPlugin, self).__init__(plugin_name)

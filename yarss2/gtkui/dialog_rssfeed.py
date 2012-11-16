@@ -93,12 +93,18 @@ class DialogRSSFeed():
         update_interval = self.glade.get_widget("spinbutton_updatetime").get_value()
         obey_ttl = self.glade.get_widget("checkbox_obey_ttl").get_active()
 
+        allowed_types = ('http', 'https', 'ftp', 'file', 'feed')
+        if not urlparse(url)[0] in allowed_types:
+            md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
+                                   gtk.BUTTONS_CLOSE, "The address must begin with one of: %s" % (", ".join(t for t in allowed_types)))
+            md.run()
+            md.destroy()
+            return
         self.rssfeed["name"] = name
         self.rssfeed["url"] = url
         self.rssfeed["update_interval"] = int(update_interval)
         self.rssfeed["site"] = urlparse(url).netloc
         self.rssfeed["obey_ttl"] = obey_ttl
-
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 

@@ -40,22 +40,25 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.development@gmail.com"
-__version__ = "1.1.3"
+__version__ = "1.2.0 Beta"
 __url__ = "http://dev.deluge-torrent.org/wiki/Plugins/YaRSS2"
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
 __long_description__ = """
 Yet another RSS 2, a simple RSS plugin for Deluge, based on
 YaRSS written by Camillo Dell'mour <cdellmour@gmail.com>.
-Last updated on 2012-10-15, tested with Deluge 1.3.5.
+Last updated on 2012-11-16, tested with Deluge 1.3.5.
 Requires PyGTK 2.24
 """
-__pkg_data__ = {__plugin_name__.lower(): ["gtkui/*", "data/*", "lib/*.py", "lib/mime/*"]}
+#__pkg_data__ = {__plugin_name__.lower(): ["gtkui/*", "data/*", "lib/feedparser/*.py", "lib/mime/*", "lib/requests/*py"]}
+__pkg_data__ = {__plugin_name__.lower(): ["data/*"]}
+
+packages = find_packages(exclude=["*flexget*", "yarss2.tests", "start_flexget.py"])
 
 setup(
     name=__plugin_name__,
@@ -66,14 +69,14 @@ setup(
     url=__url__,
     license=__license__,
     long_description=__long_description__ if __long_description__ else __description__,
-
-    packages=[__plugin_name__.lower()],
+    packages=packages,
     package_data = __pkg_data__,
-
     entry_points="""
     [deluge.plugin.core]
     %s = %s:CorePlugin
     [deluge.plugin.gtkui]
     %s = %s:GtkUIPlugin
+    [yarss2.libpaths]
+    include = yarss2.include
     """ % ((__plugin_name__, __plugin_name__.lower())*2)
 )

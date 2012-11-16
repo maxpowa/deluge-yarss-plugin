@@ -38,14 +38,20 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import deluge.configmanager
-from deluge.event import DelugeEvent
 import copy
+
+from deluge.event import DelugeEvent
+import deluge.configmanager
+import deluge.component as component
+
 from yarss2 import common
+from yarss2.common import GeneralSubsConf
+
 
 DEFAULT_UPDATE_INTERVAL = 120
 
 DUMMY_RSSFEED_KEY = "9999"
+CONFIG_FILENAME = "yarss2.conf"
 
 __DEFAULT_PREFS = {
     "email_configurations": {},
@@ -70,21 +76,43 @@ class YARSSConfigChangedEvent(DelugeEvent):
 
 class YARSSConfig(object):
 
-    def __init__(self, logger, config=None):
+    def __init__(self, logger, config=None, core_config=None, verify_config=True):
         self.log = logger
+        self.core_config = core_config
+        self.config = config
+
         # Used for testing
-        if config is not None:
-            self.config = config
-        else:
-            self.config = deluge.configmanager.ConfigManager("yarss2.conf", default_prefs())
+        if config is None:
+            self.config = deluge.configmanager.ConfigManager(CONFIG_FILENAME, default_prefs())
+
+        if verify_config:
             self._verify_config()
+
+        if self.core_config is None:
+            self.core_config = component.get("Core").get_config()
 
     def save(self):
         self.config.save()
 
     def get_config(self):
         "returns the config dictionary"
-        return self.config.config
+        config = copy.copy(self.config.config)
+        # Add default values from core config
+        if self.core_config:
+            default_values = {}
+            default_values["max_connections"] = self.core_config["max_connections_per_torrent"]
+            default_values["max_upload_slots"] = self.core_config["max_upload_slots_per_torrent"]
+            default_values["max_upload_speed"] = self.core_config["max_upload_speed_per_torrent"]
+            default_values["max_download_speed"] = self.core_config["max_download_speed_per_torrent"]
+            default_values["add_torrents_in_paused_state"] = self.core_config["add_paused"]
+            default_values["auto_managed"] = self.core_config["auto_managed"]
+            default_values["prioritize_first_last_pieces"] = self.core_config["prioritize_first_last_pieces"]
+            default_values["sequential_download"] = GeneralSubsConf.DEFAULT
+            # Not implemented in 1.3.5
+            if "sequential_download" in self.core_config:
+                default_values["sequential_download"] = self.core_config["sequential_download"]
+            config["default_values"] = default_values
+        return config
 
     def set_config(self, config):
         """Replaces the config data in self.config with the available keys in config"""
@@ -138,13 +166,14 @@ class YARSSConfig(object):
 
     def _verify_config(self):
         """Adding missing keys, in case a new version adds more config fields"""
-        default_config = get_fresh_subscription_config(key="")
         changed = False
 
+        # Update to version 2
+        self.config.run_converter((0, 1), 2, self.update_config_to_version2)
+
+        default_config = get_fresh_subscription_config(key="")
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
             changed = True
-            self.update_subscription_config_with_changes(self.config["subscriptions"])
-
         if self._verify_types_config_elements(self.config["subscriptions"], default_config):
             changed = True
 
@@ -160,7 +189,13 @@ class YARSSConfig(object):
         if self._verify_types_config_elements(self.config["email_messages"], default_config):
             changed = True
 
-        default_config = get_fresh_email_configurations()
+        default_config = get_fresh_cookie_config()
+        if self._insert_missing_dict_values(self.config["cookies"], default_config):
+            changed = True
+        if self._verify_types_config_elements(self.config["cookies"], default_config):
+            changed = True
+
+        default_config = get_fresh_email_config()
         if self._insert_missing_dict_values(self.config["email_configurations"], default_config, level=1):
             changed = True
         if self._verify_types(None, self.config["email_configurations"], default_config):
@@ -182,7 +217,7 @@ class YARSSConfig(object):
         return changed
 
     def _verify_types(self, config_key, config, default_config):
-        """Takes a dictinoary and checks each key/value pair"""
+        """Takes a dictionary and checks each key/value pair"""
         changed = False
         for key in default_config.keys():
             rssfeed_key_invalid = False
@@ -296,13 +331,6 @@ class YARSSConfig(object):
                     return key_diff
         return key_diff
 
-    def update_subscription_config_with_changes(self, subscription_config):
-        """Renamed last_update to last_match"""
-        for key in subscription_config.keys():
-            if subscription_config[key].has_key("last_update"):
-                subscription_config[key]["last_match"] = subscription_config[key]["last_update"]
-                del subscription_config[key]["last_update"]
-
     def _do_insert(self, config_dict, default_config, key_diff):
         if key_diff is None:
             key_diff = set(default_config.keys()) - set(config_dict.keys())
@@ -315,12 +343,50 @@ class YARSSConfig(object):
             config_dict[key] = default_config[key]
         return key_diff
 
+    def update_config_to_version2(self, config):
+        """Updates the config values to config file version 2"""
+        self.log.info("Updating config file to version 2")
+        self.update_subscription_config_with_changes(config["subscriptions"], "replace_last_update_with_last_match")
+        self.update_subscription_config_with_changes(config["subscriptions"], "add_torrents_in_paused_state_to_GeneralSubsConf")
+        self.update_cookies_config_with_changes(config["cookies"], "change_value_from_list_to_dict")
+        return config
+
+    def update_subscription_config_with_changes(self, subscription_config, update):
+        for key in subscription_config.keys():
+            """Renamed last_update to last_match"""
+            # Replace last_update with last_match
+            if update == "replace_last_update_with_last_match":
+                if subscription_config[key].has_key("last_update"):
+                    subscription_config[key]["last_match"] = subscription_config[key]["last_update"]
+                    del subscription_config[key]["last_update"]
+
+            # Changed add_torrents_in_paused_state from boolean to int
+            if update == "add_torrents_in_paused_state_to_GeneralSubsConf":
+                if subscription_config[key].has_key("add_torrents_in_paused_state"):
+                    if subscription_config[key]["add_torrents_in_paused_state"] is True:
+                        subscription_config[key]["add_torrents_in_paused_state"] = GeneralSubsConf.ENABLED
+                    else:
+                        subscription_config[key]["add_torrents_in_paused_state"] = GeneralSubsConf.DISABLED
+
+    def update_cookies_config_with_changes(self, cookies_config, update):
+        for key in cookies_config.keys():
+            """Renamed last_update to last_match"""
+            # Replace last_update with last_match
+            if update == "change_value_from_list_to_dict":
+                value_list = cookies_config[key]["value"]
+                if type(value_list) is not list:
+                    # Shouldn't really happen, but just in case
+                    continue
+                value_dict = {}
+                for k, v in value_list:
+                    value_dict[k] = v
+                cookies_config[key]["value"] = value_dict
 
 ####################################
 # Can be called from outside core
 ####################################
 
-def get_fresh_email_configurations():
+def get_fresh_email_config():
     """Return the default email_configurations dictionary"""
     config_dict = {}
     config_dict["send_email_on_torrent_events"] = False
@@ -331,15 +397,8 @@ def get_fresh_email_configurations():
     config_dict["smtp_username"] = u""
     config_dict["smtp_password"] = u""
     config_dict["default_email_to_address"] = u""
-    config_dict["default_email_subject"] = u"[YaRSS2]: RSS event"
-    config_dict["default_email_message"] = u"""Hi
-
-The following torrents have been downloaded:
-
-$torrentlist
-
-Regards
-"""
+    config_dict["default_email_subject"] = u"[YaRSS2]: RSS event ($subscription_title)"
+    config_dict["default_email_message"] = u"Hi\n\nThe following torrents have been downloaded:\n$torrentlist\nRegards"
     return config_dict
 
 def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_update=u"",
@@ -372,8 +431,16 @@ def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", r
     config_dict["move_completed"] = move_completed
     config_dict["download_location"] = download_location
     config_dict["custom_text_lines"] = u""
-    config_dict["add_torrents_in_paused_state"] = False
     config_dict["email_notifications"] = {} # Dictionary where keys are the keys of email_messages dictionary
+    config_dict["max_download_speed"] = -2
+    config_dict["max_upload_speed"] = -2
+    config_dict["max_connections"] = -2
+    config_dict["max_upload_slots"] = -2
+    config_dict["add_torrents_in_paused_state"] = GeneralSubsConf.DEFAULT
+    config_dict["auto_managed"] = GeneralSubsConf.DEFAULT
+    config_dict["sequential_download"] = GeneralSubsConf.DEFAULT
+    config_dict["prioritize_first_last_pieces"] = GeneralSubsConf.DEFAULT
+
     if key is not None:
         config_dict["key"] = key
     return config_dict
@@ -392,6 +459,6 @@ def get_fresh_cookie_config():
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["site"] = u""
-    config_dict["value"] = []
+    config_dict["value"] = {}
     config_dict["active"] = True
     return config_dict

@@ -37,8 +37,11 @@ import urlparse
 import urllib
 from HTMLParser import HTMLParser
 
-def get_cookie_header(cookies, url):
-    matching_cookies = []
+def get_matching_cookies_dict(cookies, url):
+    """Takes a dictionary of cookie key/values, and
+    returns a dict with the cookies matching the url
+    """
+    matching_cookies = {}
     if not cookies:
         return {}
     for key in cookies.keys():
@@ -46,18 +49,26 @@ def get_cookie_header(cookies, url):
             continue
         # Test url match
         if url.find(cookies[key]["site"]) != -1:
-            for key, value in cookies[key]["value"]:
-                matching_cookies.append((key,value))
-    if len(matching_cookies) == 0:
-        return {}
-    return {"Cookie": encode_cookie_values(matching_cookies)}
+            for k2 in cookies[key]["value"].keys():
+                matching_cookies[k2] = cookies[key]["value"][k2]
+    return matching_cookies
 
-def encode_cookie_values(key_value_pairs):
-    """Takes a list of tuples containing key/value for a Cookie,
+def get_cookie_header(cookies, url=None):
+    """Takes a dictionary of cookie key/values,
+    and returns the cookies matching url encoded
+    as required in the HTTP request header."""
+    if url:
+        cookies = get_matching_cookies_dict(cookies, url)
+    if len(cookies) == 0:
+        return {}
+    return {"Cookie": encode_cookie_values(cookies)}
+
+def encode_cookie_values(cookies_dict):
+    """Takes a dictionary of key/value for a Cookie,
     and returns the cookie as used in a HTTP Header"""
     cookie_value = ""
-    for key, value in key_value_pairs:
-        cookie_value += ("; %s=%s" % (key, value))
+    for key in cookies_dict.keys():
+        cookie_value += ("; %s=%s" % (key, cookies_dict[key]))
     return cookie_value[2:]
 
 def url_fix(s, charset='utf-8'):
@@ -100,4 +111,3 @@ class HTMLStripper(HTMLParser):
                 data += i.rstrip()
             prev_empty = empty
         return data
-    

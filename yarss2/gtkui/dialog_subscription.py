@@ -42,14 +42,15 @@
 
 import gtk
 import gtk.glade
-from CellrendererPango import CustomAttribute, CellrendererPango
+from CellRendererPango import CustomAttribute, CellRendererPango
 
 from twisted.internet import threads
 
 import deluge.component as component
 
-from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode, get_current_date, isodate_to_datetime
-from yarss2.http import HTMLStripper
+from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode, \
+    get_current_date, isodate_to_datetime, GeneralSubsConf
+import yarss2.http
 import yarss2.logger as log
 from yarss2.rssfeed_handling import RSSFeedHandler
 
@@ -87,13 +88,14 @@ class DialogSubscription():
                 "on_button_add_notication_clicked":     self.on_button_add_notication_clicked,
                 "on_button_remove_notication_clicked":  self.on_button_remove_notication_clicked,
                 "on_rssfeed_selected":                  self.on_rssfeed_selected,
-                "on_panel_matching_move_handle":        self.on_panel_matching_move_handle,
                 "on_button_fetch_clicked":              self.on_rssfeed_selected,
                 "on_button_last_matched_reset_clicked": self.on_button_last_matched_reset_clicked,
                 "on_button_last_matched_now_clicked":   self.on_button_last_matched_now_clicked,
-                })
+                "on_general_checkBox_toggled":          self.on_general_checkBox_toggled,
+                "on_key_pressed":                       self.on_key_pressed,
+        })
 
-        # This is to make testing of the GUI possible (tests/)
+        # This is to make testing of the GUI possible (unit tests)
         self.method_perform_rssfeed_selection = self.perform_rssfeed_selection
 
         self.dialog = self.glade.get_widget("window_subscription")
@@ -158,6 +160,9 @@ class DialogSubscription():
         self.matching_treeView.set_rules_hint(True)
         self.matching_treeView.connect('button-press-event', self.on_matches_list_button_press_event)
 
+        self.matching_treeView.connect('query-tooltip', self.on_tooltip_matches)
+        self.matching_treeView.set_has_tooltip(True)
+
         def cell_data_func(tree_column, cell, model, tree_iter):
             if model.get_value(tree_iter, 0) == True:
                 pixbuf = self.icon_matching
@@ -171,7 +176,7 @@ class DialogSubscription():
         column.set_sort_column_id(0)
         self.matching_treeView.append_column(column)
 
-        cellrenderer = CellrendererPango()
+        cellrenderer = CellRendererPango()
         column = gtk.TreeViewColumn("Title", cellrenderer, text=1)
         column.add_attribute(cellrenderer, "custom", 4)
         column.set_sort_column_id(1)
@@ -189,14 +194,39 @@ class DialogSubscription():
         self.matching_treeView.append_column(col)
 
         self.list_popup_menu = gtk.Menu()
-        menuitem1 = gtk.MenuItem("Add this torrent now")
+        menuitem1 = gtk.MenuItem("Add torrent")
         menuitem1.connect("activate", self.on_button_add_torrent_clicked)
-        menuitem2 = gtk.MenuItem("Copy text to clipboard")
-        menuitem2.connect("activate", self.on_button_copy_to_clipboard)
+        menuitem2 = gtk.MenuItem("Add torrent with current subscription options")
+        menuitem2.connect("activate", self.on_button_add_torrent_clicked, True)
+        menuitem3 = gtk.MenuItem("Copy title to clipboard")
+        menuitem3.connect("activate", self.on_button_copy_to_clipboard, 1)
+        menuitem4 = gtk.MenuItem("Copy link to clipboard")
+        menuitem4.connect("activate", self.on_button_copy_to_clipboard, 3)
 
         self.list_popup_menu.append(menuitem1)
         self.list_popup_menu.append(menuitem2)
+        self.list_popup_menu.append(menuitem3)
+        self.list_popup_menu.append(menuitem4)
         return self.matching_treeView
+
+    def on_tooltip_matches(self, widget, x, y, keyboard_tip, tooltip):
+        x, y = self.treeview.convert_widget_to_bin_window_coords(x, y)
+        if widget.get_path_at_pos(x, y) is None:
+            return False
+        path, treeColumn, t, r = widget.get_path_at_pos(x, y)
+        if not path:
+            return False
+        # Matches, Title, Published, torrent link, CustomAttribute for PangoCellrenderer
+        it = self.matching_store.get_iter(path)
+        title = self.matching_store.get_value(it, 1)
+        published = self.matching_store.get_value(it, 2)
+        link = self.matching_store.get_value(it, 3)
+        if link == None:
+            return False
+        text = "<b>Title:</b> %s\n<b>Link:</b> <u>%s</u>\n<b>Published:</b> %s" % (title, link.replace("&", "&amp;"), published)
+        tooltip.set_markup(text)
+        widget.set_tooltip_cell(tooltip, path, None, None)
+        return True
 
     def on_matches_list_button_press_event(self, treeview, event):
         """Shows popup on selected row when right clicking"""
@@ -218,17 +248,20 @@ class DialogSubscription():
                 self.list_popup_menu.show_all()
             return True
 
-    def on_button_add_torrent_clicked(self, menuitem):
+    def on_button_add_torrent_clicked(self, menuitem, use_settings=False):
         torrent_link = get_value_in_selected_row(self.matching_treeView,
                                                  self.matching_store, column_index=3)
-        if torrent_link is not None:
-            self.gtkUI.add_torrent(torrent_link)
+        # Save current data to dict
+        self.store_subscription_data()
 
-    def on_button_copy_to_clipboard(self, menuitem):
-        torrent_title = get_value_in_selected_row(self.matching_treeView,
-                                                 self.matching_store, column_index=1)
-        if torrent_title is not None:
-            gtk.clipboard_get().set_text(torrent_title)
+        if torrent_link is not None:
+            self.gtkUI.add_torrent(torrent_link, subscription_data=self.subscription_data if use_settings else None)
+
+    def on_button_copy_to_clipboard(self, menuitem, index):
+        text = get_value_in_selected_row(self.matching_treeView,
+                                         self.matching_store, column_index=index)
+        if text is not None:
+            gtk.clipboard_get().set_text(text)
 
     def setup_messages_list(self):
         # message_key, message_title, active, torrent_added, torrent_completed,
@@ -267,22 +300,6 @@ class DialogSubscription():
         viewport = self.glade.get_widget("viewport_email_notifications")
         viewport.add(self.messages_treeview)
         viewport.show_all()
-
-    def on_panel_matching_move_handle(self, paned, scrolltype):
-        """Supposed to handle resizing of the splitpane when the Window size is changed
-        Haven't found a good way to handle this"""
-
-        textview = self.glade.get_widget("textview_custom_text")
-        hpaned = self.glade.get_widget("hpaned_matching")
-
-        #pos = hpaned.compute_position(400, -1, 100)
-        #print "Computed pos:", pos
-
-        #width = textview.get_style().get_font().width("w")
-        #print "width:", width
-
-        #print "position:", paned.get_position()
-        #print "Scrolltype:", scrolltype
 
 ########################################
 ## GUI Update / Callbacks
@@ -392,8 +409,9 @@ class DialogSubscription():
                           updated if updated else "Not available", rssfeeds_dict[key]['link'], customAttributes])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
+        site_cookies = yarss2.http.get_matching_cookies_dict(self.cookies, self.rssfeeds[rssfeed_key]["site"])
         rssfeeds_parsed = self.rssfeedhandler.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
-                                                              cookies=self.cookies)
+                                                                 site_cookies_dict=site_cookies)
         return rssfeeds_parsed
 
     def update_matching_view_with_rssfeed_results(self, rssfeeds_parsed):
@@ -406,6 +424,11 @@ class DialogSubscription():
         """
         if rssfeeds_parsed is None:
             return
+
+        # Window has been closed in the meantime
+        if not self.dialog.get_visible():
+            return
+
         # Reset status to not display an older status
         label_status = self.glade.get_widget("label_status")
         label_text = ""
@@ -451,7 +474,7 @@ class DialogSubscription():
         if not rssfeed_parsed["feed"].has_key("summary"):
             return ""
         cleaned = rssfeed_parsed["feed"]["summary"]
-        s = HTMLStripper()
+        s = yarss2.http.HTMLStripper()
         s.feed(cleaned)
         return s.get_data()
 
@@ -498,7 +521,7 @@ class DialogSubscription():
             if c_key == key:
                 return
         self.messages_list_store.append([key, self.email_messages[key]["name"],
-                                         self.email_messages[key]["active"], False, False])
+                                         self.email_messages[key]["active"], True, False])
 
     def get_current_notifications(self):
         """ Retrieves the notifications from the notifications list"""
@@ -544,10 +567,17 @@ class DialogSubscription():
 ###################
 
     def on_button_save_subscription_clicked(self, Event=None, a=None, col=None):
-        if self.save_subsription_data():
+        if self.save_subscription_data():
             self.dialog.destroy()
 
-    def save_subsription_data(self):
+    def save_subscription_data(self):
+        if not self.store_subscription_data():
+            return False
+        # Call save method in gtui. Saves to core
+        self.gtkUI.save_subscription(self.subscription_data)
+        return True
+
+    def store_subscription_data(self):
         name = self.glade.get_widget("txt_name").get_text()
         regex_include = self.glade.get_widget("txt_regex_include").get_text()
         regex_exclude = self.glade.get_widget("txt_regex_exclude").get_text()
@@ -561,8 +591,27 @@ class DialogSubscription():
         active_string = self.glade.get_widget("combobox_download_location").get_active_text()
         if active_string is not None:
             download_location = active_string.strip()
-        add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
         last_match = self.glade.get_widget("txt_last_matched").get_text()
+
+        max_download_speed = self.glade.get_widget("spinbutton_max_download_speed").get_value()
+        max_upload_speed = self.glade.get_widget("spinbutton_max_upload_speed").get_value()
+        max_connections = self.glade.get_widget("spinbutton_max_connections").get_value()
+        max_upload_slots = self.glade.get_widget("spinbutton_max_upload_slots").get_value()
+
+        add_torrents_paused = self.glade.get_widget("checkbox_add_torrents_in_paused_state").get_active()
+        auto_managed = self.glade.get_widget("checkbutton_auto_managed").get_active()
+        sequential_download = self.glade.get_widget("checkbutton_sequential_download").get_active()
+        prioritize_first_last = self.glade.get_widget("checkbutton_prioritize_first_last").get_active()
+
+        add_torrents_paused_default = self.glade.get_widget("checkbox_add_torrents_in_paused_state_default").get_active()
+        auto_managed_default = self.glade.get_widget("checkbutton_auto_managed_default").get_active()
+        sequential_download_default = self.glade.get_widget("checkbutton_sequential_download_default").get_active()
+        prioritize_first_last_default = self.glade.get_widget("checkbutton_prioritize_first_last_default").get_active()
+
+        add_torrents_paused = GeneralSubsConf().bool_to_value(add_torrents_paused, add_torrents_paused_default)
+        auto_managed = GeneralSubsConf().bool_to_value(auto_managed, auto_managed_default)
+        sequential_download = GeneralSubsConf().bool_to_value(sequential_download, sequential_download_default)
+        prioritize_first_last = GeneralSubsConf().bool_to_value(prioritize_first_last, prioritize_first_last_default)
 
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
         custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
@@ -583,21 +632,20 @@ class DialogSubscription():
         self.subscription_data["download_location"] = download_location
         self.subscription_data["custom_text_lines"] = custom_text_lines
         self.subscription_data["rssfeed_key"] = rss_key
-        self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
         self.subscription_data["last_match"] = last_match
 
-        #self.subscription_data["max_connections"] = 
-        #self.subscription_data["max_upload_slots"] = 
-        #self.subscription_data["max_upload_slots"] = 
-        #self.subscription_data["max_upload_speed"] = 
-        #self.subscription_data["max_download_speed"] = 
-        #self.subscription_data["auto_managed"] = 
+        self.subscription_data["max_download_speed"] = int(max_download_speed)
+        self.subscription_data["max_upload_speed"] = int(max_upload_speed)
+        self.subscription_data["max_connections"] = int(max_connections)
+        self.subscription_data["max_upload_slots"] = int(max_upload_slots)
 
+        self.subscription_data["add_torrents_in_paused_state"] = add_torrents_paused
+        self.subscription_data["auto_managed"] = auto_managed
+        self.subscription_data["sequential_download"] = sequential_download
+        self.subscription_data["prioritize_first_last_pieces"] = prioritize_first_last
 
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
-        # Call save method in gtui. Saves to core
-        self.gtkUI.save_subscription(self.subscription_data)
         return True
 
     def rssfeed_is_mandatory_message(self):
@@ -609,6 +657,9 @@ class DialogSubscription():
     def on_button_cancel_clicked(self, Event=None):
         self.dialog.destroy()
 
+    def on_key_pressed(self, widget, event):
+        if event.keyval == gtk.keysyms.Escape:
+            self.dialog.destroy()
 
 ########################################
 ## Load data on creation
@@ -634,12 +685,40 @@ class DialogSubscription():
         self.glade.get_widget("regex_exclude_case").set_active(
             not self.subscription_data["regex_exclude_ignorecase"])
 
-        # Add torrents paused
-        self.glade.get_widget("checkbox_add_torrents_in_paused_state").set_active(
-            self.subscription_data["add_torrents_in_paused_state"])
-
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
         textbuffer.set_text(self.subscription_data["custom_text_lines"])
+
+        self.glade.get_widget("spinbutton_max_download_speed").set_value(self.subscription_data["max_download_speed"])
+        self.glade.get_widget("spinbutton_max_upload_speed").set_value(self.subscription_data["max_upload_speed"])
+        self.glade.get_widget("spinbutton_max_connections").set_value(self.subscription_data["max_connections"])
+        self.glade.get_widget("spinbutton_max_upload_slots").set_value(self.subscription_data["max_upload_slots"])
+
+        add_paused = self.subscription_data["add_torrents_in_paused_state"]
+        auto_managed = self.subscription_data["auto_managed"]
+        sequential_download = self.subscription_data["sequential_download"]
+        prioritize_first_last_pieces = self.subscription_data["prioritize_first_last_pieces"]
+
+        self.glade.get_widget("checkbox_add_torrents_in_paused_state").set_active(add_paused == GeneralSubsConf.ENABLED)
+        self.glade.get_widget("checkbutton_auto_managed").set_active(auto_managed == GeneralSubsConf.ENABLED)
+        self.glade.get_widget("checkbutton_sequential_download").set_active(sequential_download == GeneralSubsConf.ENABLED)
+        self.glade.get_widget("checkbutton_prioritize_first_last").set_active(prioritize_first_last_pieces == GeneralSubsConf.ENABLED)
+
+        self.glade.get_widget("checkbox_add_torrents_in_paused_state_default").set_active(add_paused == GeneralSubsConf.DEFAULT)
+        self.glade.get_widget("checkbutton_auto_managed_default").set_active(auto_managed == GeneralSubsConf.DEFAULT)
+        self.glade.get_widget("checkbutton_sequential_download_default").set_active(sequential_download == GeneralSubsConf.DEFAULT)
+        self.glade.get_widget("checkbutton_prioritize_first_last_default").set_active(prioritize_first_last_pieces == GeneralSubsConf.DEFAULT)
+
+        self.on_general_checkBox_toggled(None)
+
+    def on_general_checkBox_toggled(self, button):
+        self.glade.get_widget("checkbox_add_torrents_in_paused_state").set_sensitive(\
+            not self.glade.get_widget("checkbox_add_torrents_in_paused_state_default").get_active())
+        self.glade.get_widget("checkbutton_auto_managed").set_sensitive(\
+            not self.glade.get_widget("checkbutton_auto_managed_default").get_active())
+        self.glade.get_widget("checkbutton_sequential_download").set_sensitive(\
+            not self.glade.get_widget("checkbutton_sequential_download_default").get_active())
+        self.glade.get_widget("checkbutton_prioritize_first_last").set_sensitive(\
+            not self.glade.get_widget("checkbutton_prioritize_first_last_default").get_active())
 
     def load_rssfeed_combobox_data(self):
         rssfeed_key = "-1"

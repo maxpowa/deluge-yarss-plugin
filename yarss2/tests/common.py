@@ -39,6 +39,7 @@ import datetime
 import deluge.config
 import tempfile
 import deluge.configmanager
+import deluge.core.preferencesmanager
 
 import yarss2.common
 from yarss2 import yarss_config
@@ -61,12 +62,15 @@ def get_default_rssfeeds(count):
         d[str(i)] = yarss_config.get_fresh_rssfeed_config(key=str(i))
     return d
 
-def get_empty_test_config():
-    config_dir = get_tmp_dir()
-    deluge_config = deluge.config.Config("yarss_test.conf",
+def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_config=True):
+    """Creates a YaRSS2 config with a reference to a proper deluge config"""
+    if config_dir is None:
+        config_dir = get_tmp_dir()
+    deluge_config = deluge.config.Config(config_filename,
                                          yarss2.yarss_config.default_prefs(), config_dir=config_dir)
+    core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS, config_dir=config_dir)
     from deluge.log import LOG as log
-    config = yarss2.yarss_config.YARSSConfig(log, deluge_config)
+    config = yarss2.yarss_config.YARSSConfig(log, config=deluge_config, core_config=core_config, verify_config=verify_config)
     return config
 
 def get_tmp_dir():
@@ -74,13 +78,13 @@ def get_tmp_dir():
     deluge.configmanager.set_config_dir(config_directory)
     return config_directory
 
-
 import deluge.common
 json = deluge.common.json
 
 # http://torrents.freebsd.org:8080/rss.xml
-testdata_rssfeed_filename = "freebsd_rss.xml"
-testdata_rss_itmes_json_filename = "freebsd_rss_items_dump.json"
+test_data_dir = "data"
+testdata_rssfeed_filename = "%s/freebsd_rss.xml" % test_data_dir
+testdata_rss_itmes_json_filename = "%s/freebsd_rss_items_dump.json" % test_data_dir
 
 def load_json_testdata():
     return json_load(testdata_rss_itmes_json_filename, dict_int_keys=True)

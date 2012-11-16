@@ -41,7 +41,7 @@ from twisted.python.failure import Failure
 
 import deluge.component as component
 
-from lib import feedparser
+from lib.feedparser import feedparser
 import common
 from yarss2.yarss_config import YARSSConfigChangedEvent
 from yarss2 import http

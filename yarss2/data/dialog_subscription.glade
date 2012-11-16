@@ -4,6 +4,11 @@
   <!-- interface-naming-policy project-wide -->
   <widget class="GtkWindow" id="window_subscription">
     <property name="can_focus">False</property>
+    <property name="destroy_with_parent">True</property>
+    <signal name="destroy_event" handler="on_destroy_event"/>
+    <signal name="destroy" handler="on_destroy_event"/>
+    <signal name="key_press_event" handler="on_key_pressed"/>
+    <signal name="hide" handler="on_destroy_event"/>
     <child>
       <widget class="GtkFrame" id="frame1">
         <property name="visible">True</property>
@@ -52,7 +57,7 @@
                                 <property name="top_attach">2</property>
                                 <property name="bottom_attach">3</property>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -66,7 +71,7 @@
                                 <property name="top_attach">1</property>
                                 <property name="bottom_attach">2</property>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -78,7 +83,7 @@
                               </widget>
                               <packing>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -97,7 +102,7 @@
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">3</property>
                                 <property name="x_options">GTK_EXPAND | GTK_SHRINK | GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -110,22 +115,22 @@
                                 <property name="secondary_icon_activatable">False</property>
                                 <property name="primary_icon_sensitive">True</property>
                                 <property name="secondary_icon_sensitive">True</property>
-                                <signal name="changed" handler="on_txt_regex_include_changed" swapped="no"/>
-                                <signal name="activate" handler="on_txt_regex_include_changed" swapped="no"/>
+                                <signal name="changed" handler="on_txt_regex_include_changed"/>
+                                <signal name="activate" handler="on_txt_regex_include_changed"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">2</property>
                                 <property name="top_attach">2</property>
                                 <property name="bottom_attach">3</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
                               <widget class="GtkComboBox" id="combobox_rssfeeds">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <signal name="changed" handler="on_rssfeed_selected" swapped="no"/>
+                                <signal name="changed" handler="on_rssfeed_selected"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -133,7 +138,7 @@
                                 <property name="top_attach">1</property>
                                 <property name="bottom_attach">2</property>
                                 <property name="x_options">GTK_EXPAND | GTK_SHRINK | GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -146,15 +151,15 @@
                                 <property name="secondary_icon_activatable">False</property>
                                 <property name="primary_icon_sensitive">True</property>
                                 <property name="secondary_icon_sensitive">True</property>
-                                <signal name="changed" handler="on_txt_regex_exclude_changed" swapped="no"/>
-                                <signal name="activate" handler="on_txt_regex_include_changed" swapped="no"/>
+                                <signal name="changed" handler="on_txt_regex_exclude_changed"/>
+                                <signal name="activate" handler="on_txt_regex_include_changed"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">2</property>
                                 <property name="top_attach">3</property>
                                 <property name="bottom_attach">4</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -168,7 +173,7 @@
                                 <property name="top_attach">3</property>
                                 <property name="bottom_attach">4</property>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -184,8 +189,8 @@
                                 <property name="right_attach">3</property>
                                 <property name="top_attach">2</property>
                                 <property name="bottom_attach">3</property>
-                                <property name="x_options"></property>
-                                <property name="y_options"></property>
+                                <property name="x_options"/>
+                                <property name="y_options"/>
                                 <property name="x_padding">5</property>
                               </packing>
                             </child>
@@ -202,8 +207,8 @@
                                 <property name="right_attach">3</property>
                                 <property name="top_attach">3</property>
                                 <property name="bottom_attach">4</property>
-                                <property name="x_options"></property>
-                                <property name="y_options"></property>
+                                <property name="x_options"/>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -212,7 +217,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
-                                <signal name="clicked" handler="on_button_fetch_clicked" swapped="no"/>
+                                <signal name="clicked" handler="on_button_fetch_clicked"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">2</property>
@@ -250,9 +255,9 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="position_set">True</property>
-                        <signal name="move_handle" handler="on_panel_matching_move_handle" swapped="no"/>
-                        <signal name="accept_position" handler="on_panel_matching_move_handle" swapped="no"/>
-                        <signal name="notify" handler="on_panel_matching_move_handle" swapped="no"/>
+                        <signal name="move_handle" handler="on_panel_matching_move_handle"/>
+                        <signal name="accept_position" handler="on_panel_matching_move_handle"/>
+                        <signal name="notify" handler="on_panel_matching_move_handle"/>
                         <child>
                           <widget class="GtkScrolledWindow" id="matching_window_upper">
                             <property name="visible">True</property>
@@ -297,7 +302,7 @@
                                           <widget class="GtkTextView" id="textview_custom_text">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
-                                            <signal name="move_cursor" handler="on_textview_custom_text_move_cursor" swapped="no"/>
+                                            <signal name="move_cursor" handler="on_textview_custom_text_move_cursor"/>
                                           </widget>
                                         </child>
                                       </widget>
@@ -434,7 +439,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
-                                                <signal name="clicked" handler="on_button_add_notication_clicked" swapped="no"/>
+                                                <signal name="clicked" handler="on_button_add_notication_clicked"/>
                                               </widget>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -471,7 +476,7 @@
                                   </widget>
                                   <packing>
                                     <property name="right_attach">4</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                     <property name="y_padding">2</property>
                                   </packing>
                                 </child>
@@ -496,7 +501,7 @@
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="yalign">0.95999997854232788</property>
-                                            <signal name="clicked" handler="on_button_remove_notication_clicked" swapped="no"/>
+                                            <signal name="clicked" handler="on_button_remove_notication_clicked"/>
                                           </widget>
                                         </child>
                                       </widget>
@@ -517,7 +522,7 @@
                                     <property name="left_attach">4</property>
                                     <property name="right_attach">5</property>
                                     <property name="x_options">GTK_FILL</property>
-                                    <property name="y_options"></property>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                               </widget>
@@ -574,10 +579,10 @@
                                   <widget class="GtkTable" id="table_options11">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="n_rows">4</property>
+                                    <property name="n_rows">3</property>
                                     <property name="n_columns">4</property>
                                     <property name="column_spacing">5</property>
-                                    <property name="row_spacing">5</property>
+                                    <property name="row_spacing">34</property>
                                     <child>
                                       <widget class="GtkLabel" id="move_completed_label">
                                         <property name="visible">True</property>
@@ -586,10 +591,9 @@
                                         <property name="label" translatable="yes">Move completed</property>
                                       </widget>
                                       <packing>
-                                        <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
                                         <property name="x_padding">8</property>
                                       </packing>
                                     </child>
@@ -603,9 +607,8 @@
                                       <packing>
                                         <property name="left_attach">1</property>
                                         <property name="right_attach">4</property>
-                                        <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
-                                        <property name="y_options"></property>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
@@ -615,10 +618,10 @@
                                         <property name="label" translatable="yes">Download location</property>
                                       </widget>
                                       <packing>
-                                        <property name="top_attach">2</property>
+                                        <property name="top_attach">1</property>
                                         <property name="bottom_attach">3</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
@@ -631,9 +634,9 @@
                                       <packing>
                                         <property name="left_attach">1</property>
                                         <property name="right_attach">4</property>
-                                        <property name="top_attach">2</property>
+                                        <property name="top_attach">1</property>
                                         <property name="bottom_attach">3</property>
-                                        <property name="y_options"></property>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
@@ -643,17 +646,16 @@
                                         <property name="label" translatable="yes">Last Matched</property>
                                       </widget>
                                       <packing>
-                                        <property name="top_attach">3</property>
+                                        <property name="top_attach">2</property>
                                         <property name="bottom_attach">4</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
                                       <widget class="GtkEntry" id="txt_last_matched">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="editable">False</property>
                                         <property name="invisible_char">•</property>
                                         <property name="primary_icon_activatable">False</property>
                                         <property name="secondary_icon_activatable">False</property>
@@ -663,9 +665,9 @@
                                       <packing>
                                         <property name="left_attach">1</property>
                                         <property name="right_attach">2</property>
-                                        <property name="top_attach">3</property>
+                                        <property name="top_attach">2</property>
                                         <property name="bottom_attach">4</property>
-                                        <property name="y_options"></property>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
@@ -674,15 +676,15 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <signal name="clicked" handler="on_button_last_matched_reset_clicked" swapped="no"/>
+                                        <signal name="clicked" handler="on_button_last_matched_reset_clicked"/>
                                       </widget>
                                       <packing>
                                         <property name="left_attach">2</property>
                                         <property name="right_attach">3</property>
-                                        <property name="top_attach">3</property>
+                                        <property name="top_attach">2</property>
                                         <property name="bottom_attach">4</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
                                       </packing>
                                     </child>
                                     <child>
@@ -691,28 +693,16 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <signal name="clicked" handler="on_button_last_matched_now_clicked" swapped="no"/>
+                                        <signal name="clicked" handler="on_button_last_matched_now_clicked"/>
                                       </widget>
                                       <packing>
                                         <property name="left_attach">3</property>
                                         <property name="right_attach">4</property>
-                                        <property name="top_attach">3</property>
+                                        <property name="top_attach">2</property>
                                         <property name="bottom_attach">4</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                   </widget>
                                   <packing>
@@ -723,6 +713,7 @@
                                 </child>
                                 <child>
                                   <widget class="GtkHBox" id="hbox3">
+                                    <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <child>
                                       <widget class="GtkFrame" id="frame4">
@@ -782,15 +773,16 @@
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <widget class="GtkSpinButton" id="spinbutton1">
+                                                  <widget class="GtkSpinButton" id="spinbutton_max_download_speed">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
+                                                    <property name="tooltip" translatable="yes">Use -2 to use the default value set in Deluge config.</property>
                                                     <property name="invisible_char">•</property>
                                                     <property name="primary_icon_activatable">False</property>
                                                     <property name="secondary_icon_activatable">False</property>
                                                     <property name="primary_icon_sensitive">True</property>
                                                     <property name="secondary_icon_sensitive">True</property>
-                                                    <property name="adjustment">0 -1 9999 1 10 0</property>
+                                                    <property name="adjustment">0 -2 9999 1 10 0</property>
                                                   </widget>
                                                   <packing>
                                                     <property name="left_attach">1</property>
@@ -798,15 +790,16 @@
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <widget class="GtkSpinButton" id="spinbutton2">
+                                                  <widget class="GtkSpinButton" id="spinbutton_max_upload_speed">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
+                                                    <property name="tooltip" translatable="yes">Use -2 to use the default value set in Deluge config.</property>
                                                     <property name="invisible_char">•</property>
                                                     <property name="primary_icon_activatable">False</property>
                                                     <property name="secondary_icon_activatable">False</property>
                                                     <property name="primary_icon_sensitive">True</property>
                                                     <property name="secondary_icon_sensitive">True</property>
-                                                    <property name="adjustment">0 -1 9999 1 10 0</property>
+                                                    <property name="adjustment">0 -2 9999 1 10 0</property>
                                                   </widget>
                                                   <packing>
                                                     <property name="left_attach">1</property>
@@ -816,15 +809,16 @@
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <widget class="GtkSpinButton" id="spinbutton3">
+                                                  <widget class="GtkSpinButton" id="spinbutton_max_connections">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
+                                                    <property name="tooltip" translatable="yes">Use -2 to use the default value set in Deluge config.</property>
                                                     <property name="invisible_char">•</property>
                                                     <property name="primary_icon_activatable">False</property>
                                                     <property name="secondary_icon_activatable">False</property>
                                                     <property name="primary_icon_sensitive">True</property>
                                                     <property name="secondary_icon_sensitive">True</property>
-                                                    <property name="adjustment">0 -1 9999 1 10 0</property>
+                                                    <property name="adjustment">0 -2 9999 1 10 0</property>
                                                   </widget>
                                                   <packing>
                                                     <property name="left_attach">1</property>
@@ -834,15 +828,16 @@
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <widget class="GtkSpinButton" id="spinbutton4">
+                                                  <widget class="GtkSpinButton" id="spinbutton_max_upload_slots">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
+                                                    <property name="tooltip" translatable="yes">Use -2 to use the default value set in Deluge config.</property>
                                                     <property name="invisible_char">•</property>
                                                     <property name="primary_icon_activatable">False</property>
                                                     <property name="secondary_icon_activatable">False</property>
                                                     <property name="primary_icon_sensitive">True</property>
                                                     <property name="secondary_icon_sensitive">True</property>
-                                                    <property name="adjustment">0 -1 100 1 10 0</property>
+                                                    <property name="adjustment">0 -2 100 1 10 0</property>
                                                   </widget>
                                                   <packing>
                                                     <property name="left_attach">1</property>
@@ -885,39 +880,147 @@
                                             <property name="can_focus">False</property>
                                             <property name="left_padding">12</property>
                                             <child>
-                                              <widget class="GtkVBox" id="vbox2">
+                                              <widget class="GtkHBox" id="hbox4">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <child>
-                                                  <placeholder/>
+                                                  <widget class="GtkVBox" id="vbox2">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbox_add_torrents_in_paused_state">
+                                                        <property name="label" translatable="yes">Add torrents in paused state</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="draw_indicator">True</property>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_auto_managed">
+                                                        <property name="label" translatable="yes">Auto managed</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw_indicator">True</property>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_sequential_download">
+                                                        <property name="label" translatable="yes">Sequential Download</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="draw_indicator">True</property>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_prioritize_first_last">
+                                                        <property name="label" translatable="yes">Prioritize First/Last Pieces</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="draw_indicator">True</property>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">3</property>
+                                                      </packing>
+                                                    </child>
+                                                  </widget>
+                                                  <packing>
+                                                    <property name="expand">True</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
+                                                  </packing>
                                                 </child>
                                                 <child>
-                                                  <widget class="GtkCheckButton" id="checkbutton1">
-                                                    <property name="label" translatable="yes">Auto managed</property>
+                                                  <widget class="GtkTable" id="table2">
                                                     <property name="visible">True</property>
-                                                    <property name="can_focus">True</property>
-                                                    <property name="receives_default">False</property>
-                                                    <property name="active">True</property>
-                                                    <property name="draw_indicator">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="n_rows">4</property>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbox_add_torrents_in_paused_state_default">
+                                                        <property name="label" translatable="yes">Default</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw_indicator">True</property>
+                                                        <signal name="toggled" handler="on_general_checkBox_toggled"/>
+                                                      </widget>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_auto_managed_default">
+                                                        <property name="label" translatable="yes">Default</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw_indicator">True</property>
+                                                        <signal name="toggled" handler="on_general_checkBox_toggled"/>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="top_attach">1</property>
+                                                        <property name="bottom_attach">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_sequential_download_default">
+                                                        <property name="label" translatable="yes">Default</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw_indicator">True</property>
+                                                        <signal name="toggled" handler="on_general_checkBox_toggled"/>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="top_attach">2</property>
+                                                        <property name="bottom_attach">3</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <widget class="GtkCheckButton" id="checkbutton_prioritize_first_last_default">
+                                                        <property name="label" translatable="yes">Default</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can_focus">True</property>
+                                                        <property name="receives_default">False</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw_indicator">True</property>
+                                                        <signal name="toggled" handler="on_general_checkBox_toggled"/>
+                                                      </widget>
+                                                      <packing>
+                                                        <property name="top_attach">3</property>
+                                                        <property name="bottom_attach">4</property>
+                                                      </packing>
+                                                    </child>
                                                   </widget>
                                                   <packing>
                                                     <property name="expand">True</property>
                                                     <property name="fill">True</property>
                                                     <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <widget class="GtkCheckButton" id="checkbox_add_torrents_in_paused_state">
-                                                    <property name="label" translatable="yes">Add torrents in paused state</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">True</property>
-                                                    <property name="receives_default">False</property>
-                                                    <property name="draw_indicator">True</property>
-                                                  </widget>
-                                                  <packing>
-                                                    <property name="expand">True</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">2</property>
                                                   </packing>
                                                 </child>
                                               </widget>
@@ -944,8 +1047,8 @@
                                     </child>
                                   </widget>
                                   <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
@@ -1050,7 +1153,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">5</property>
-                        <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
+                        <signal name="clicked" handler="on_button_cancel_clicked"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -1066,7 +1169,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">4</property>
-                        <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
+                        <signal name="clicked" handler="on_button_save_clicked"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>

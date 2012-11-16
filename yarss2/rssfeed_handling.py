@@ -41,7 +41,7 @@ from twisted.python.failure import Failure
 
 import deluge.component as component
 
-from lib import feedparser
+from yarss2.lib.feedparser import feedparser
 import common
 from yarss2.yarss_config import YARSSConfigChangedEvent
 from yarss2 import http
@@ -54,43 +54,91 @@ class RSSFeedHandler(object):
         self.log = log
         self.agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
 
-    def get_rssfeed_parsed(self, rssfeed_data, cookies=None, cookie_header={}):
+    def get_link(self, item):
+        link = item['link']
+        if len(item.enclosures) > 0 and item.enclosures[0].has_key("href"):
+            link = item.enclosures[0]["href"]
+        return link
+
+    def _parse_size(self, string):
+        size_bytes = 0
+        size_str = None
+        exp = re.compile("Size:\s*(?P<size>\d+(\.\d+)?)\s?(?P<unit>GB|MB)")
+        match = exp.search(string)
+        if match:
+            groupdict = match.groupdict()
+            size = groupdict["size"]
+            unit = groupdict["unit"]
+            #print "group0:", match.group(0)
+            #print "group1:", match.group(1)
+            #print "group2:", match.group(2)
+            #print "group3:", match.group(3)
+            #print "size:", size
+            #print "unit:", unit
+            size_str = "%s %s" % (size, unit)
+
+            if unit == "GB":
+                size_bytes = float(size) * 1024 * 1024 * 1024
+            elif unit == "MB":
+                size_bytes = float(size) * 1024 * 1024
+
+        return size_bytes, size_str
+
+    def get_size(self, item):
+        size = []
+        if len(item.enclosures) > 0 and item.enclosures[0].has_key("length"):
+            s = item.enclosures[0]["length"]
+            size.append(int(s))
+
+        if item.has_key("contentlength"):
+            size_bytes = int(item["contentlength"])
+            size.append(int(size_bytes))
+
+        if item.has_key("summary_detail"):
+            val = item["summary_detail"]["value"]
+            size_bytes, size_str = self._parse_size(val)
+            if size_str and size_bytes:
+                size.append((size_bytes, size_str))
+
+        return size
+
+    def get_rssfeed_parsed(self, rssfeed_data, site_cookies_dict=None):
         """
         rssfeed_data: A dictionary containing rss feed data as stored in the YaRSS2 config.
-        cookies: A dictionary of cookie values as stored in the YaRSS2 config. cookie_header paramamer will not be used
-        cookie_header: A dictionary of cookie values as returned by yarss2.http.get_cookie_header.
+        site_cookies_dict: A dictionary of cookie values to be used for this rssfeed.
         """
         return_dict = {}
         rssfeeds_dict = {}
+        cookie_header = {}
 
-        if cookies:
-            cookie_header = http.get_cookie_header(cookies, rssfeed_data["site"])
+        if site_cookies_dict:
+            cookie_header = http.get_cookie_header(site_cookies_dict)
+            return_dict["cookie_header"] = cookie_header
 
         self.log.info("Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_data["name"], cookie_header))
 
         # Will abort after 10 seconds if server doesn't answer
         try:
-            parsed_feeds = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, agent=self.agent, timeout=10)
+            parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, agent=self.agent, timeout=10)
         except Exception, e:
             self.log.warn("Exception occured in feedparser:" + str(e))
             self.log.warn("Feedparser was called with url: '%s' and header: '%s'" % (rssfeed_data["url"], cookie_header))
             self.log.warn("Stacktrace:" + common.get_exception_string())
             return None
-
-        return_dict["raw_result"] = parsed_feeds
+        return_dict["raw_result"] = parsed_feed
 
         # Error parsing
-        if parsed_feeds["bozo"] == 1:
+        if parsed_feed["bozo"] == 1:
             self.log.warn("Exception occured when fetching feed: %s" %
-                     (str(parsed_feeds["bozo_exception"])))
-            return_dict["bozo_exception"] = parsed_feeds["bozo_exception"]
+                     (str(parsed_feed["bozo_exception"])))
+            return_dict["bozo_exception"] = parsed_feed["bozo_exception"]
 
         # Store ttl value if present
-        if parsed_feeds["feed"].has_key("ttl"):
-            return_dict["ttl"] = parsed_feeds["feed"]["ttl"]
+        if parsed_feed["feed"].has_key("ttl"):
+            return_dict["ttl"] = parsed_feed["feed"]["ttl"]
         key = 0
         no_publish_time = False
-        for item in parsed_feeds['items']:
+        for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
             dt = None
             if item.has_key('published_parsed'):
@@ -99,14 +147,16 @@ class RSSFeedHandler(object):
             else:
                 no_publish_time = True
                 return_dict["warning"] = "Published time not available!"
-            rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=item['link'], published_datetime=dt)
+
+            # Find the link
+            link = self.get_link(item)
+            rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link, published_datetime=dt)
             key += 1
         if no_publish_time:
             self.log.warn("Published time is not available!")
         if key > 0:
             return_dict["items"] = rssfeeds_dict
         return return_dict
-
 
     def _new_rssfeeds_dict_item(self, title, link=None, published_datetime=None, key=None):
         d = {}
@@ -200,8 +250,8 @@ class RSSFeedHandler(object):
         return matching_items, message
 
 
-    def fetch_subscription_torrents(self, config, rssfeed_key, subscription_key=None):
-        """Called to fetch subscriptions
+    def fetch_feed_torrents(self, config, rssfeed_key, subscription_key=None):
+        """Called to fetch torrents for a feed
         If rssfeed_key is not None, all subscriptions linked to that RSS Feed
         will be run.
         If rssfeed_key is None, only the subscription with key == subscription_key
@@ -209,9 +259,7 @@ class RSSFeedHandler(object):
         """
         fetch_data = {}
         fetch_data["matching_torrents"] = []
-        fetch_data["cookie_header"] = None
         fetch_data["rssfeed_items"] = None
-        fetch_data["cookies_dict"] = config["cookies"]
 
         if rssfeed_key is None:
             if subscription_key is None:
@@ -224,6 +272,7 @@ class RSSFeedHandler(object):
                 return fetch_data
 
         rssfeed_data = config["rssfeeds"][rssfeed_key]
+        fetch_data["site_cookies_dict"] = http.get_matching_cookies_dict(config["cookies"], rssfeed_data["site"])
         self.log.info("Update handler executed on RSS Feed '%s (%s)' (Update interval %d min)" %
                       (rssfeed_data["name"], rssfeed_data["site"], rssfeed_data["update_interval"]))
 
@@ -232,13 +281,12 @@ class RSSFeedHandler(object):
             if subscription_key is not None and subscription_key != key:
                 continue
             subscription_data = config["subscriptions"][key]
-
             if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] == True:
-                self.fetch_subscription(subscription_data, rssfeed_data, fetch_data)
+                self.fetch_feed(subscription_data, rssfeed_data, fetch_data)
 
         if subscription_key is None:
             # Update last_update value of the rssfeed only when rssfeed is run by the timer,
-            # not when a subscription is run manually by the user
+            # not when a subscription is run manually by the user.
             # Don't need microseconds. Remove because it requires changes to the GUI to not display them
             dt = common.get_current_date().replace(microsecond=0)
             rssfeed_data["last_update"] = dt.isoformat()
@@ -268,14 +316,13 @@ class RSSFeedHandler(object):
             self.log.info("Obey TTL option set to False")
             rssfeed_data["obey_ttl"] = False
 
-    def fetch_subscription(self, subscription_data, rssfeed_data, fetch_data):
+    def fetch_feed(self, subscription_data, rssfeed_data, fetch_data):
         """Search a feed with config 'subscription_data'"""
         self.log.info("Fetching subscription '%s'." % subscription_data["name"])
-        cookie_header = None
 
+        # Feed has not yet been fetched.
         if fetch_data["rssfeed_items"] is None:
-            fetch_data["cookie_header"] = http.get_cookie_header(fetch_data["cookies_dict"], rssfeed_data["site"])
-            rssfeed_parsed = self.get_rssfeed_parsed(rssfeed_data, cookie_header=fetch_data["cookie_header"])
+            rssfeed_parsed = self.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=fetch_data["site_cookies_dict"])
             if rssfeed_parsed is None:
                 return
             if rssfeed_parsed.has_key("bozo_exception"):
@@ -291,7 +338,7 @@ class RSSFeedHandler(object):
         options = subscription_data.copy()
         del options["custom_text_lines"]
         matches, message = self.update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=options)
-        self.log.info("Retrived %d items. %d matches the filter." % (len(fetch_data["rssfeed_items"]), len(matches.keys())))
+        self.log.info("%d items in feed, %d matches the filter." % (len(fetch_data["rssfeed_items"]), len(matches.keys())))
 
         last_match_dt = common.isodate_to_datetime(subscription_data["last_match"])
 
@@ -305,7 +352,7 @@ class RSSFeedHandler(object):
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],
-                                                    "cookie_header": fetch_data["cookie_header"],
+                                                    "site_cookies_dict": fetch_data["site_cookies_dict"],
                                                     "subscription_data": subscription_data})
 
 class RSSFeedTimer(object):
@@ -374,8 +421,8 @@ class RSSFeedTimer(object):
         elif rssfeed_key:
             if self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["active"] is False:
                 return
-            self.log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
-        fetch_result = self.rssfeedhandler.fetch_subscription_torrents(self.yarss_config.get_config(), rssfeed_key,
+            #self.log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
+        fetch_result = self.rssfeedhandler.fetch_feed_torrents(self.yarss_config.get_config(), rssfeed_key,
                                                                        subscription_key=subscription_key)
         def save_subscription_func(subscription_data):
             self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)

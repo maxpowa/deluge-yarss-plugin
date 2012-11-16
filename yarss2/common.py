@@ -116,6 +116,13 @@ def write_to_file(filepath, content):
     local_file.write(content)
     local_file.close()
 
+def read_file(filepath):
+    if not os.path.isfile(filepath):
+        return None
+    f = open(filepath, "r")
+    content = f.read()
+    return content
+
 def method_name():
     return sys._getframe(3).f_code.co_name
 
@@ -134,20 +141,49 @@ def get_exception_string():
     return ''.join('!! ' + line for line in lines)
 
 
-def dicts_equals(dict1, dict2):
+def dicts_equals(dict1, dict2, debug=False):
     """Compares two dictionaries, checking that they have the same key/values"""
     if not (type(dict1) is dict and type(dict2) is dict):
         print "dicts_equals: Both arguments are not dictionaries!"
         return False
+    if debug:
+        print "dict_equals"
+
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
+        if debug:
+            print "dicts_equals: Keys differ:", key_diff
         return False
     for key in dict1.keys():
         if type(dict1[key]) is dict:
-            if not dicts_equals(dict1[key], dict2[key]):
+            if not dicts_equals(dict1[key], dict2[key], debug=debug):
                 return False
         else:
             # Compare values
             if dict1[key] != dict2[key]:
+                if debug:
+                    print "Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key])
                 return False
     return True
+
+
+class GeneralSubsConf:
+    """General subscription config"""
+    DISABLED = u"False"
+    ENABLED = u"True"
+    DEFAULT = u"Default"
+
+    def __init__(self):
+        pass
+
+    def get_boolean(self, value):
+        """input value should not be GeneralSubsConf.DEFAULT"""
+        return False if value == GeneralSubsConf.DISABLED else True
+
+    def bool_to_value(self, enabled, default):
+        if default:
+            return GeneralSubsConf.DEFAULT
+        elif enabled:
+            return GeneralSubsConf.ENABLED
+        else:
+            return GeneralSubsConf.DISABLED

@@ -51,8 +51,6 @@ class DialogCookie():
     def __init__(self, gtkUI, cookie_data):
         self.gtkUI = gtkUI
         self.cookie_data = cookie_data
-
-    def show(self):
         self.glade = gtk.glade.XML(get_resource("dialog_cookie.glade"))
         self.glade.signal_autoconnect({
                 "on_button_add_cookie_data_clicked": self.on_button_add_cookie_data_clicked,
@@ -62,16 +60,13 @@ class DialogCookie():
         })
         self.treeview = self.setup_cookie_list()
 
-        self.values = []
-        # Add data
         if self.cookie_data:
-            for v in self.cookie_data["value"]:
-                self.values.append(v)
             self.glade.get_widget("text_site").set_text(self.cookie_data["site"])
 
         # Update cookie data list
         self.update_cookie_values_list()
 
+    def show(self):
         cookie_list = self.glade.get_widget("viewport_list_cookie_values")
         cookie_list.add(self.treeview)
         cookie_list.show_all()
@@ -82,15 +77,15 @@ class DialogCookie():
     def update_cookie_values_list(self):
         """Update list from values"""
         self.list_store.clear()
-        for v in self.values:
-            self.list_store.append([v[0], v[1]])
+        for key in self.cookie_data["value"]:
+            self.list_store.append((key, self.cookie_data["value"][key]))
 
     def on_button_save_clicked(self, button):
         """Saves cookie to config"""
         site = self.glade.get_widget("text_site").get_text().strip()
-        if site != "" and len(self.values) > 0:
+        if site != "":
             self.cookie_data["site"] = site
-            self.cookie_data["value"] = self.values
+            #self.cookie_data["value"] = self.values
             self.gtkUI.save_cookie(self.cookie_data)
             self.dialog.destroy()
 
@@ -100,31 +95,21 @@ class DialogCookie():
         if not ti:
             return
         v0 = tm.get_value(ti, 0)
-        v1 = tm.get_value(ti, 1)
-        tmp = self.values[:]
-        for i in range(len(tmp)):
-            if tmp[i][0] == v0 and tmp[i][1] == v1:
-                del self.values[i]
-                self.update_cookie_values_list()
-                return
+        #v1 = tm.get_value(ti, 1)
+        del self.cookie_data["value"][v0]
+        self.update_cookie_values_list()
 
     def on_button_add_cookie_data_clicked(self, button):
         key = self.glade.get_widget("text_key").get_text().strip()
         value = self.glade.get_widget("text_value").get_text().strip()
 
         if len(key) > 0 and len(value):
-            if self.add_cookie_data(key, value):
-                self.update_cookie_values_list()
-                self.glade.get_widget("text_key").set_text("")
-                self.glade.get_widget("text_value").set_text("")
-
-    def add_cookie_data(self, key, value):
-        """Add new cookie data to values list"""
-        for v in self.values:
-            if v[0] == key and v[1] == value:
-                return False
-        self.values.append((key, value))
-        return True
+            if self.cookie_data["value"].has_key(key):
+                return
+            self.cookie_data["value"][key] = value
+            self.update_cookie_values_list()
+            self.glade.get_widget("text_key").set_text("")
+            self.glade.get_widget("text_value").set_text("")
 
     def setup_cookie_list(self):
         # name and key

@@ -103,6 +103,14 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         def pass_func(*arg):
             pass
 
+        class DialogWrapper(object):
+            def __init__(self, dialog):
+                self.dialog = dialog
+            def get_visible(self):
+                return True
+
+        subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
+
         # Override the default selection callback
         subscription_dialog.method_perform_rssfeed_selection = pass_func
 
@@ -201,3 +209,43 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         config["rssfeeds"] = rssfeeds
         config["subscriptions"] = subscriptions
         return config
+
+    def test_save_subscription(self):
+        subscription_title = "Test subscription"
+        regex_include = "Regex"
+        config = self.get_test_config()
+
+        class TestGTKUI(unittest.TestCase):
+            def save_subscription(self, subscription_data):
+                self.assertEquals(subscription_data["name"], subscription_title)
+                self.assertEquals(subscription_data["regex_include"], regex_include)
+                self.assertEquals(subscription_data["add_torrents_in_paused_state"], "True")
+                self.assertEquals(subscription_data["auto_managed"], "False")
+                self.assertEquals(subscription_data["sequential_download"], "Default")
+                self.assertEquals(subscription_data["prioritize_first_last_pieces"], "Default")
+
+        subscription_config = yarss_config.get_fresh_subscription_config()
+        subscription_dialog = DialogSubscription(TestGTKUI(), # GTKUI
+                                                 self.log, # logger
+                                                 subscription_config,
+                                                 config["rssfeeds"],
+                                                 [], #self.get_move_completed_list(),
+                                                 [], #self.get_download_location_list(),
+                                                 {}, #self.email_messages,
+                                                 {}) #self.cookies)
+        subscription_dialog.setup()
+        subscription_dialog.glade.get_widget("txt_name").set_text(subscription_title)
+        subscription_dialog.glade.get_widget("txt_regex_include").set_text(regex_include)
+        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state_default").set_active(False)
+        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_auto_managed_default").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_auto_managed").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_sequential_download_default").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_sequential_download").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last_default").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last").set_active(True)
+
+        # Sets the index 0 of rssfeed combox activated.
+        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox.set_active(1)
+        subscription_dialog.save_subscription_data()

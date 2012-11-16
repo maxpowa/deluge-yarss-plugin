@@ -81,15 +81,15 @@
               <packing>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
+                <property name="x_options"/>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
               <widget class="GtkScrolledWindow" id="subscriptions_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hadjustment">0 0 553 55.300000000000004 497.69999999999999 553</property>
+                <property name="hadjustment">0 0 561 56.100000000000001 504.90000000000003 561</property>
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
@@ -193,8 +193,8 @@
               <packing>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
+                <property name="x_options"/>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -302,8 +302,8 @@
                                     <signal name="toggled" handler="on_checkbutton_send_email_on_torrent_events_toggled"/>
                                   </widget>
                                   <packing>
-                                    <property name="x_options"></property>
-                                    <property name="y_options"></property>
+                                    <property name="x_options"/>
+                                    <property name="y_options"/>
                                   </packing>
                                 </child>
                                 <child>
@@ -521,8 +521,8 @@
                                             <property name="label" translatable="yes">SMTP Server</property>
                                           </widget>
                                           <packing>
-                                            <property name="x_options"></property>
-                                            <property name="y_options"></property>
+                                            <property name="x_options"/>
+                                            <property name="y_options"/>
                                             <property name="x_padding">7</property>
                                           </packing>
                                         </child>
@@ -540,7 +540,7 @@
                                           <packing>
                                             <property name="left_attach">1</property>
                                             <property name="right_attach">2</property>
-                                            <property name="y_options"></property>
+                                            <property name="y_options"/>
                                             <property name="x_padding">3</property>
                                           </packing>
                                         </child>
@@ -553,8 +553,8 @@
                                           <packing>
                                             <property name="top_attach">1</property>
                                             <property name="bottom_attach">2</property>
-                                            <property name="x_options"></property>
-                                            <property name="y_options"></property>
+                                            <property name="x_options"/>
+                                            <property name="y_options"/>
                                           </packing>
                                         </child>
                                         <child>
@@ -574,7 +574,7 @@
                                             <property name="right_attach">2</property>
                                             <property name="top_attach">1</property>
                                             <property name="bottom_attach">2</property>
-                                            <property name="y_options"></property>
+                                            <property name="y_options"/>
                                           </packing>
                                         </child>
                                         <child>
@@ -729,7 +729,7 @@
                                 <property name="label" translatable="yes">From email address</property>
                               </widget>
                               <packing>
-                                <property name="x_options"></property>
+                                <property name="x_options"/>
                               </packing>
                             </child>
                             <child>
@@ -814,7 +814,7 @@
                                 <property name="top_attach">1</property>
                                 <property name="bottom_attach">2</property>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -844,7 +844,7 @@
                                 <property name="right_attach">2</property>
                                 <property name="top_attach">1</property>
                                 <property name="bottom_attach">2</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -868,7 +868,7 @@
                               </widget>
                               <packing>
                                 <property name="x_options">GTK_FILL</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                             <child>
@@ -884,7 +884,7 @@
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">2</property>
-                                <property name="y_options"></property>
+                                <property name="y_options"/>
                               </packing>
                             </child>
                           </widget>

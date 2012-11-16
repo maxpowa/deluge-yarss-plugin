@@ -1,12 +1,8 @@
+# -*- coding: utf-8 -*-
 #
-# webui.py
+# test_gtkui.py
 #
-# Copyright (C) 2009 Camillo Dell'mour <cdellmour@gmail.com>
-#
-# Basic plugin template created by:
-# Copyright (C) 2008 Martijn Voncken <mvoncken@gmail.com>
-# Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
-# Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
+# Copyright (C) 2012 Bro
 #
 # Deluge is free software.
 #
@@ -37,19 +33,44 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-from deluge.log import LOG as log
-from deluge.ui.client import client
-from deluge import component
-from deluge.plugins.pluginbase import WebPluginBase
+import re
 
-from common import get_resource
+from twisted.trial import unittest
 
-class WebUI(WebPluginBase):
+from yarss2 import yarss_config
+from yarss2.logger import Logger
+from yarss2.gtkui.gtkui import GtkUI
+import yarss2.gtkui.gtkui
+import test_gtkui
 
-    scripts = [get_resource("yarss.js")]
+yarss2.gtkui.gtkui.component = test_gtkui
 
-    def enable(self):
+class DummyComponent(object):
+    def add_page(self, name, widget):
         pass
 
-    def disable(self):
+    def register_hook(self, name, func):
         pass
+
+def get(string):
+    return DummyComponent()
+
+class GtkUITestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.log = Logger()
+        self.gtkui = GtkUI("YaRSS2")
+        self.gtkui.createUI()
+
+    def test_on_button_send_email_clicked(self):
+        email_messages = {}
+        email_messages["0"] = yarss_config.get_fresh_message_config()
+        email_messages["0"]["name"] = "Name"
+        email_messages["0"]["subject"] = "Subject"
+        self.gtkui.email_messages = email_messages
+        self.gtkui.email_config = yarss_config.get_fresh_email_config()
+        #self.email_messages_treeview
+        self.gtkui.update_email_messages_list(self.gtkui.email_messages_store)
+        # Set selected
+        self.gtkui.email_messages_treeview.set_cursor(0)
+        self.gtkui.on_button_send_email_clicked(None)

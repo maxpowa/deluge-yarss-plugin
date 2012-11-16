@@ -53,19 +53,62 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.rssfeedhandler = RSSFeedHandler(self.log)
 
     def test_get_rssfeed_parsed(self):
-        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
-
+        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
         rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
-        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+        site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
 
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies)
+
+        # When needing to dump the result in json format
         #common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
 
         self.assertTrue(parsed_feed.has_key("items"))
-
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
+        self.assertTrue(yarss2.common.dicts_equals(items, stored_items, debug=False))
+        self.assertEquals(parsed_feed["cookie_header"], {'Cookie': 'uid=18463; passkey=b830f87d023037f9393749s932'})
 
-        self.assertTrue(yarss2.common.dicts_equals(items, stored_items))
+    def test_get_link(self):
+        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
+        from yarss2.lib.feedparser import feedparser
+        parsed_feed = feedparser.parse(file_url)
+        item = None
+        for e in parsed_feed["items"]:
+            item = e
+            break
+        # Item has enclosure, so it should use that link
+        self.assertEquals(self.rssfeedhandler.get_link(item), item.enclosures[0]["href"])
+        del item["links"][:]
+        # Item no longer has enclosures, so it should return the regular link
+        self.assertEquals(self.rssfeedhandler.get_link(item), item["link"])
+
+    def test_get_size(self):
+        file_url = yarss2.common.get_resource("t1.rss", path="tests/data/feeds/")
+        from yarss2.lib.feedparser import feedparser
+        parsed_feed = feedparser.parse(file_url)
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][0])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (4541927915.52, u'4.23 GB'))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][1])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (402349096.96, u'383.71 MB'))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][2])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (857007476))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][3])
+        self.assertEquals(len(size), 2)
+        self.assertEquals(size[0], (14353107637))
+        self.assertEquals(size[1], (13529146982.4, u'12.6 GB'))
+
+
+#    def test_get_size(self, filelist, ):
+#        
+#        
+#
 
     def get_default_rssfeeds_dict(self):
         match_option_dict = {}
@@ -134,9 +177,9 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 self.assertEquals(rssfeed_parsed[key]["regex_exclude_match"], (5, 24))
                 break
 
-    def test_fetch_subscription_torrents(self):
-        config = get_test_config()
-        matche_result = self.rssfeedhandler.fetch_subscription_torrents(config, "0")
+    def test_fetch_feed_torrents(self):
+        config = get_test_config_dict()                                # 0 is the rssfeed key
+        matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
@@ -167,7 +210,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 ## Helper methods for test data
 ####################################
 
-def get_test_config():
+def get_test_config_dict():
     config =  yarss2.yarss_config.default_prefs()
     file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
     rssfeeds = common.get_default_rssfeeds(3)
@@ -241,7 +284,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         self.rssfeeds["3"]["update_interval"] = 30
         self.rssfeeds["4"]["update_interval"] = 120
 
-        self.config = common.get_empty_test_config()
+        self.config = common.get_test_config()
         self.config.set_config({"rssfeeds": self.rssfeeds, "email_configurations": {"send_email_on_torrent_events": False} })
 
     def test_enable_timers(self):
@@ -353,12 +396,12 @@ class RSSFeedTimerTestCase(unittest.TestCase):
 
 
     def test_ttl_value_updated(self):
-        config = get_test_config()
+        config = get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
         config["rssfeeds"]["0"]["url"] = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
 
-        yarss_config = common.get_empty_test_config()
+        yarss_config = common.get_test_config()
         yarss_config.set_config(config)
 
         timer = RSSFeedTimer(yarss_config, log)
@@ -384,7 +427,7 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         with print statements"""
         from yarss2.rssfeed_handling import RSSFeedRunQueue
 
-        self.config.set_config(get_test_config())
+        self.config.set_config(get_test_config_dict())
         timer = RSSFeedTimer(self.config, log)
         def add_torrents_pass(*arg):
             pass
