@@ -44,13 +44,12 @@ from deluge.log import LOG as log
 import deluge.common
 json = deluge.common.json
 
-from yarss2.gtkui.dialog_subscription import DialogSubscription
-import yarss2.common
+import yarss2.util.common
 from yarss2 import yarss_config
-from yarss2.logger import Logger
+from yarss2.gtkui.dialog_subscription import DialogSubscription
+from yarss2.util.logger import Logger
 
 import common
-import yarss2.common
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
@@ -160,7 +159,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         for k1 in dict1.keys():
             found = False
             for k2 in dict2.keys():
-                if yarss2.common.dicts_equals(dict1[k1], dict2[k2]):
+                if yarss2.util.common.dicts_equals(dict1[k1], dict2[k2]):
                     break
             else:
                 return False
@@ -177,7 +176,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             item["matches"] = store.get_value(it, 0)
             item["title"] = store.get_value(it, 1)
             item["updated"] = store.get_value(it, 2)
-            item["updated_datetime"] = yarss2.common.isodate_to_datetime(store.get_value(it, 2))
+            item["updated_datetime"] = yarss2.util.common.isodate_to_datetime(store.get_value(it, 2))
             item["link"] = store.get_value(it, 3)
             result[str(counter)] = item
             counter += 1
@@ -186,7 +185,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
     def get_test_config(self):
         config =  yarss2.yarss_config.default_prefs()
-        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
         rssfeeds = common.get_default_rssfeeds(2)
         subscriptions = common.get_default_subscriptions(5)
 

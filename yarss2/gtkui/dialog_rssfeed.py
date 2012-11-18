@@ -11,7 +11,7 @@
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 # Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
 #
-# Deluge is free software.
+# YaRSS2 is free software.
 #
 # You may redistribute it and/or modify it under the terms of the
 # GNU General Public License, as published by the Free Software
@@ -46,8 +46,8 @@ from urlparse import urlparse
 from deluge.log import LOG as log
 import deluge.component as component
 
-from yarss2.common import get_resource
-import yarss2
+from yarss2.util.common import get_resource
+import yarss2.yarss_config
 
 class DialogRSSFeed():
 
@@ -60,11 +60,11 @@ class DialogRSSFeed():
                 "on_button_cancel_clicked":self.on_button_cancel_clicked,
                 "on_button_save_clicked": self.on_button_save_clicked
         })
-
         self.populate_data_fields()
 
     def show(self):
         self.dialog = self.glade.get_widget("dialog_rssfeed")
+        self.dialog.set_title("Edit Feed" if "key" in self.rssfeed else "Add Feed")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         #self.glade.get_widget("spinbutton_updatetime").set_range(1, 30)
         self.dialog.run()

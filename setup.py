@@ -45,20 +45,19 @@ from setuptools import setup, find_packages
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.development@gmail.com"
-__version__ = "1.2.0 Beta"
+__version__ = "1.2.0"
 __url__ = "http://dev.deluge-torrent.org/wiki/Plugins/YaRSS2"
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
 __long_description__ = """
 Yet another RSS 2, a simple RSS plugin for Deluge, based on
 YaRSS written by Camillo Dell'mour <cdellmour@gmail.com>.
-Last updated on 2012-11-16, tested with Deluge 1.3.5.
+Last updated on 2012-12-10, tested with Deluge 1.3.5.
 Requires PyGTK 2.24
 """
-#__pkg_data__ = {__plugin_name__.lower(): ["gtkui/*", "data/*", "lib/feedparser/*.py", "lib/mime/*", "lib/requests/*py"]}
-__pkg_data__ = {__plugin_name__.lower(): ["data/*"]}
 
-packages = find_packages(exclude=["*flexget*", "yarss2.tests", "start_flexget.py"])
+__pkg_data__ = {__plugin_name__.lower(): ["data/*"]}
+packages = find_packages(exclude=["yarss2.tests"])
 
 setup(
     name=__plugin_name__,

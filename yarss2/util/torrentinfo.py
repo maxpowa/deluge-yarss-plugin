@@ -52,9 +52,7 @@ except ImportError:
 from deluge import bencode
 from deluge.common import decode_string
 from deluge.ui.common import FileTree, FileTree2
-#from deluge.log import LOG as log
-#import deluge.configmanager
-import yarss2.logger as log
+import yarss2.util.logger as log
 
 class TorrentInfo(object):
     """

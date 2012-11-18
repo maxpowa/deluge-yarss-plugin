@@ -41,20 +41,17 @@
 #
 
 import gtk
-import threading
-from twisted.internet import threads
 
 from deluge.ui.client import client
 from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
 
-from yarss2.logger import Logger
-from yarss2.gtkui_log import GTKUI_logger
-from yarss2.torrent_handling import TorrentHandler
-from yarss2.common import get_resource, get_value_in_selected_row
-from yarss2.http import encode_cookie_values
+from yarss2.util.logger import Logger
+from yarss2.util.gtkui_log import GTKUI_logger
+from yarss2.util.yarss_email import send_torrent_email
+from yarss2.util.common import get_resource, get_value_in_selected_row
+from yarss2.util.http import encode_cookie_values
 from yarss2 import yarss_config
-
 
 from dialog_subscription import DialogSubscription
 from dialog_rssfeed import DialogRSSFeed
@@ -101,7 +98,6 @@ class GtkUI(GtkPluginBase):
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
         self.gtkui_log = GTKUI_logger(self.glade.get_widget('textview_log'))
         self.log = Logger(gtkui_logger=self.gtkui_log)
-        self.torrent_handler = TorrentHandler(self.log)
 
         self.subscriptions = {}
         self.rssfeeds = {}
@@ -157,8 +153,9 @@ class GtkUI(GtkPluginBase):
     def save_email_config(self, email_config):
         client.yarss2.save_email_configurations(email_config)
 
-    def add_torrent(self, torrent_link, subscription_data=None):
-        client.yarss2.add_torrent(torrent_link, subscription_data=subscription_data)
+    def add_torrent(self, torrent_link, subscription_data, callback):
+        torrent_info = {"link": torrent_link, "subscription_data": subscription_data}
+        return client.yarss2.add_torrent(torrent_info).addCallback(callback)
 
 
 ##############################
@@ -209,6 +206,7 @@ class GtkUI(GtkPluginBase):
         # Tried to fix error where glade.get_widget("label_status") in dialog_subscription returns None. (Why??)
         # DeferToThread actually works, but it seems to add a new error, where Deluge crashes, probably
         # caused by the GUI being updated in another thread than the main thread.
+        # from twisted.internet import threads
         # d = threads.deferToThread(self.cb_get_config, config)
         self.cb_get_config(config)
 
@@ -595,11 +593,11 @@ class GtkUI(GtkPluginBase):
         key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
         # Send email
         torrents = ["Torrent title"]
-        self.torrent_handler.send_torrent_email(self.email_config,
-                                                self.email_messages[key],
-                                                subscription_data={"name": "Test subscription"},
-                                                torrent_name_list=torrents,
-                                                defered=True, callback_func=self.test_email_callback)
+        send_torrent_email(self.email_config,
+                           self.email_messages[key],
+                           subscription_data={"name": "Test subscription"},
+                           torrent_name_list=torrents,
+                           defered=True, callback_func=self.test_email_callback)
 
     def test_email_callback(self, return_value):
         if return_value:
@@ -683,9 +681,6 @@ class GtkUI(GtkPluginBase):
             return
 
         fresh_subscription_config = yarss_config.get_fresh_subscription_config()
-        # Add the default values from deluge config
-        for key in self.default_values.keys():
-            fresh_subscription_config[key] = self.default_values[key]
         subscription_dialog = DialogSubscription(self,
                                                  self.log,
                                                  fresh_subscription_config,

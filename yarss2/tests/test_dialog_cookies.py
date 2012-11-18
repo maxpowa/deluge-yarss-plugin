@@ -34,28 +34,11 @@
 #
 
 from twisted.trial import unittest
-import datetime
-import gtk
-import re
 import copy
 
-from deluge.config import Config
-import deluge.configmanager
-from deluge.log import LOG as log
-import deluge.common
-json = deluge.common.json
-
-from yarss2.gtkui.dialog_subscription import DialogSubscription
-import yarss2.common
-from yarss2 import yarss_config
-from yarss2.logger import Logger
+import yarss2.yarss_config
+from yarss2.util.logger import Logger
 from yarss2.gtkui.dialog_cookie import DialogCookie
-
-from urlparse import urlparse
-
-
-import common
-import yarss2.common
 
 class DummyClass(object):
 

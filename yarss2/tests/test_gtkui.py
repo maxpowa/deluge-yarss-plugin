@@ -38,7 +38,7 @@ import re
 from twisted.trial import unittest
 
 from yarss2 import yarss_config
-from yarss2.logger import Logger
+from yarss2.util.logger import Logger
 from yarss2.gtkui.gtkui import GtkUI
 import yarss2.gtkui.gtkui
 import test_gtkui

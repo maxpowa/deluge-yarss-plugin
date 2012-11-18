@@ -36,15 +36,14 @@
 #    this exception statement from your version. If you delete this exception
 #    statement from all source files in the program, then also delete it here.
 #
-from __future__ import print_function
-from deluge.plugins.init import PluginInitBase
-#from deluge.log import LOG as log
 
-import yarss2.logger
-log = yarss2.logger.Logger()
+from deluge.plugins.init import PluginInitBase
+
+import pkg_resources, sys
+import yarss2.util.logger
+log = yarss2.util.logger.Logger()
 
 def load_libs():
-    import pkg_resources, sys
     egg = pkg_resources.require("YaRSS2")[0]
     for name in egg.get_entry_map("yarss2.libpaths"):
         ep = egg.get_entry_info("yarss2.libpaths", name)
@@ -54,10 +53,7 @@ def load_libs():
 
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
-        try:
-            load_libs()
-        except Exception, e:
-            print("Exception:", e)
+        load_libs()
         from core import Core as _plugin_cls
         self._plugin_cls = _plugin_cls
         super(CorePlugin, self).__init__(plugin_name)

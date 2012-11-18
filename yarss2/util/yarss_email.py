@@ -37,8 +37,12 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import yarss2.logger
-import yarss2.common as log
+import re
+
+from twisted.internet import threads
+
+import yarss2.util.logger
+import yarss2.util.common as log
 
 # Mime (might) not be included with Deluge on Windows.
 try:
@@ -50,7 +54,7 @@ except ImportError, e:
 
 import smtplib
 
-log = yarss2.logger.Logger()
+log = yarss2.util.logger.Logger()
 
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
@@ -94,7 +98,6 @@ def send_email(email_conf, server_conf):
     log.info("Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"],
                                                            server_conf["smtp_port"],
                                                            server_conf["smtp_authentication"]))
-
     if server_conf["smtp_authentication"]:
         mailServer.ehlo()
         mailServer.starttls()
@@ -114,3 +117,43 @@ def send_email(email_conf, server_conf):
     else:
         log.info("Sending email notification of finished torrent was successful")
     return True
+
+
+def send_torrent_email(email_configurations, email_msg, subscription_data=None,
+                       torrent_name_list=None, defered=False, callback_func=None, email_data={}):
+    """Send email with optional list of torrents
+    Arguments:
+    email_configurations - the main email configuration of YARSS2
+    email_msg - a dictionary with the email data (as saved in the YARSS config)
+    torrents - a tuple containing the subscription data and a list of torrent names.
+    """
+    log.info("Sending email '%s'" % email_msg["name"])
+    email_data["to_address"] = email_msg["to_address"]
+    email_data["subject"] = email_msg["subject"]
+    email_data["message"] = email_msg["message"]
+
+    if email_data["message"].find("$subscription_title") != -1 and subscription_data:
+        email_data["message"] = email_data["message"].replace("$subscription_title", subscription_data["name"])
+
+    if email_data["subject"].find("$subscription_title") != -1 and subscription_data:
+        email_data["subject"] = email_data["subject"].replace("$subscription_title", subscription_data["name"])
+
+    if email_data["message"].find("$torrentlist") != -1 and torrent_name_list:
+        torrentlist_plain = " * %s\n" % "\n * ".join(f for f in torrent_name_list)
+        msg_plain = email_data["message"].replace("$torrentlist", torrentlist_plain)
+        torrentlist_html = "<ul><li>%s </li></ul>" % \
+            "</li> \n <li> ".join(f for f in torrent_name_list)
+        msg_html = email_data["message"]
+        msg_html = email_data["message"].replace('\n', '<br/>')
+        msg_html = re.sub(r'\$torrentlist(<br/>){1}?', torrentlist_html, msg_html)
+        email_data["message"] = msg_plain
+        email_data["message_html"] = msg_html
+
+    # Send email with twisted to avoid waiting
+    if defered:
+        d = threads.deferToThread(send_email, email_data, email_configurations)
+        if callback_func is not None:
+            d.addCallback(callback_func)
+        return d
+    else:
+        return send_email(email_data, email_configurations)

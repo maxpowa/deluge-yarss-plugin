@@ -42,11 +42,9 @@ from twisted.python.failure import Failure
 import deluge.component as component
 
 from yarss2.lib.feedparser import feedparser
-import common
 from yarss2.yarss_config import YARSSConfigChangedEvent
-from yarss2 import http
+from yarss2.util import http, common
 from yarss2.torrent_handling import TorrentHandler
-
 
 class RSSFeedHandler(object):
 
@@ -378,6 +376,7 @@ class RSSFeedTimer(object):
     def disable_timers(self):
         for key in self.rssfeed_timers.keys():
             self.rssfeed_timers[key]["timer"].stop()
+            del self.rssfeed_timers[key]
 
     def set_timer(self, key, interval):
         """Schedule a timer for the specified interval."""
@@ -411,6 +410,7 @@ class RSSFeedTimer(object):
         del self.rssfeed_timers[key]
         return True
 
+
     def rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
         """Goes through all the feeds and runs the active ones.
         Multiple subscriptions on one RSS Feed will download the RSS feed page only once
@@ -424,11 +424,12 @@ class RSSFeedTimer(object):
             #self.log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
         fetch_result = self.rssfeedhandler.fetch_feed_torrents(self.yarss_config.get_config(), rssfeed_key,
                                                                        subscription_key=subscription_key)
-        def save_subscription_func(subscription_data):
-            self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)
 
-        self.add_torrent_func(save_subscription_func, fetch_result["matching_torrents"],
-                              self.yarss_config.get_config())
+        matching_torrents = fetch_result["matching_torrents"]
+        # Fetching the torrent files. Do this slow task in non-main thread.
+        for torrent in matching_torrents:
+            torrent["torrent_download"] = self.torrent_handler.get_torrent(torrent)
+
         # Update TTL value?
         if fetch_result.has_key("ttl"):
             # Subscription is run directly. Get RSS Feed key
@@ -446,8 +447,25 @@ class RSSFeedTimer(object):
         except KeyError:
             pass
 
+        def save_subscription_func(subscription_data):
+            self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)
+
+        return (self.add_torrent_func, save_subscription_func,
+                fetch_result["matching_torrents"], self.yarss_config.get_config())
+
+    def add_torrents_callback(self, args):
+        """This i called with the results from rssfeed_update_handler
+        add_torrent_func must be called on the main thread
+        """
+        if args is None:
+            return
+        add_torrent_func, save_subscription_func, matching_torrents, config = args
+        add_torrent_func(save_subscription_func, matching_torrents, config)
+
     def queue_rss_feed_update(self, *args, **kwargs):
-        return self.run_queue.push(self.rssfeed_update_handler, *args, **kwargs)
+        d = self.run_queue.push(self.rssfeed_update_handler, *args, **kwargs)
+        d.addCallback(self.add_torrents_callback)
+        return d
 
 
 class RSSFeedRunQueue(object):

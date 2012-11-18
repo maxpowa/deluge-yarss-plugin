@@ -32,24 +32,7 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import re, traceback, datetime
-
-import twisted.internet.defer as defer
-from twisted.internet.task import LoopingCall
-from twisted.internet import threads
-from twisted.python.failure import Failure
-
-import deluge.component as component
-
-from lib.feedparser import feedparser
-import common
-from yarss2.yarss_config import YARSSConfigChangedEvent
-from yarss2 import http
-from yarss2.torrent_handling import TorrentHandler
-
-
-#class RSSFeedHandler(object):
-
+import re
 from lib.numrangeregex import numrangeregex
 
 def pattern_to_regex(pattern):

@@ -44,8 +44,8 @@ from deluge.event import DelugeEvent
 import deluge.configmanager
 import deluge.component as component
 
-from yarss2 import common
-from yarss2.common import GeneralSubsConf
+from yarss2.util import common
+from yarss2.util.common import GeneralSubsConf
 
 
 DEFAULT_UPDATE_INTERVAL = 120
@@ -168,8 +168,11 @@ class YARSSConfig(object):
         """Adding missing keys, in case a new version adds more config fields"""
         changed = False
 
-        # Update to version 2
+        # Update config
         self.config.run_converter((0, 1), 2, self.update_config_to_version2)
+        self.config.run_converter((2, 2), 3, self.update_config_to_version3)
+        self.config.run_converter((3, 3), 4, self.update_config_to_version4)
+        self.config.run_converter((4, 4), 5, self.update_config_to_version5)
 
         default_config = get_fresh_subscription_config(key="")
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
@@ -344,43 +347,97 @@ class YARSSConfig(object):
         return key_diff
 
     def update_config_to_version2(self, config):
-        """Updates the config values to config file version 2"""
-        self.log.info("Updating config file to version 2")
-        self.update_subscription_config_with_changes(config["subscriptions"], "replace_last_update_with_last_match")
-        self.update_subscription_config_with_changes(config["subscriptions"], "add_torrents_in_paused_state_to_GeneralSubsConf")
-        self.update_cookies_config_with_changes(config["cookies"], "change_value_from_list_to_dict")
+        """Updates the config values to config file version 2, (YaRSS2 v1.0.1)"""
+        self.log.info("Updating config file to version 2 (v1.0.1)")
+        default_subscription_config = get_fresh_subscription_config(key="")
+        def update_subscription(subscription):
+            # It should be there, but just in case
+            if "search" in subscription:
+                del subscription["search"]
+            if not "custom_text_lines" in subscription:
+                subscription["custom_text_lines"] = default_subscription_config["custom_text_lines"]
+        self.run_for_each_dict_element(config["subscriptions"], update_subscription)
         return config
 
-    def update_subscription_config_with_changes(self, subscription_config, update):
-        for key in subscription_config.keys():
-            """Renamed last_update to last_match"""
-            # Replace last_update with last_match
-            if update == "replace_last_update_with_last_match":
-                if subscription_config[key].has_key("last_update"):
-                    subscription_config[key]["last_match"] = subscription_config[key]["last_update"]
-                    del subscription_config[key]["last_update"]
+    def update_config_to_version3(self, config):
+        """Updates the config values to config file version 3, (YaRSS2 v1.0.4)"""
+        self.log.info("Updating config file to version 3 (tag git v1.0.4)")
+        default_subscription_config = get_fresh_subscription_config(key="")
+        def update_subscription(subscription):
+            if not "download_location" in subscription:
+                subscription["download_location"] = default_subscription_config["download_location"]
 
-            # Changed add_torrents_in_paused_state from boolean to int
-            if update == "add_torrents_in_paused_state_to_GeneralSubsConf":
-                if subscription_config[key].has_key("add_torrents_in_paused_state"):
-                    if subscription_config[key]["add_torrents_in_paused_state"] is True:
-                        subscription_config[key]["add_torrents_in_paused_state"] = GeneralSubsConf.ENABLED
-                    else:
-                        subscription_config[key]["add_torrents_in_paused_state"] = GeneralSubsConf.DISABLED
+        self.run_for_each_dict_element(config["subscriptions"], update_subscription)
 
-    def update_cookies_config_with_changes(self, cookies_config, update):
-        for key in cookies_config.keys():
-            """Renamed last_update to last_match"""
-            # Replace last_update with last_match
-            if update == "change_value_from_list_to_dict":
-                value_list = cookies_config[key]["value"]
-                if type(value_list) is not list:
-                    # Shouldn't really happen, but just in case
-                    continue
-                value_dict = {}
-                for k, v in value_list:
-                    value_dict[k] = v
-                cookies_config[key]["value"] = value_dict
+        default_rssfeed_config = get_fresh_rssfeed_config()
+        def update_rssfeed(rssfeed):
+            if not "obey_ttl" in rssfeed:
+                rssfeed["obey_ttl"] = default_rssfeed_config["obey_ttl"]
+        self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
+
+        # Convert all str fields to unicode
+        default_email_conf = get_fresh_email_config()
+        email_conf = config["email_configurations"]
+        for key in email_conf.keys():
+            if type(email_conf[key]) is str:
+                try:
+                    config[key] = email_conf[key].decode("utf8")
+                except:
+                    config[key] = default_email_conf[key]
+        return config
+
+    def update_config_to_version4(self, config):
+        """Updates the config values to config file version 4, (YaRSS2 v1.1.3)"""
+        self.log.info("Updating config file to version 4")
+        default_subscription_config = get_fresh_subscription_config(key="")
+        def update_subscription(subscription):
+            # It should be there, but just in case
+            if "last_update" in subscription:
+                # Replace 'last_update' with 'last_match'
+                subscription["last_match"] = subscription["last_update"]
+                del subscription["last_update"]
+        self.run_for_each_dict_element(config["subscriptions"], update_subscription)
+        return config
+
+    def update_config_to_version5(self, config):
+        """Updates the config values to config file version 5, (YaRSS2 v1.2)"""
+        self.log.info("Updating config file to version 5")
+        default_subscription_config = get_fresh_subscription_config(key="")
+        def update_subscription(subscription):
+            # Change 'add_torrents_in_paused_state' from boolean to GeneralSubsConf
+            if type(subscription["add_torrents_in_paused_state"]) is bool:
+                if subscription["add_torrents_in_paused_state"] is True:
+                    subscription["add_torrents_in_paused_state"] = GeneralSubsConf.ENABLED
+                else:
+                    subscription["add_torrents_in_paused_state"] = GeneralSubsConf.DISABLED
+
+            # Adding new fields
+            subscription["max_download_speed"] = default_subscription_config["max_download_speed"]
+            subscription["max_upload_speed"] = default_subscription_config["max_upload_speed"]
+            subscription["max_connections"] = default_subscription_config["max_connections"]
+            subscription["max_upload_slots"] = default_subscription_config["max_upload_slots"]
+            subscription["auto_managed"] = default_subscription_config["auto_managed"]
+            subscription["sequential_download"] = default_subscription_config["sequential_download"]
+            subscription["prioritize_first_last_pieces"] = default_subscription_config["prioritize_first_last_pieces"]
+
+        self.run_for_each_dict_element(config["subscriptions"], update_subscription)
+
+        def update_cookie(cookie):
+            # Change cookie key/values from list to dict
+            value_list = cookie["value"]
+            if type(value_list) is not list:
+                # Shouldn't really happen, but just in case
+                return
+            value_dict = {}
+            for k, v in value_list:
+                value_dict[k] = v
+            cookie["value"] = value_dict
+        self.run_for_each_dict_element(config["cookies"], update_cookie)
+        return config
+
+    def run_for_each_dict_element(self, conf_dict, update_func):
+        for key in conf_dict.keys():
+            update_func(conf_dict[key])
 
 ####################################
 # Can be called from outside core

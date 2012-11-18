@@ -41,7 +41,7 @@ import tempfile
 import deluge.configmanager
 import deluge.core.preferencesmanager
 
-import yarss2.common
+import yarss2.util.common
 from yarss2 import yarss_config
 
 import deluge.log
@@ -52,7 +52,7 @@ def get_default_subscriptions(count):
     for i in range(count):
         subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(
             name="Non-matching subscription",
-            last_match=yarss2.common.get_default_date().isoformat(),
+            last_match=yarss2.util.common.get_default_date().isoformat(),
             rssfeed_key="0", key=str(i), regex_include=None, regex_exclude=None)
     return subscriptions
 
@@ -92,10 +92,10 @@ def load_json_testdata():
 def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
         if "updated_datetime" in dct:
-            dct["updated_datetime"] = yarss2.common.isodate_to_datetime(dct["updated_datetime"])
+            dct["updated_datetime"] = yarss2.util.common.isodate_to_datetime(dct["updated_datetime"])
         return dct
 
-    filename = yarss2.common.get_resource(filename, path="tests")
+    filename = yarss2.util.common.get_resource(filename, path="tests")
     f = open(filename, "r")
     d = json.load(f, object_hook=datetime_parse)
     f.close()
@@ -108,7 +108,7 @@ def json_load(filename, dict_int_keys=False):
     return d
 
 def json_dump(obj, filename):
-    filename = yarss2.common.get_resource(filename, path="tests")
+    filename = yarss2.util.common.get_resource(filename, path="tests")
     f = open(filename, "wb")
     json.dump(obj, f, indent=2, cls=DatetimeEncoder)
     f.flush()

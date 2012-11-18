@@ -11,7 +11,7 @@
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 # Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
 #
-# Deluge is free software.
+# YaRSS2 is free software.
 #
 # You may redistribute it and/or modify it under the terms of the
 # GNU General Public License, as published by the Free Software
@@ -48,10 +48,10 @@ from twisted.internet import threads
 
 import deluge.component as component
 
-from yarss2.common import get_resource, get_value_in_selected_row, string_to_unicode, \
-    get_current_date, isodate_to_datetime, GeneralSubsConf
-import yarss2.http
-import yarss2.logger as log
+from yarss2.util.common import get_resource, get_value_in_selected_row, string_to_unicode, \
+    get_current_date, isodate_to_datetime, GeneralSubsConf, TorrentDownload
+from yarss2.util import http
+import yarss2.util.logger as log
 from yarss2.rssfeed_handling import RSSFeedHandler
 
 class DialogSubscription():
@@ -97,14 +97,15 @@ class DialogSubscription():
 
         # This is to make testing of the GUI possible (unit tests)
         self.method_perform_rssfeed_selection = self.perform_rssfeed_selection
-
         self.dialog = self.glade.get_widget("window_subscription")
+        self.dialog.set_title("Edit Subscription" if "key" in self.subscription_data else "Add Subscription")
         self.setup_rssfeed_combobox()
         self.setup_move_completed_combobox()
         self.setup_download_location_combobox()
         self.setup_messages_combobox()
         self.setup_messages_list()
         self.treeview = self.create_matching_tree()
+        self.set_custom_text_tooltip()
         self.load_subscription_data()
 
     def show(self):
@@ -209,6 +210,10 @@ class DialogSubscription():
         self.list_popup_menu.append(menuitem4)
         return self.matching_treeView
 
+    def set_custom_text_tooltip(self):
+        textview = self.glade.get_widget("textview_custom_text")
+        textview.set_tooltip_text("Each line is added to the list and tested for matching against the filters.")
+
     def on_tooltip_matches(self, widget, x, y, keyboard_tip, tooltip):
         x, y = self.treeview.convert_widget_to_bin_window_coords(x, y)
         if widget.get_path_at_pos(x, y) is None:
@@ -223,7 +228,7 @@ class DialogSubscription():
         link = self.matching_store.get_value(it, 3)
         if link == None:
             return False
-        text = "<b>Title:</b> %s\n<b>Link:</b> <u>%s</u>\n<b>Published:</b> %s" % (title, link.replace("&", "&amp;"), published)
+        text = "<b>Title:</b> %s\n<b>Link:</b> <u>%s</u>\n<b>Published:</b> %s" % (title.replace("&", "&amp;"), link.replace("&", "&amp;"), published)
         tooltip.set_markup(text)
         widget.set_tooltip_cell(tooltip, path, None, None)
         return True
@@ -254,8 +259,31 @@ class DialogSubscription():
         # Save current data to dict
         self.store_subscription_data()
 
-        if torrent_link is not None:
-            self.gtkUI.add_torrent(torrent_link, subscription_data=self.subscription_data if use_settings else None)
+        if torrent_link is None:
+            return
+
+        def add_torrent_callback(torrent_download):
+            torrent_download = TorrentDownload(torrent_download)
+            if torrent_download.success:
+                return
+            textview = self.glade.get_widget("textview_messages")
+            textbuffer = textview.get_buffer()
+
+            readable_body = http.clean_html_body(torrent_download.filedump)
+            textbuffer.set_text(readable_body)
+
+            notebook = self.glade.get_widget("notebook_lower")
+            notebook.set_current_page(1)
+
+            # Quick hack to make sure the message is visible to the user.
+            hpaned = self.glade.get_widget("hpaned_matching")
+            #if hpaned.get_position() == 0:
+            max_pos = hpaned.get_property("max-position")
+            hpaned.set_position(int(max_pos * 0.3))
+
+        self.gtkUI.add_torrent(torrent_link,
+                               self.subscription_data if use_settings else None,
+                               add_torrent_callback)
 
     def on_button_copy_to_clipboard(self, menuitem, index):
         text = get_value_in_selected_row(self.matching_treeView,
@@ -409,7 +437,7 @@ class DialogSubscription():
                           updated if updated else "Not available", rssfeeds_dict[key]['link'], customAttributes])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
-        site_cookies = yarss2.http.get_matching_cookies_dict(self.cookies, self.rssfeeds[rssfeed_key]["site"])
+        site_cookies = http.get_matching_cookies_dict(self.cookies, self.rssfeeds[rssfeed_key]["site"])
         rssfeeds_parsed = self.rssfeedhandler.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
                                                                  site_cookies_dict=site_cookies)
         return rssfeeds_parsed
@@ -433,6 +461,7 @@ class DialogSubscription():
         label_status = self.glade.get_widget("label_status")
         label_text = ""
         # Bozo Exception (feedbparser error), still elements might have been successfully parsed
+
         if rssfeeds_parsed.has_key("bozo_exception"):
             exception = rssfeeds_parsed["bozo_exception"]
             label_text = str(exception)
@@ -458,11 +487,11 @@ class DialogSubscription():
         # Update the matching according to the current settings
         self.perform_search()
 
-    def show_result_as_text(self, rssfeeds_parsed):
+    def show_result_as_text(self, raw_rssfeed):
         """When failing to parse the RSS Feed, this will show the result
         in a text window with HTML tags stripped away.
         """
-        result = self.get_viewable_result(rssfeeds_parsed)
+        result = self.get_viewable_result(raw_rssfeed)
         textview = gtk.TextView()
         textbuffer = textview.get_buffer()
         textview.show()
@@ -474,7 +503,7 @@ class DialogSubscription():
         if not rssfeed_parsed["feed"].has_key("summary"):
             return ""
         cleaned = rssfeed_parsed["feed"]["summary"]
-        s = yarss2.http.HTMLStripper()
+        s = http.HTMLStripper()
         s.feed(cleaned)
         return s.get_data()
 
@@ -552,7 +581,6 @@ class DialogSubscription():
         tree, row_iter = self.messages_treeview.get_selection().get_selected()
         if row_iter:
             self.messages_list_store.remove(row_iter)
-
 
 ### Options
 ###################

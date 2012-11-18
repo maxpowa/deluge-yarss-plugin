@@ -35,14 +35,19 @@
 
 from twisted.trial import unittest
 
+import shutil
+
+import deluge.log
+
 import yarss2.yarss_config
 import common
-from yarss2.common import GeneralSubsConf
+import yarss2.util.common
+from yarss2.util.common import GeneralSubsConf
 
 class ConfigTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.config = common.get_test_config()
+        self.config = common.get_test_config(verify_config=False)
 
     def test_verify_config(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
@@ -251,15 +256,7 @@ class ConfigTestCase(unittest.TestCase):
         # The dummy should now exist in rssfeeds dict
         self.assertTrue(test_feeds.has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
 
-    def test_verify_config_update_config_to_version2(self):
-        self.config = common.get_test_config(verify_config=False)
-        self.update_config_to_version2(self.config._verify_config)
-
-    def test_update_config_to_version2(self):
-        self.config = common.get_test_config(verify_config=False)
-        self.update_config_to_version2(self.config.config.run_converter, (0, 1), 2, self.config.update_config_to_version2)
-
-    def update_config_to_version2(self, update_func, *args):
+    def test_update_config_to_version4(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Create 2 feeds
         test_feeds = common.get_default_rssfeeds(2)
@@ -274,6 +271,25 @@ class ConfigTestCase(unittest.TestCase):
         # Replace field last_update with last_match
         self.config.config["rssfeeds"] = test_feeds
         self.config.config["subscriptions"] = test_subscriptions
+
+        # Call the function that makes the changes
+        self.config._verify_config()
+
+        # Test that last_update was replaced with last_match
+        self.assertTrue(test_subscriptions["0"].has_key("last_match"))
+        self.assertFalse(test_subscriptions["0"].has_key("last_update"))
+        self.assertEquals(test_subscriptions["0"]["last_match"], last_match_value)
+
+    def test_update_config_to_version5(self):
+        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        # Create 2 feeds
+        test_feeds = common.get_default_rssfeeds(2)
+        # Create 3 subscriptions
+        test_subscriptions = common.get_default_subscriptions(2)
+
+        # Replace field last_update with last_match
+        self.config.config["rssfeeds"] = test_feeds
+        self.config.config["subscriptions"] = test_subscriptions
         self.config.config["cookies"] = {"0": {
             "active": True,
             "value": [["uid", "175728"], ["pass", "3421d1a00b48397a874454626decec04"]],
@@ -284,12 +300,7 @@ class ConfigTestCase(unittest.TestCase):
         test_subscriptions["1"]["add_torrents_in_paused_state"] = False
 
         # Call the function that makes the changes
-        update_func(*args)
-
-        # Test changes for "replace_last_update_with_last_match"
-        self.assertTrue(test_subscriptions["0"].has_key("last_match"))
-        self.assertFalse(test_subscriptions["0"].has_key("last_update"))
-        self.assertEquals(test_subscriptions["0"]["last_match"], last_match_value)
+        self.config._verify_config()
 
         # Test changes for "add_torrents_in_paused_state_to_GeneralSubsConf"
         self.assertEquals(test_subscriptions["0"]["add_torrents_in_paused_state"], GeneralSubsConf.ENABLED)
@@ -303,17 +314,162 @@ class ConfigTestCase(unittest.TestCase):
         self.assertTrue(values.has_key("pass"))
         self.assertEquals(values["pass"], "3421d1a00b48397a874454626decec04")
 
-    def test_update_config_from_1_0(self):
+    def test_update_config_file_to_version2(self):
+        config_file = "yarss2_v1.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
         tmp_dir = common.get_tmp_dir()
-        import shutil
-        # Copy the yarss2_1.0.conf file to test dir to avoid changes to the file.
-        filename = yarss2.common.get_resource("yarss2_1.0.conf", path="tests/data/")
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=filename, config_dir=tmp_dir, verify_config=True)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        # Call the function that makes the changes
+        self.config.config.run_converter((0, 1), 2, self.config.update_config_to_version2)
+
+        # 1 - search field from subscription was removed
+        # 2 - Added field 'custom_text_lines'
+        subscriptions = self.config.config["subscriptions"]
+        for key in subscriptions:
+            self.assertFalse(subscriptions[key].has_key("search"), "Field 'search still exists'")
+            self.assertTrue(subscriptions[key].has_key("custom_text_lines"), "Field 'custom_text_lines' does not exist!")
+
+    def test_update_config_file_to_version3(self):
+        config_file = "yarss2_v2.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        tmp_dir = common.get_tmp_dir()
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        # Call the function that makes the changes
+        self.config.config.run_converter((2, 2), 3, self.config.update_config_to_version3)
+
+        # Added field 'download_location'
+        for key in self.config.config["subscriptions"]:
+            self.assertTrue(self.config.config["subscriptions"][key].has_key("download_location"), "Field 'download_location' does not exist!")
+
+        for key in self.config.config["rssfeeds"]:
+            self.assertTrue(self.config.config["rssfeeds"][key].has_key("obey_ttl"), "Field 'obey_ttl' does not exist!")
+
+        for key in self.config.config["email_configurations"].keys():
+            self.assertTrue(not type(self.config.config["email_configurations"][key]) is str, "Field in str!")
+
+    def test_update_config_file_to_version4(self):
+        config_file = "yarss2_v3.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        tmp_dir = common.get_tmp_dir()
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        subscription_keys = self.config.config["subscriptions"].keys()
+        last_update_values = [self.config.config["subscriptions"][key]["last_update"] for key in subscription_keys]
+
+        # Call the function that makes the changes
+        self.config.config.run_converter((3, 3), 4, self.config.update_config_to_version4)
+
+        for i, key in enumerate(subscription_keys):
+            # Test changes for "replace_last_update_with_last_match"
+            self.assertTrue(self.config.config["subscriptions"][key].has_key("last_match"))
+            self.assertFalse(self.config.config["subscriptions"][key].has_key("last_update"))
+            self.assertEquals(self.config.config["subscriptions"][key]["last_match"], last_update_values[i])
+
+    def test_update_config_file_to_version5(self):
+        config_file = "yarss2_v4.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        tmp_dir = common.get_tmp_dir()
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        # Call the function that makes the changes
+        self.config.config.run_converter((4, 4), 5, self.config.update_config_to_version5)
+
+        # Test changes for "add_torrents_in_paused_state_to_GeneralSubsConf"
+        self.assertEquals(self.config.config["subscriptions"]["0"]["add_torrents_in_paused_state"], GeneralSubsConf.DISABLED)
+        self.assertEquals(self.config.config["subscriptions"]["1"]["add_torrents_in_paused_state"], GeneralSubsConf.ENABLED)
+
+        for key in self.config.config["subscriptions"].keys():
+            # last_update replaced with last_match
+            self.assertFalse("last_update" in self.config.config["subscriptions"][key])
+            self.assertTrue("last_match" in self.config.config["subscriptions"][key])
+
+            # Add in paused state should be unicode
+            self.assertEquals(type(self.config.config["subscriptions"][key]["add_torrents_in_paused_state"]), unicode)
+
+            self.assertTrue("max_upload_slots" in self.config.config["subscriptions"][key])
+            self.assertTrue("max_connections" in self.config.config["subscriptions"][key])
+            self.assertTrue("max_upload_speed" in self.config.config["subscriptions"][key])
+            self.assertTrue("prioritize_first_last_pieces" in self.config.config["subscriptions"][key])
+            self.assertTrue("auto_managed" in self.config.config["subscriptions"][key])
+            self.assertTrue("sequential_download" in self.config.config["subscriptions"][key])
+
+        # Test changes for "change_value_from_list_to_dict"
+        for cookie in self.config.config["cookies"].values():
+            self.assertEquals(type(cookie["value"]), dict)
+
+    def test_update_config_file_from_1_0(self):
+        tmp_dir = common.get_tmp_dir()
+        # Copy the yarss2_v1.conf file to test dir to avoid changes to the file.
+        config_file = "yarss2_v1.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        self.assertEquals(self.config.config._Config__version["format"], 1)
+        self.assertEquals(self.config.config._Config__version["file"], 1)
+
+        # Verify that the old values are what we expect
+        for key in self.config.config["cookies"].keys():
+            self.assertEquals(type(self.config.config["cookies"][key]["value"]), list)
+
+        # Update the config
+        self.config._verify_config()
 
         for key in self.config.config["cookies"].keys():
             self.assertEquals(type(self.config.config["cookies"][key]["value"]), dict)
+
         for key in self.config.config["subscriptions"].keys():
-            self.assertTrue(self.config.config["subscriptions"][key].has_key("last_match"))
-            self.assertFalse(self.config.config["subscriptions"][key].has_key("last_update"))
+            # last_update replaced with last_match
+            self.assertFalse("last_update" in self.config.config["subscriptions"][key])
+            self.assertTrue("last_match" in self.config.config["subscriptions"][key])
+
+            # Add in paused state should be string
             self.assertEquals(type(self.config.config["subscriptions"][key]["add_torrents_in_paused_state"]), unicode)
+
+            self.assertTrue("max_upload_slots" in self.config.config["subscriptions"][key])
+            self.assertTrue("max_connections" in self.config.config["subscriptions"][key])
+            self.assertTrue("max_upload_speed" in self.config.config["subscriptions"][key])
+            self.assertTrue("prioritize_first_last_pieces" in self.config.config["subscriptions"][key])
+            self.assertTrue("auto_managed" in self.config.config["subscriptions"][key])
+            self.assertTrue("sequential_download" in self.config.config["subscriptions"][key])
+
+        # Test cookie type
+        for cookie in self.config.config["cookies"].values():
+            self.assertEquals(type(cookie["value"]), dict)
+
+        self.assertEquals(self.config.config._Config__version["format"], 1)
+        self.assertEquals(self.config.config._Config__version["file"], 5)
+
+    def test_update_config_file_from_1_2_beta(self):
+        tmp_dir = common.get_tmp_dir()
+        config_file = "yarss2_v1.2.beta.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        self.assertEquals(self.config.config._Config__version["format"], 1)
+        self.assertEquals(self.config.config._Config__version["file"], 2)
+
+        # Verify that the old values are what we expect
+        for key in self.config.config["cookies"].keys():
+            self.assertEquals(type(self.config.config["cookies"][key]["value"]), dict)
+
+        # Update the config
+        self.config._verify_config()
+        config_dict = self.config.config.config
+
+        config_file = "yarss2_v5.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        config_dict_v5 = self.config.config.config
+
+        # Verify that the 1.2 beta config equals the config updated from earlier versions
+        self.assertTrue(yarss2.util.common.dicts_equals(config_dict_v5, config_dict))
+

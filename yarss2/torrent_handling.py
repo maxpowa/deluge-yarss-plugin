@@ -32,35 +32,18 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
-import urllib2
-from urllib2 import HTTPRedirectHandler
 import os
-import re
-from twisted.internet import threads
 
 from deluge.core.torrent import TorrentOptions
 from deluge._libtorrent import lt
 import deluge.component as component
 
-from yarss2.yarss_email import send_email
-from yarss2 import common, http
-import yarss2.logger as log
-from yarss2.common import GeneralSubsConf
+from yarss2.util import common, http
 from yarss2.lib import requests
-import yarss2.torrentinfo
-
-class TorrentDownload(object):
-    def __init__(self):
-        self.filedump = None
-        self.error_msg = None
-        self.torrent_id = None
-        self.success = True
-        self.torrent_url = None
-        self.cookies_dict = None
-
-    def set_error(self, error_msg):
-        self.error_msg = error_msg
-        self.success = False
+from yarss2.util.common import GeneralSubsConf, TorrentDownload
+from yarss2.util.yarss_email import send_torrent_email
+from yarss2.util import torrentinfo
+import yarss2.util.logger as log
 
 class TorrentHandler(object):
 
@@ -72,7 +55,7 @@ class TorrentHandler(object):
 
     def download_torrent_file(self, torrent_url, cookies_dict):
         download = TorrentDownload()
-        download.torrent_url = torrent_url
+        download.url = torrent_url
         download.cookies_dict = cookies_dict
         try:
             r = requests.get(torrent_url, cookies=cookies_dict, verify=False)
@@ -91,9 +74,44 @@ class TorrentHandler(object):
             self.log.error(error_msg)
         return download
 
-    def add_torrent(self, torrent_url, site_cookies_dict, subscription_data=None):
+    def get_torrent(self, torrent_info):
+        url = torrent_info["link"]
+        site_cookies_dict = torrent_info["site_cookies_dict"]
+        download = None
+
+        if url.startswith("magnet:"):
+            self.log.info("Adding magnet: '%s'" % url)
+            download = TorrentDownload({"is_magnet": True, "url": url})
+        else:
+            # Fix unicode URLs
+            url = http.url_fix(url)
+            self.log.info("Adding torrent: '%s' using cookies: %s" % (url, str(site_cookies_dict)))
+            download = self.download_torrent_file(url, site_cookies_dict)
+            # Error occured
+            if not download.success:
+                return download
+            # Get the torrent data from the torrent file
+            try:
+                info = torrentinfo.TorrentInfo(filedump=download.filedump)
+            except Exception, e:
+                download.set_error("Unable to open torrent file: %s. Error: %s" % (url, str(e)))
+                self.log.warn(download.error_msg)
+        return download
+
+    def add_torrent(self, torrent_info=None):
         # Initialize options with default configurations
         options = TorrentOptions()
+
+        torrent_url = torrent_info["link"]
+        site_cookies_dict = torrent_info["site_cookies_dict"],
+        subscription_data = None
+        if "subscription_data" in torrent_info:
+            subscription_data = torrent_info["subscription_data"]
+
+        if "torrent_download" in torrent_info:
+            download = torrent_info["torrent_download"]
+        else:
+            download = self.get_torrent(torrent_info)
 
         if subscription_data is not None:
             if len(subscription_data["move_completed"]) > 0:
@@ -120,35 +138,34 @@ class TorrentHandler(object):
             if subscription_data["max_upload_slots"] != -2:
                 options["max_upload_slots"] = subscription_data["max_upload_slots"]
 
-        if torrent_url.startswith("magnet:"):
+        if download.is_magnet:
             self.log.info("Adding magnet: '%s'" % torrent_url)
-            download = TorrentDownload()
-            download.torrent_id = component.get("TorrentManager").add(options=options, magnet=torrent_url)
+            download.torrent_id = component.get("TorrentManager").add(options=options, magnet=download.url)
         else:
-            basename = os.path.basename(torrent_url)
-            # Fix unicode URLs
-            torrent_url = http.url_fix(torrent_url)
             self.log.info("Adding torrent: '%s' using cookies: %s" % (torrent_url, str(site_cookies_dict)))
-            download = self.download_torrent_file(torrent_url, site_cookies_dict)
             # Error occured
             if not download.success:
                 return download
             # Get the torrent data from the torrent file
             try:
-                info = yarss2.torrentinfo.TorrentInfo(filedump=download.filedump)
+                info = torrentinfo.TorrentInfo(filedump=download.filedump)
             except Exception, e:
-                self.log.debug("Unable to open torrent file: %s. Error: %s" % (torrent_url, str(e)))
-                #dialogs.ErrorDialog(_("Invalid File"), e, self.dialog).run()
-            download.torrent_id = component.get("TorrentManager").add(filedump=download.filedump, filename=basename, options=options)
+                download.set_error("Unable to open torrent file: %s. Error: %s" % (torrent_url, str(e)))
+                self.log.warn(download.error_msg)
+            basename = os.path.basename(torrent_url)
+            download.torrent_id = component.get("TorrentManager").add(filedump=download.filedump,
+                                                                      filename=os.path.basename(torrent_url),
+                                                                      options=options)
             download.success = download.torrent_id != None
+            if download.success is False and download.error_msg is None:
+                download.set_error("Failed to add torrent to Deluge. Is torrent already added?")
+                self.log.warn(download.error_msg)
         return download
 
     def add_torrents(self, save_subscription_func, torrent_list, config):
         torrent_names = {}
         for torrent_match in torrent_list:
-            torrent_download = self.add_torrent(torrent_match["link"],
-                                                torrent_match["site_cookies_dict"],
-                                                torrent_match["subscription_data"])
+            torrent_download = self.add_torrent(torrent_match)
             if not torrent_download.success:
                 self.log.warn("Failed to add torrent '%s' from url '%s'" % (torrent_match["title"], torrent_match["link"]))
             else:
@@ -181,7 +198,7 @@ class TorrentHandler(object):
             if not config["email_messages"][email_key]["active"]:
                 continue
             # Send email in
-            self.send_torrent_email(config["email_configurations"],
+            send_torrent_email(config["email_configurations"],
                                     config["email_messages"][email_key],
                                     subscription_data = torrent_names[key][0],
                                     torrent_name_list = torrent_names[key][1],
@@ -190,41 +207,3 @@ class TorrentHandler(object):
     def on_torrent_finished_event(self, torrent_id):
         print "torrent_finished_event:", torrent_id
 
-    def send_torrent_email(self, email_configurations, email_msg, subscription_data=None,
-                           torrent_name_list=None, defered=False, callback_func=None, email_data={}):
-        """Send email with optional list of torrents
-        Arguments:
-        email_configurations - the main email configuration of YARSS2
-        email_msg - a dictionary with the email data (as saved in the YARSS config)
-        torrents - a tuple containing the subscription data and a list of torrent names.
-        """
-        self.log.info("Sending email '%s'" % email_msg["name"])
-        email_data["to_address"] = email_msg["to_address"]
-        email_data["subject"] = email_msg["subject"]
-        email_data["message"] = email_msg["message"]
-
-        if email_data["message"].find("$subscription_title") != -1 and subscription_data:
-            email_data["message"] = email_data["message"].replace("$subscription_title", subscription_data["name"])
-
-        if email_data["subject"].find("$subscription_title") != -1 and subscription_data:
-            email_data["subject"] = email_data["subject"].replace("$subscription_title", subscription_data["name"])
-
-        if email_data["message"].find("$torrentlist") != -1 and torrent_name_list:
-            torrentlist_plain = " * %s\n" % "\n * ".join(f for f in torrent_name_list)
-            msg_plain = email_data["message"].replace("$torrentlist", torrentlist_plain)
-            torrentlist_html = "<ul><li>%s </li></ul>" % \
-                "</li> \n <li> ".join(f for f in torrent_name_list)
-            msg_html = email_data["message"]
-            msg_html = email_data["message"].replace('\n', '<br/>')
-            msg_html = re.sub(r'\$torrentlist(<br/>){1}?', torrentlist_html, msg_html)
-            email_data["message"] = msg_plain
-            email_data["message_html"] = msg_html
-
-        # Send email with twisted to avoid waiting
-        if defered:
-            d = threads.deferToThread(send_email, email_data, email_configurations)
-            if callback_func is not None:
-                d.addCallback(callback_func)
-            return d
-        else:
-            return send_email(email_data, email_configurations)

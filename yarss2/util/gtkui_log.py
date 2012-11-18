@@ -34,7 +34,7 @@
 
 from deluge.event import DelugeEvent
 
-from yarss2.common import get_current_date_in_isoformat
+from yarss2.util.common import get_current_date_in_isoformat
 
 class GTKUI_logger(object):
     """This class handles messages going to the GTKUI log message pane"""

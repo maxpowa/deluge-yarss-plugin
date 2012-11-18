@@ -36,9 +36,8 @@ import deluge.component as component
 from deluge.event import DelugeEvent
 from deluge.log import LOG as log
 
-from yarss2.common import get_current_date_in_isoformat
-from yarss2 import common
-from yarss2.gtkui_log import GtkUILogMessageEvent
+from yarss2.util import common
+from yarss2.util.gtkui_log import GtkUILogMessageEvent
 
 class Logger(object):
 

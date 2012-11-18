@@ -11,7 +11,7 @@
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 # Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
 #
-# Deluge is free software.
+# YaRSS2 is free software.
 #
 # You may redistribute it and/or modify it under the terms of the
 # GNU General Public License, as published by the Free Software
@@ -44,7 +44,7 @@ import gtk
 from deluge.log import LOG as log
 import deluge.component as component
 
-from yarss2.common import get_resource
+from yarss2.util.common import get_resource
 
 class DialogCookie():
 
@@ -72,6 +72,7 @@ class DialogCookie():
         cookie_list.show_all()
         self.dialog = self.glade.get_widget("dialog_cookie")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
+        self.dialog.set_title("Edit Cookies" if "key" in self.cookie_data else "Add Cookies")
         self.dialog.run()
 
     def update_cookie_values_list(self):

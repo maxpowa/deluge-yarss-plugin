@@ -40,8 +40,9 @@ from deluge.log import LOG as log
 import yarss2.yarss_config
 from yarss2.core import Core
 from yarss2.torrent_handling import TorrentHandler, TorrentDownload
-from test_torrent_handling import TestComponent
+import yarss2.util.common
 
+from test_torrent_handling import TestComponent
 import test_torrent_handling
 import common
 
@@ -53,7 +54,6 @@ class CoreTestCase(unittest.TestCase):
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
         self.config.core_config.save()
         test_component = TestComponent()
-
         self.handler = TorrentHandler(log)
         self.handler.download_torrent_file = test_component.download_torrent_file
 
@@ -71,12 +71,16 @@ class CoreTestCase(unittest.TestCase):
     def test_add_torrent(self):
         core = Core("test")
         core.torrent_handler = self.handler
-        torrent_url = "http://url...com"
+        torrent_name = "FreeBSD-9.0-RELEASE-amd64-dvd1.torrent"
+        torrent_url = yarss2.util.common.get_resource(torrent_name, path="tests/data/")
+        torrent_info = {"link": torrent_url}
         core.yarss_config = self.config
-        success = core.add_torrent(torrent_url)
-        self.assertTrue(success)
+        download_dict = core.add_torrent(torrent_info)
+
+        download = TorrentDownload(download_dict)
+        self.assertTrue(download.success, "Download failed, but should be True")
         self.assertEquals(torrent_url, test_torrent_handling.test_component.downloads.pop().torrent_url)
-        self.assertEquals(test_torrent_handling.test_component.added.pop().filename, "url...com")
+        self.assertEquals(test_torrent_handling.test_component.added.pop().filename, torrent_name)
 
     def test_enable(self):
         """Verify that it runs"""

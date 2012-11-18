@@ -8,16 +8,23 @@ License: GPLv3
 
 Changelog
 
-v1.2.0 - 2012-11-16
+v1.2.0 - 2012-12-10
 
 * Added new options in the subscription dialog (Bandwidth, General).
 * Added support for the enclosure tag in RSS feeds.
-* Using the requests library to handle redirects properly so that non-direct torrent links work.
-* Added "Copy link to clipboard" button to the right click menu in the subscription panel.
+* Using the requests library to handle redirects properly so that non-direct
+  torrent links work.
+* Added "Copy link to clipboard" button to the right click menu in the
+  subscription panel.
+* When failing to download a torrent in the dialog subscription, the page
+  content is now shown in a message pane at the bottom.
+* Removed GTK (client) dependency on libtorrent-python
 
 Bug Fixes:
 
-* The checkbox ("On torrent added") to enable a notification in the list of notifications
+* Fixed bug crashing Deluge when adding torrents
+* The checkbox ("On torrent added") to enable a notification in the list of
+  notifications
   for a subscription was not working.
 * Tooltips were displayed on the wrong row.
 

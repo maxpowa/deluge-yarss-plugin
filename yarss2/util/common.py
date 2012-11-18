@@ -54,6 +54,11 @@ def get_version():
     """
     return pkg_resources.require("YaRSS2")[0].version
 
+def is_running_from_egg():
+    import pkg_resources, sys
+    egg = pkg_resources.require("YaRSS2")[0]
+    return egg.location.endswith(".egg")
+
 def get_deluge_version():
     import deluge.common
     return deluge.common.get_version()
@@ -108,10 +113,11 @@ def get_value_in_selected_row(treeview, store, column_index=0):
 
 def write_to_file(filepath, content):
     """Used for debugging"""
-    count = 0
-    while os.path.isfile(filepath % count):
-        count += 1
-    filepath = filapath % count
+    if "%d" in filepath:
+        count = 0
+        while os.path.isfile(filepath % count):
+            count += 1
+        filepath = filapath % count
     local_file = open(filepath, "w")
     local_file.write(content)
     local_file.close()
@@ -143,11 +149,10 @@ def get_exception_string():
 
 def dicts_equals(dict1, dict2, debug=False):
     """Compares two dictionaries, checking that they have the same key/values"""
+    ret = True
     if not (type(dict1) is dict and type(dict2) is dict):
         print "dicts_equals: Both arguments are not dictionaries!"
         return False
-    if debug:
-        print "dict_equals"
 
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
@@ -157,14 +162,14 @@ def dicts_equals(dict1, dict2, debug=False):
     for key in dict1.keys():
         if type(dict1[key]) is dict:
             if not dicts_equals(dict1[key], dict2[key], debug=debug):
-                return False
+                ret = False
         else:
             # Compare values
             if dict1[key] != dict2[key]:
                 if debug:
                     print "Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key])
-                return False
-    return True
+                ret = False
+    return ret
 
 
 class GeneralSubsConf:
@@ -187,3 +192,27 @@ class GeneralSubsConf:
             return GeneralSubsConf.ENABLED
         else:
             return GeneralSubsConf.DISABLED
+
+class TorrentDownload(dict):
+    def __init__(self, d={}):
+        self["filedump"] = None
+        self["error_msg"] = None
+        self["torrent_id"] = None
+        self["success"] = True
+        self["url"] = None
+        self["is_magnet"] = False
+        self["cookies_dict"] = None
+        self.update(d)
+
+    def __getattr__(self, attr):
+        return self[attr]
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def set_error(self, error_msg):
+        self["error_msg"] = error_msg
+        self["success"] = False
+
+    def to_dict(self):
+        return self.copy()

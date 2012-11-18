@@ -92,12 +92,37 @@ def url_fix(s, charset='utf-8'):
     qs = urllib.quote_plus(qs, ':&=')
     return urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
 
+def clean_html_body(html_page):
+    from bs4 import BeautifulSoup, Comment
+    soup = BeautifulSoup(html_page)
+    comments = soup.findAll(text=lambda text:isinstance(html_page, Comment))
+    [comment.extract() for comment in comments]
+
+    # Removing head
+    soup.html.head.extract()
+    # Removing scripts
+    [s.extract() for s in soup('script')]
+    [s.extract() for s in soup('style')]
+
+    for tag in soup():
+        del tag["style"]
+
+    s = HTMLStripper()
+    s.feed(str(soup))
+    safe_html = s.get_data()
+    import re
+    # Allow max two consecutive \n
+    safe_html = re.sub(r'\n(\n)+', r'\n\n', safe_html)
+    return safe_html
+
 class HTMLStripper(HTMLParser):
     def __init__(self):
         self.reset()
         self.fed = []
+
     def handle_data(self, d):
         self.fed.append(d)
+
     def get_data(self):
         prev_empty = False
         data = ""

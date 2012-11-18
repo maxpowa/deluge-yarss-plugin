@@ -34,8 +34,10 @@
 #
 
 from twisted.trial import unittest
-from yarss2 import http
+from yarss2.util import http
 import yarss2.yarss_config
+from yarss2.lib.feedparser import feedparser
+from yarss2.util import common
 
 class HTTPTestCase(unittest.TestCase):
 
@@ -92,8 +94,6 @@ class HTTPTestCase(unittest.TestCase):
         """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
         This test disables XML Parser and verifies that the URL is correct
         """
-        from yarss2.lib.feedparser import feedparser
-        from yarss2 import common
         file_path = common.get_resource("rss_with_ampersand_link.rss", path="tests")
         # This is the link in rss_with_ampersand_link.rss
         url = "http://hostname.com/Fetch?hash=2f21d4e59&amp;digest=865178f9bc"
@@ -105,3 +105,30 @@ class HTTPTestCase(unittest.TestCase):
         for item in parsed_feeds['items']:
             self.assertEquals(expected, item["link"])
             break
+
+    def test_clean_html_body(self):
+        from yarss2 import load_libs
+        load_libs()
+        web_page = """<html>
+  <head>
+   <title>
+    Page title
+   </title>
+  </head>
+  <body>
+   <p id="firstpara" align="center">
+    This is paragraph
+    <b>
+     one
+    </b>
+   </p>
+   <p id="secondpara" align="blah">
+    This is paragraph
+    <b>
+     two
+    </b>
+   </p>
+  </body>
+ </html>"""
+        cleaned = http.clean_html_body(web_page)
+
