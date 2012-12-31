@@ -23,8 +23,9 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_cancel_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_cancel_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -38,8 +39,9 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_save_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_button_save_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -165,7 +167,7 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
-                        <property name="adjustment">120 1 10000 1 10 0</property>
+                        <property name="adjustment">120 15 10000 1 10 0</property>
                       </widget>
                       <packing>
                         <property name="left_attach">1</property>
@@ -198,6 +200,7 @@
                         <property name="has_tooltip">True</property>
                         <property name="tooltip" translatable="yes">Some RSS Feeds provide a TTL value to suggest the update time to be used. 
 Check this to have 'update time' set to the TTL found in the RSS Feed.</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                       </widget>
                       <packing>

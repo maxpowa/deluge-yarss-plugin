@@ -8,6 +8,12 @@ License: GPLv3
 
 Changelog
 
+v1.2.1 - 2013-01-12
+
+Bug Fixes:
+
+* Fixed bug causing running subscriptions manually to fail.
+
 v1.2.0 - 2012-12-10
 
 * Added new options in the subscription dialog (Bandwidth, General).

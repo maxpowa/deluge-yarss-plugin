@@ -45,7 +45,7 @@ from deluge.core.rpcserver import export
 
 from yarss2.yarss_config import YARSSConfig
 from yarss2.torrent_handling import TorrentHandler
-from yarss2.rssfeed_handling import RSSFeedTimer
+from yarss2.rssfeed_scheduler import RSSFeedScheduler
 import yarss2.util.logger
 import yarss2.util.common
 from yarss2.util.http import get_matching_cookies_dict
@@ -67,20 +67,20 @@ class Core(CorePluginBase):
             self.yarss_config = YARSSConfig(self.log)
         else:
             self.yarss_config = config
-        self.rssfeed_timer = RSSFeedTimer(self.yarss_config, self.log)
-        self.rssfeed_timer.enable_timers()
+        self.rssfeed_scheduler = RSSFeedScheduler(self.yarss_config, self.log)
+        self.rssfeed_scheduler.enable_timers()
         self.log.info("Enabled YaRSS2 %s" % yarss2.util.common.get_version())
 
     def disable(self):
         self.yarss_config.save()
-        self.rssfeed_timer.disable_timers()
+        self.rssfeed_scheduler.disable_timers()
 
     def update(self):
         pass
 
     @export
     def initiate_rssfeed_update(self, rssfeed_key, subscription_key=None):
-        self.rssfeed_timer.rssfeed_update_handler(rssfeed_key, subscription_key=subscription_key)
+        return self.rssfeed_scheduler.queue_rssfeed_update(rssfeed_key, subscription_key=subscription_key)
 
     @export
     def get_config(self):
@@ -129,10 +129,10 @@ class Core(CorePluginBase):
             config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key,
                                                          data_dict=rssfeed_data, delete=delete)
             if delete is True:
-                self.rssfeed_timer.delete_timer(dict_key)
+                self.rssfeed_scheduler.delete_timer(dict_key)
             # Successfully saved rssfeed, check if timer was changed
             elif config:
-                if self.rssfeed_timer.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
+                if self.rssfeed_scheduler.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
                     self.log.info("Scheduled RSS Feed '%s' with interval %s" %
                              (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config

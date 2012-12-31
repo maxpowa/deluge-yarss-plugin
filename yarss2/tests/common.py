@@ -120,3 +120,34 @@ class DatetimeEncoder(json.JSONEncoder):
              return obj.isoformat()
          return json.JSONEncoder.default(self, obj)
 
+
+
+####################################
+## Helper methods for test data
+####################################
+
+def get_test_config_dict():
+    config =  yarss2.yarss_config.default_prefs()
+    file_url = yarss2.util.common.get_resource(testdata_rssfeed_filename, path="tests")
+    rssfeeds = get_default_rssfeeds(3)
+    subscriptions = get_default_subscriptions(5)
+
+    rssfeeds["0"]["name"] = "Test RSS Feed"
+    rssfeeds["0"]["url"] = file_url
+    rssfeeds["1"]["name"] = "Test RSS Feed2"
+    rssfeeds["1"]["active"] = False
+
+    subscriptions["0"]["name"] = "Matching subscription"
+    subscriptions["0"]["regex_include"] = "sparc64"
+    subscriptions["1"]["name"] = "Non-matching subscription"
+    subscriptions["1"]["regex_include"] = None
+    subscriptions["2"]["name"] = "Inactive subscription"
+    subscriptions["2"]["active"] = False
+    subscriptions["3"]["name"] = "Update_time too new"
+    subscriptions["3"]["last_match"] = datetime.datetime.now().isoformat()
+    subscriptions["4"]["name"] = "Wrong rsskey subscription"
+    subscriptions["4"]["rssfeed_key"] = "1"
+
+    config["rssfeeds"] = rssfeeds
+    config["subscriptions"] = subscriptions
+    return config

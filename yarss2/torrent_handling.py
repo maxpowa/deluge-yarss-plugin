@@ -80,12 +80,12 @@ class TorrentHandler(object):
         download = None
 
         if url.startswith("magnet:"):
-            self.log.info("Adding magnet: '%s'" % url)
+            self.log.info("Fetching magnet: '%s'" % url, gtkui=False)
             download = TorrentDownload({"is_magnet": True, "url": url})
         else:
             # Fix unicode URLs
             url = http.url_fix(url)
-            self.log.info("Adding torrent: '%s' using cookies: %s" % (url, str(site_cookies_dict)))
+            self.log.info("Downloading torrent: '%s' using cookies: %s" % (url, str(site_cookies_dict)), gtkui=False)
             download = self.download_torrent_file(url, site_cookies_dict)
             # Error occured
             if not download.success:
