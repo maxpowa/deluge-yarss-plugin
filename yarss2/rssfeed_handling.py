@@ -44,7 +44,6 @@ import deluge.component as component
 from yarss2.lib.feedparser import feedparser
 from yarss2.yarss_config import YARSSConfigChangedEvent
 from yarss2.util import http, common
-from yarss2.torrent_handling import TorrentHandler
 
 class RSSFeedHandler(object):
 
@@ -362,6 +361,8 @@ class RSSFeedTimer(object):
         self.run_queue = RSSFeedRunQueue()
         self.log = logger
         self.rssfeedhandler = RSSFeedHandler(logger)
+        # import here to avoid torrent_handling loading libtorrent with only deluge-gtk installed
+        from yarss2.torrent_handling import TorrentHandler
         self.torrent_handler = TorrentHandler(logger)
         self.add_torrent_func = self.torrent_handler.add_torrents # To make it possible to disable adding torrents in testing
 
