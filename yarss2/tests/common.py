@@ -39,8 +39,9 @@ import datetime
 import deluge.config
 import tempfile
 import deluge.configmanager
+import deluge.core.preferencesmanager
 
-import yarss2.common
+import yarss2.util.common
 from yarss2 import yarss_config
 
 import deluge.log
@@ -51,7 +52,7 @@ def get_default_subscriptions(count):
     for i in range(count):
         subscriptions[str(i)] = yarss_config.get_fresh_subscription_config(
             name="Non-matching subscription",
-            last_match=yarss2.common.get_default_date().isoformat(),
+            last_match=yarss2.util.common.get_default_date().isoformat(),
             rssfeed_key="0", key=str(i), regex_include=None, regex_exclude=None)
     return subscriptions
 
@@ -61,12 +62,15 @@ def get_default_rssfeeds(count):
         d[str(i)] = yarss_config.get_fresh_rssfeed_config(key=str(i))
     return d
 
-def get_empty_test_config():
-    config_dir = get_tmp_dir()
-    deluge_config = deluge.config.Config("yarss_test.conf",
+def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_config=True):
+    """Creates a YaRSS2 config with a reference to a proper deluge config"""
+    if config_dir is None:
+        config_dir = get_tmp_dir()
+    deluge_config = deluge.config.Config(config_filename,
                                          yarss2.yarss_config.default_prefs(), config_dir=config_dir)
+    core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS, config_dir=config_dir)
     from deluge.log import LOG as log
-    config = yarss2.yarss_config.YARSSConfig(log, deluge_config)
+    config = yarss2.yarss_config.YARSSConfig(log, config=deluge_config, core_config=core_config, verify_config=verify_config)
     return config
 
 def get_tmp_dir():
@@ -74,13 +78,13 @@ def get_tmp_dir():
     deluge.configmanager.set_config_dir(config_directory)
     return config_directory
 
-
 import deluge.common
 json = deluge.common.json
 
 # http://torrents.freebsd.org:8080/rss.xml
-testdata_rssfeed_filename = "freebsd_rss.xml"
-testdata_rss_itmes_json_filename = "freebsd_rss_items_dump.json"
+test_data_dir = "data"
+testdata_rssfeed_filename = "%s/freebsd_rss.xml" % test_data_dir
+testdata_rss_itmes_json_filename = "%s/freebsd_rss_items_dump.json" % test_data_dir
 
 def load_json_testdata():
     return json_load(testdata_rss_itmes_json_filename, dict_int_keys=True)
@@ -88,10 +92,10 @@ def load_json_testdata():
 def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
         if "updated_datetime" in dct:
-            dct["updated_datetime"] = yarss2.common.isodate_to_datetime(dct["updated_datetime"])
+            dct["updated_datetime"] = yarss2.util.common.isodate_to_datetime(dct["updated_datetime"])
         return dct
 
-    filename = yarss2.common.get_resource(filename, path="tests")
+    filename = yarss2.util.common.get_resource(filename, path="tests")
     f = open(filename, "r")
     d = json.load(f, object_hook=datetime_parse)
     f.close()
@@ -104,7 +108,7 @@ def json_load(filename, dict_int_keys=False):
     return d
 
 def json_dump(obj, filename):
-    filename = yarss2.common.get_resource(filename, path="tests")
+    filename = yarss2.util.common.get_resource(filename, path="tests")
     f = open(filename, "wb")
     json.dump(obj, f, indent=2, cls=DatetimeEncoder)
     f.flush()

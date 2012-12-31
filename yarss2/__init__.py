@@ -39,20 +39,28 @@
 
 from deluge.plugins.init import PluginInitBase
 
+import pkg_resources, sys
+import yarss2.util.logger
+log = yarss2.util.logger.Logger()
+
+def load_libs():
+    egg = pkg_resources.require("YaRSS2")[0]
+    for name in egg.get_entry_map("yarss2.libpaths"):
+        ep = egg.get_entry_info("yarss2.libpaths", name)
+        location = "%s/%s" % (egg.location, ep.module_name.replace(".", "/"))
+        sys.path.append(location)
+        log.info("Appending to sys.path: '%s'" % location)
+
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
+        load_libs()
         from core import Core as _plugin_cls
         self._plugin_cls = _plugin_cls
         super(CorePlugin, self).__init__(plugin_name)
 
 class GtkUIPlugin(PluginInitBase):
     def __init__(self, plugin_name):
+        load_libs()
         from gtkui.gtkui import GtkUI as _plugin_cls
         self._plugin_cls = _plugin_cls
         super(GtkUIPlugin, self).__init__(plugin_name)
-
-class WebUIPlugin(PluginInitBase):
-    def __init__(self, plugin_name):
-        from webui import WebUI as _plugin_cls
-        self._plugin_cls = _plugin_cls
-        super(WebUIPlugin, self).__init__(plugin_name)

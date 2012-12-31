@@ -34,13 +34,16 @@
 #
 
 import datetime
+import threading
+
+import twisted.internet.defer as defer
 from twisted.trial import unittest
 
 from deluge.config import Config
 import deluge.configmanager
 from deluge.log import LOG as log
 
-import yarss2.common
+import yarss2.util.common
 import yarss2.yarss_config
 from yarss2.rssfeed_handling import RSSFeedHandler
 
@@ -53,19 +56,56 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.rssfeedhandler = RSSFeedHandler(self.log)
 
     def test_get_rssfeed_parsed(self):
-        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
-
+        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
         rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
-        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+        site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
 
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies)
+
+        # When needing to dump the result in json format
         #common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
 
         self.assertTrue(parsed_feed.has_key("items"))
-
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
+        self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
+        self.assertEquals(parsed_feed["cookie_header"], {'Cookie': 'uid=18463; passkey=b830f87d023037f9393749s932'})
 
-        self.assertTrue(yarss2.common.dicts_equals(items, stored_items))
+    def test_get_link(self):
+        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
+        from yarss2.lib.feedparser import feedparser
+        parsed_feed = feedparser.parse(file_url)
+        item = None
+        for e in parsed_feed["items"]:
+            item = e
+            break
+        # Item has enclosure, so it should use that link
+        self.assertEquals(self.rssfeedhandler.get_link(item), item.enclosures[0]["href"])
+        del item["links"][:]
+        # Item no longer has enclosures, so it should return the regular link
+        self.assertEquals(self.rssfeedhandler.get_link(item), item["link"])
+
+    def test_get_size(self):
+        file_url = yarss2.util.common.get_resource("t1.rss", path="tests/data/feeds/")
+        from yarss2.lib.feedparser import feedparser
+        parsed_feed = feedparser.parse(file_url)
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][0])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (4541927915.52, u'4.23 GB'))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][1])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (402349096.96, u'383.71 MB'))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][2])
+        self.assertEquals(len(size), 1)
+        self.assertEquals(size[0], (857007476))
+
+        size = self.rssfeedhandler.get_size(parsed_feed["items"][3])
+        self.assertEquals(len(size), 2)
+        self.assertEquals(size[0], (14353107637))
+        self.assertEquals(size[1], (13529146982.4, u'12.6 GB'))
 
     def get_default_rssfeeds_dict(self):
         match_option_dict = {}
@@ -134,9 +174,9 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 self.assertEquals(rssfeed_parsed[key]["regex_exclude_match"], (5, 24))
                 break
 
-    def test_fetch_subscription_torrents(self):
-        config = get_test_config()
-        matche_result = self.rssfeedhandler.fetch_subscription_torrents(config, "0")
+    def test_fetch_feed_torrents(self):
+        config = get_test_config_dict()                                # 0 is the rssfeed key
+        matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
@@ -167,9 +207,9 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 ## Helper methods for test data
 ####################################
 
-def get_test_config():
+def get_test_config_dict():
     config =  yarss2.yarss_config.default_prefs()
-    file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+    file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
     rssfeeds = common.get_default_rssfeeds(3)
     subscriptions = common.get_default_subscriptions(5)
 
@@ -226,10 +266,12 @@ def get_test_config():
 ## Testing RSS Feed Timer
 ####################################
 
+from deluge.log import LOG as log
+
 from yarss2.rssfeed_handling import RSSFeedTimer
 from common import get_default_rssfeeds
 
-from deluge.log import LOG as log
+from test_torrent_handling import TestComponent
 
 class RSSFeedTimerTestCase(unittest.TestCase):
 
@@ -241,95 +283,70 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         self.rssfeeds["3"]["update_interval"] = 30
         self.rssfeeds["4"]["update_interval"] = 120
 
-        self.config = common.get_empty_test_config()
+        self.config = common.get_test_config()
         self.config.set_config({"rssfeeds": self.rssfeeds, "email_configurations": {"send_email_on_torrent_events": False} })
 
-    def test_enable_timers(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
+        self.timer = RSSFeedTimer(self.config, log)
+        test_component = TestComponent()
+        self.timer.torrent_handler.download_torrent_file = test_component.download_torrent_file
+        self.timer.enable_timers()
 
+    def tearDown(self):
+        # Must stop loopingcalls or test fails
+        self.timer.disable_timers()
+
+    def test_enable_timers(self):
         # Now verify the timers
-        for key in timer.rssfeed_timers.keys():
+        for key in self.timer.rssfeed_timers.keys():
             # Is the timer running?
-            self.assertTrue(timer.rssfeed_timers[key]["timer"].running)
+            self.assertTrue(self.timer.rssfeed_timers[key]["timer"].running)
 
             # Does the timer have the correct interval?
-            interval = timer.rssfeed_timers[key]["timer"].interval
+            interval = self.timer.rssfeed_timers[key]["timer"].interval
             self.assertEquals(self.rssfeeds[key]["update_interval"] * 60, interval)
-            self.assertEquals(self.rssfeeds[key]["update_interval"], timer.rssfeed_timers[key]["update_interval"])
-
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
+            self.assertEquals(self.rssfeeds[key]["update_interval"], self.timer.rssfeed_timers[key]["update_interval"])
 
     def test_disable_timers(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
-        timer.disable_timers()
+        self.timer.disable_timers()
 
         # Now verify that the timers have been stopped
-        for key in timer.rssfeed_timers.keys():
+        for key in self.timer.rssfeed_timers.keys():
             # Is the timer running?
-            self.assertFalse(timer.rssfeed_timers[key]["timer"].running)
+            self.assertFalse(self.timer.rssfeed_timers[key]["timer"].running)
 
     def test_delete_timer(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
         # Delete timer
-        self.assertTrue(timer.delete_timer("0"))
-        self.assertFalse(timer.delete_timer("-1"))
+        self.assertTrue(self.timer.delete_timer("0"))
+        self.assertFalse(self.timer.delete_timer("-1"))
 
-        self.assertEquals(len(timer.rssfeed_timers.keys()), 4)
-        self.assertFalse(timer.rssfeed_timers.has_key("0"))
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
+        self.assertEquals(len(self.timer.rssfeed_timers.keys()), 4)
+        self.assertFalse(self.timer.rssfeed_timers.has_key("0"))
 
     def test_reschedule_timer(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
-
         # Change interval to 60 minutes
-        self.assertTrue(timer.set_timer("0", 60))
+        self.assertTrue(self.timer.set_timer("0", 60))
 
-        interval = timer.rssfeed_timers["0"]["timer"].interval
+        interval = self.timer.rssfeed_timers["0"]["timer"].interval
         self.assertEquals(60 * 60, interval)
-        self.assertEquals(timer.rssfeed_timers["0"]["update_interval"], 60)
-
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
+        self.assertEquals(self.timer.rssfeed_timers["0"]["update_interval"], 60)
 
     def test_schedule_timer(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
-
         # Add new timer (with key "5") with interval 60 minutes
-        self.assertTrue(timer.set_timer("5", 60))
+        self.assertTrue(self.timer.set_timer("5", 60))
 
         # Verify timer values
-        interval = timer.rssfeed_timers["5"]["timer"].interval
+        interval = self.timer.rssfeed_timers["5"]["timer"].interval
         self.assertEquals(60 * 60, interval)
-        self.assertEquals(timer.rssfeed_timers["5"]["update_interval"], 60)
+        self.assertEquals(self.timer.rssfeed_timers["5"]["update_interval"], 60)
 
         # Should now be 6 timers
-        self.assertEquals(len(timer.rssfeed_timers.keys()), 6)
-
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
-
+        self.assertEquals(len(self.timer.rssfeed_timers.keys()), 6)
 
     def test_interval_unchanged(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
         # Set timer 0 with same interval
-        self.assertFalse(timer.set_timer("0", 1))
-
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
-
+        self.assertFalse(self.timer.set_timer("0", 1))
 
     def test_rssfeed_update_handler(self):
-        timer = RSSFeedTimer(self.config, log)
-        timer.enable_timers()
-
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
         self.config.set_config({"subscriptions": {"0": subscription} })
 
@@ -337,66 +354,74 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         old_last_update = self.rssfeeds["0"]["last_update"]
 
         # Run the rssfeed with key 0
-        timer.rssfeed_update_handler("0")
+        self.timer.rssfeed_update_handler("0")
         self.assertNotEquals(old_last_update, self.rssfeeds["0"]["last_update"])
 
         old_last_update = self.rssfeeds["0"]["last_update"]
 
         # Run the subscription with key 0 like when the user runs it manually
-        timer.rssfeed_update_handler(None, "0")
+        self.timer.rssfeed_update_handler(None, "0")
 
         # last_update should not have changed
         self.assertEquals(old_last_update, self.rssfeeds["0"]["last_update"])
 
-        # Must stop loopingcalls or test fails
-        timer.disable_timers()
-
 
     def test_ttl_value_updated(self):
-        config = get_test_config()
+        config = get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
-        config["rssfeeds"]["0"]["url"] = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
 
-        yarss_config = common.get_empty_test_config()
+        yarss_config = common.get_test_config()
         yarss_config.set_config(config)
 
-        timer = RSSFeedTimer(yarss_config, log)
-        timer.enable_timers()
+        self.timer.disable_timers()
+        self.timer.yarss_config = yarss_config
+        self.timer.enable_timers()
 
         def add_torrents_pass(*arg):
             pass
-        timer.add_torrent_func = add_torrents_pass
+        self.timer.add_torrent_func = add_torrents_pass
 
         # Run the rssfeed with key 0
-        timer.rssfeed_update_handler("0")
+        self.timer.rssfeed_update_handler("0")
 
         # Verify that update_interval of rssfeed in config was updated
         self.assertEquals(yarss_config.get_config()["rssfeeds"]["0"]["update_interval"], 60)
 
         # Verify that update_interval of the timer was updated
-        self.assertEquals(timer.rssfeed_timers["0"]["update_interval"], 60)
-        timer.disable_timers()
-
+        self.assertEquals(self.timer.rssfeed_timers["0"]["update_interval"], 60)
+        self.timer.disable_timers()
 
     def test_rssfeed_update_queue(self):
-        """Doesn't actually test anything". Used to manually test which threads are running
-        with print statements"""
-        from yarss2.rssfeed_handling import RSSFeedRunQueue
+        """Tests that the add_torrent_func is called the correct number of times,
+        and that add_torrent_func is running in the main thread.
+        """
+        # Don't use the loopingcall, so disable just to avoid any trouble
+        self.timer.disable_timers()
+        self.config.set_config(get_test_config_dict())
 
-        self.config.set_config(get_test_config())
-        timer = RSSFeedTimer(self.config, log)
-        def add_torrents_pass(*arg):
-            pass
-        timer.add_torrent_func = add_torrents_pass
+        add_torrents_count = []
+        main_thread = threading.current_thread()
 
-        #import threading
-        #print "TESST thread id:", threading.current_thread()
+        def add_torrents_cb(*arg):
+            self.assertEquals(main_thread, threading.current_thread(), "add_torrents must be called from the main thread!")
+            add_torrents_count.append(0)
+        self.timer.add_torrent_func = add_torrents_cb
 
-        timer.queue_rss_feed_update(rssfeed_key="0")
-        timer.queue_rss_feed_update(subscription_key="1")
-        timer.queue_rss_feed_update(rssfeed_key="1")
-        return timer.queue_rss_feed_update(rssfeed_key="2")
+        d_first = self.timer.queue_rss_feed_update(rssfeed_key="0")
+        self.timer.queue_rss_feed_update(subscription_key="1")
+        self.timer.queue_rss_feed_update(rssfeed_key="1")
+        d_last = self.timer.queue_rss_feed_update(rssfeed_key="2")
+
+        def verify_callback_count(args):
+            self.assertEquals(len(add_torrents_count), 4)
+
+        d_verify_callback = defer.Deferred()
+        d_verify_callback.addCallback(verify_callback_count)
+        # Add verify_callback_results to the deferred chain
+        d_last.chainDeferred(d_verify_callback)
+        return d_first
 
     def test_task_queue(self):
         """Test the RSSFeedRunQueue
@@ -404,34 +429,48 @@ class RSSFeedTimerTestCase(unittest.TestCase):
         """
         from twisted.internet import task
         from yarss2.rssfeed_handling import RSSFeedRunQueue
-        import twisted.internet.defer as defer
-        import threading
 
         main_thread = threading.current_thread()
         runtime_dict = {}
         def test_run(id):
             # Save the start and end time of the job
-            runtime_dict[id] = {"start": yarss2.common.get_current_date()}
-
+            runtime_dict[id] = {"start": yarss2.util.common.get_current_date()}
             # Test that the job is not run in main thread
             self.assertNotEquals(threading.current_thread(), main_thread)
+            runtime_dict[id]["end"] = yarss2.util.common.get_current_date()
+            return id
 
-            runtime_dict[id]["end"] = yarss2.common.get_current_date()
+        result_callback_ids = []
 
-        id_count = 10
-        taskq = RSSFeedRunQueue(1)
+        def result_callback(id):
+            result_callback_ids.append(id)
+
+        ids = [str(i) for i in range(10)]
+        taskq = RSSFeedRunQueue()
         # Start id_count jobs
-        for id in range(id_count):
+        for id in ids:
             d = taskq.push(test_run, str(id))
+            d.addCallback(result_callback)
 
         def verify_times(arg):
             """Verify that start time is later than the previous job's end time"""
-            tmp_date = yarss2.common.get_default_date()
-            for id in range(id_count):
+            tmp_date = yarss2.util.common.get_default_date()
+            for id in range(len(ids)):
                 runtime_dict[str(id)]
                 self.assertTrue(tmp_date < runtime_dict[str(id)]["start"])
                 tmp_date = runtime_dict[str(id)]["end"]
         d_verify = defer.Deferred()
         d_verify.addCallback(verify_times)
+        # Add verify_times to the last added deferred
         d.chainDeferred(d_verify)
+
+        def verify_callback_results(args):
+            self.assertEquals(len(ids), len(result_callback_ids))
+            for i in range(len(ids)):
+                self.assertEquals(ids[i], result_callback_ids[i])
+
+        d_verify_callback = defer.Deferred()
+        d_verify_callback.addCallback(verify_callback_results)
+        # Add verify_callback_results to the deferred chain
+        d_verify.chainDeferred(d_verify_callback)
         return d_verify

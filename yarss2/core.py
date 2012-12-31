@@ -44,16 +44,24 @@ from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
 
 from yarss2.yarss_config import YARSSConfig
-from yarss2.http import get_cookie_header
 from yarss2.torrent_handling import TorrentHandler
 from yarss2.rssfeed_handling import RSSFeedTimer
-import yarss2.logger
-import yarss2.common
+import yarss2.util.logger
+import yarss2.util.common
+from yarss2.util.http import get_matching_cookies_dict
 
 class Core(CorePluginBase):
 
+    def __init__(self, name):
+        """Used for tests only"""
+        if name is not "test":
+            super(Core, self).__init__(name)
+        else:
+            # To avoid warnings when running tests
+            self._component_name = name
+
     def enable(self, config=None):
-        self.log = yarss2.logger.Logger()
+        self.log = yarss2.util.logger.Logger()
         self.torrent_handler = TorrentHandler(self.log)
         if config is None:
             self.yarss_config = YARSSConfig(self.log)
@@ -61,7 +69,7 @@ class Core(CorePluginBase):
             self.yarss_config = config
         self.rssfeed_timer = RSSFeedTimer(self.yarss_config, self.log)
         self.rssfeed_timer.enable_timers()
-        self.log.info("Enabled YaRSS2 %s" % yarss2.common.get_version())
+        self.log.info("Enabled YaRSS2 %s" % yarss2.util.common.get_version())
 
     def disable(self):
         self.yarss_config.save()
@@ -73,10 +81,6 @@ class Core(CorePluginBase):
     @export
     def initiate_rssfeed_update(self, rssfeed_key, subscription_key=None):
         self.rssfeed_timer.rssfeed_update_handler(rssfeed_key, subscription_key=subscription_key)
-
-    @export
-    def set_config(self, config):
-        self.yarss_config.set_config(config)
 
     @export
     def get_config(self):
@@ -107,6 +111,7 @@ class Core(CorePluginBase):
                                                          data_dict=subscription_data, delete=delete)
         except ValueError as (v):
             self.log.error("Failed to save subscription:" + str(v))
+        return None
 
     @export
     def save_rssfeed(self, dict_key=None, rssfeed_data=None, delete=False):
@@ -138,6 +143,10 @@ class Core(CorePluginBase):
     def save_cookie(self, dict_key=None, cookie_data=None, delete=False):
         """Save cookie to config.
         If cookie_data is None and delete=True, delete cookie with key==dict_key"""
+        if cookie_data:
+            if type(cookie_data["value"]) is not dict:
+                self.log.error("Cookie value must be a dictionary!")
+                return None
         try:
             return self.yarss_config.generic_save_config("cookies", dict_key=dict_key,
                                                          data_dict=cookie_data, delete=delete)
@@ -155,6 +164,8 @@ class Core(CorePluginBase):
             self.log.error("Failed to save email message:" + str(v))
 
     @export
-    def add_torrent(self, torrent_url):
-        cookie_header = get_cookie_header(self.yarss_config.get_config()["cookies"], torrent_url)
-        id = self.torrent_handler.add_torrent(torrent_url, cookie_header=cookie_header)
+    def add_torrent(self, torrent_info):
+        site_cookies_dict = get_matching_cookies_dict(self.yarss_config.get_config()["cookies"], torrent_info["link"])
+        torrent_info["site_cookies_dict"] = site_cookies_dict
+        torrent_download = self.torrent_handler.add_torrent(torrent_info)
+        return torrent_download.to_dict()

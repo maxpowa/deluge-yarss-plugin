@@ -8,9 +8,29 @@ License: GPLv3
 
 Changelog
 
+v1.2.0 - 2012-12-10
+
+* Added new options in the subscription dialog (Bandwidth, General).
+* Added support for the enclosure tag in RSS feeds.
+* Using the requests library to handle redirects properly so that non-direct
+  torrent links work.
+* Added "Copy link to clipboard" button to the right click menu in the
+  subscription panel.
+* When failing to download a torrent in the dialog subscription, the page
+  content is now shown in a message pane at the bottom.
+* Removed GTK (client) dependency on libtorrent-python
+
+Bug Fixes:
+
+* Fixed bug crashing Deluge when adding torrents
+* The checkbox ("On torrent added") to enable a notification in the list of
+  notifications
+  for a subscription was not working.
+* Tooltips were displayed on the wrong row.
+
 v1.1.3 - 2012-10-17
 
-* Fixed bug with sending emails.
+* Fixed bug that caused sending emails to fail.
 * The 'From email address' field value in configurations was not loaded.
 * Improved verification of the config on startup. (Fix errors)
 

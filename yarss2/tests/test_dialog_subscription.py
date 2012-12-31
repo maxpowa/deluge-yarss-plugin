@@ -44,13 +44,12 @@ from deluge.log import LOG as log
 import deluge.common
 json = deluge.common.json
 
-from yarss2.gtkui.dialog_subscription import DialogSubscription
-import yarss2.common
+import yarss2.util.common
 from yarss2 import yarss_config
-from yarss2.logger import Logger
+from yarss2.gtkui.dialog_subscription import DialogSubscription
+from yarss2.util.logger import Logger
 
 import common
-import yarss2.common
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
@@ -103,6 +102,14 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         def pass_func(*arg):
             pass
 
+        class DialogWrapper(object):
+            def __init__(self, dialog):
+                self.dialog = dialog
+            def get_visible(self):
+                return True
+
+        subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
+
         # Override the default selection callback
         subscription_dialog.method_perform_rssfeed_selection = pass_func
 
@@ -152,7 +159,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         for k1 in dict1.keys():
             found = False
             for k2 in dict2.keys():
-                if yarss2.common.dicts_equals(dict1[k1], dict2[k2]):
+                if yarss2.util.common.dicts_equals(dict1[k1], dict2[k2]):
                     break
             else:
                 return False
@@ -169,7 +176,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             item["matches"] = store.get_value(it, 0)
             item["title"] = store.get_value(it, 1)
             item["updated"] = store.get_value(it, 2)
-            item["updated_datetime"] = yarss2.common.isodate_to_datetime(store.get_value(it, 2))
+            item["updated_datetime"] = yarss2.util.common.isodate_to_datetime(store.get_value(it, 2))
             item["link"] = store.get_value(it, 3)
             result[str(counter)] = item
             counter += 1
@@ -178,7 +185,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
     def get_test_config(self):
         config =  yarss2.yarss_config.default_prefs()
-        file_url = yarss2.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
         rssfeeds = common.get_default_rssfeeds(2)
         subscriptions = common.get_default_subscriptions(5)
 
@@ -201,3 +208,43 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         config["rssfeeds"] = rssfeeds
         config["subscriptions"] = subscriptions
         return config
+
+    def test_save_subscription(self):
+        subscription_title = "Test subscription"
+        regex_include = "Regex"
+        config = self.get_test_config()
+
+        class TestGTKUI(unittest.TestCase):
+            def save_subscription(self, subscription_data):
+                self.assertEquals(subscription_data["name"], subscription_title)
+                self.assertEquals(subscription_data["regex_include"], regex_include)
+                self.assertEquals(subscription_data["add_torrents_in_paused_state"], "True")
+                self.assertEquals(subscription_data["auto_managed"], "False")
+                self.assertEquals(subscription_data["sequential_download"], "Default")
+                self.assertEquals(subscription_data["prioritize_first_last_pieces"], "Default")
+
+        subscription_config = yarss_config.get_fresh_subscription_config()
+        subscription_dialog = DialogSubscription(TestGTKUI(), # GTKUI
+                                                 self.log, # logger
+                                                 subscription_config,
+                                                 config["rssfeeds"],
+                                                 [], #self.get_move_completed_list(),
+                                                 [], #self.get_download_location_list(),
+                                                 {}, #self.email_messages,
+                                                 {}) #self.cookies)
+        subscription_dialog.setup()
+        subscription_dialog.glade.get_widget("txt_name").set_text(subscription_title)
+        subscription_dialog.glade.get_widget("txt_regex_include").set_text(regex_include)
+        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state_default").set_active(False)
+        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_auto_managed_default").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_auto_managed").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_sequential_download_default").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_sequential_download").set_active(False)
+        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last_default").set_active(True)
+        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last").set_active(True)
+
+        # Sets the index 0 of rssfeed combox activated.
+        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox.set_active(1)
+        subscription_dialog.save_subscription_data()

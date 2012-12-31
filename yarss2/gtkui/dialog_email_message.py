@@ -11,7 +11,7 @@
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 # Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
 #
-# Deluge is free software.
+# YaRSS2 is free software.
 #
 # You may redistribute it and/or modify it under the terms of the
 # GNU General Public License, as published by the Free Software
@@ -41,10 +41,8 @@
 #
 
 import gtk
-from deluge.log import LOG as log
 import deluge.component as component
-
-from yarss2.common import get_resource
+from yarss2.util.common import get_resource
 
 class DialogEmailMessage():
 
@@ -61,9 +59,9 @@ class DialogEmailMessage():
         # Add data
         if self.message_data is not None:
             self.set_initial_data(self.message_data)
-        
         self.dialog = self.glade.get_widget("dialog_email_message")
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
+        self.dialog.set_title("Edit Message" if "key" in self.message_data else "Add Message")
         self.dialog.run()
 
     def set_initial_data(self, data):
@@ -79,7 +77,7 @@ class DialogEmailMessage():
         address = self.glade.get_widget("txt_to_address").get_text().strip()
         subject = self.glade.get_widget("txt_subject").get_text().strip()
         active = self.glade.get_widget("checkbutton_active").get_active()
-        
+
         textbuffer = self.glade.get_widget("txt_email_content").get_buffer()
         message = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
 
@@ -95,9 +93,9 @@ class DialogEmailMessage():
         self.message_data["subject"] = subject
         self.message_data["message"] = message
         self.message_data["active"] = active
-        
+
         self.gtkUI.save_email_message(self.message_data)
-        self.dialog.destroy()        
+        self.dialog.destroy()
 
     def on_button_cancel_clicked(self, Event=None):
         self.dialog.destroy()
