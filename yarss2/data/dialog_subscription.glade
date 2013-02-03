@@ -663,20 +663,6 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkComboBox" id="combobox_move_completed">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="has_entry">True</property>
-                                        <property name="entry_text_column">0</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">4</property>
-                                        <property name="bottom_attach">2</property>
-                                        <property name="y_options"/>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <widget class="GtkLabel" id="download_location_label">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
@@ -686,21 +672,6 @@
                                         <property name="top_attach">1</property>
                                         <property name="bottom_attach">3</property>
                                         <property name="x_options"/>
-                                        <property name="y_options"/>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkComboBox" id="combobox_download_location">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="has_entry">True</property>
-                                        <property name="entry_text_column">0</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">4</property>
-                                        <property name="top_attach">1</property>
-                                        <property name="bottom_attach">3</property>
                                         <property name="y_options"/>
                                       </packing>
                                     </child>
@@ -768,6 +739,37 @@
                                         <property name="top_attach">2</property>
                                         <property name="bottom_attach">4</property>
                                         <property name="x_options"/>
+                                        <property name="y_options"/>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkVBox" id="move_completed_box">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </widget>
+                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="right_attach">4</property>
+                                        <property name="top_attach">1</property>
+                                        <property name="bottom_attach">3</property>
+                                        <property name="y_options"/>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkVBox" id="download_location_box">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </widget>
+                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="right_attach">4</property>
+                                        <property name="bottom_attach">2</property>
                                         <property name="y_options"/>
                                       </packing>
                                     </child>

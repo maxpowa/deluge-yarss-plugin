@@ -45,14 +45,17 @@ import gtk.glade
 from CellRendererPango import CustomAttribute, CellRendererPango
 
 from twisted.internet import threads
+from twisted.internet import defer
 
 import deluge.component as component
+from deluge.ui.client import client
 
 from yarss2.util.common import get_resource, get_value_in_selected_row, string_to_unicode, \
     get_current_date, isodate_to_datetime, GeneralSubsConf, TorrentDownload
 from yarss2.util import http
 import yarss2.util.logger as log
 from yarss2.rssfeed_handling import RSSFeedHandler
+from yarss2.gtkui.path_chooser import PathChooser
 
 class DialogSubscription():
 
@@ -118,16 +121,20 @@ class DialogSubscription():
 ########################################
 
     def setup_move_completed_combobox(self):
-        # Create liststore model to replace default model
-        self.move_completed_store = gtk.ListStore(str)
-        combobox_move_completed = self.glade.get_widget("combobox_move_completed")
-        combobox_move_completed.set_model(self.move_completed_store)
+        move_completed_box = self.glade.get_widget("move_completed_box")
+        self.move_completed_path_chooser = PathChooser("move_completed_paths_list")
+        self.move_completed_path_chooser.set_filechooser_visible(client.is_localhost())
+        self.move_completed_path_chooser.set_enable_properties(False)
+        self.move_completed_path_chooser.set_enable_properties(True)
+        move_completed_box.add(self.move_completed_path_chooser)
+        move_completed_box.show_all()
 
     def setup_download_location_combobox(self):
-        # Create liststore model to replace default model
-        self.download_location_store = gtk.ListStore(str)
-        combobox_download_location = self.glade.get_widget("combobox_download_location")
-        combobox_download_location.set_model(self.download_location_store)
+        download_location_box = self.glade.get_widget("download_location_box")
+        self.download_location_path_chooser = PathChooser("download_location_paths_list")
+        self.download_location_path_chooser.set_filechooser_visible(client.is_localhost())
+        download_location_box.add(self.download_location_path_chooser)
+        download_location_box.show_all()
 
     def setup_rssfeed_combobox(self):
         rssfeeds_combobox = self.glade.get_widget("combobox_rssfeeds")
@@ -155,14 +162,14 @@ class DialogSubscription():
         # Matches, Title, Published, torrent link, CustomAttribute for PangoCellrenderer
         self.matching_store = gtk.ListStore(bool, str, str, str, CustomAttribute)
 
-        self.matching_treeView = gtk.TreeView(self.matching_store)
-        #self.matching_treeView.connect("cursor-changed", self.on_subscription_listitem_activated)
-        #self.matching_treeView.connect("row-activated", self.on_button_edit_subscription_clicked)
-        self.matching_treeView.set_rules_hint(True)
-        self.matching_treeView.connect('button-press-event', self.on_matches_list_button_press_event)
+        self.matching_treeview = gtk.TreeView(self.matching_store)
+        #self.matching_treeview.connect("cursor-changed", self.on_subscription_listitem_activated)
+        #self.matching_treeview.connect("row-activated", self.on_button_edit_subscription_clicked)
+        self.matching_treeview.set_rules_hint(True)
+        self.matching_treeview.connect('button-press-event', self.on_matches_list_button_press_event)
 
-        self.matching_treeView.connect('query-tooltip', self.on_tooltip_matches)
-        self.matching_treeView.set_has_tooltip(True)
+        self.matching_treeview.connect('query-tooltip', self.on_tooltip_matches)
+        self.matching_treeview.set_has_tooltip(True)
 
         def cell_data_func(tree_column, cell, model, tree_iter):
             if model.get_value(tree_iter, 0) == True:
@@ -175,7 +182,7 @@ class DialogSubscription():
         column = gtk.TreeViewColumn("Matches", renderer)
         column.set_cell_data_func(renderer, cell_data_func)
         column.set_sort_column_id(0)
-        self.matching_treeView.append_column(column)
+        self.matching_treeview.append_column(column)
 
         cellrenderer = CellRendererPango()
         column = gtk.TreeViewColumn("Title", cellrenderer, text=1)
@@ -183,16 +190,16 @@ class DialogSubscription():
         column.set_sort_column_id(1)
         column.set_resizable(True)
         column.set_expand(True)
-        self.matching_treeView.append_column(column)
+        self.matching_treeview.append_column(column)
 
         cellrenderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Published", cellrenderer, text=2)
         column.set_sort_column_id(2)
-        self.matching_treeView.append_column(column)
+        self.matching_treeview.append_column(column)
 
         col = gtk.TreeViewColumn()
         col.set_visible(False)
-        self.matching_treeView.append_column(col)
+        self.matching_treeview.append_column(col)
 
         self.list_popup_menu = gtk.Menu()
         menuitem1 = gtk.MenuItem("Add torrent")
@@ -208,7 +215,7 @@ class DialogSubscription():
         self.list_popup_menu.append(menuitem2)
         self.list_popup_menu.append(menuitem3)
         self.list_popup_menu.append(menuitem4)
-        return self.matching_treeView
+        return self.matching_treeview
 
     def set_custom_text_tooltip(self):
         textview = self.glade.get_widget("textview_custom_text")
@@ -254,7 +261,7 @@ class DialogSubscription():
             return True
 
     def on_button_add_torrent_clicked(self, menuitem, use_settings=False):
-        torrent_link = get_value_in_selected_row(self.matching_treeView,
+        torrent_link = get_value_in_selected_row(self.matching_treeview,
                                                  self.matching_store, column_index=3)
         # Save current data to dict
         self.store_subscription_data()
@@ -286,7 +293,7 @@ class DialogSubscription():
                                add_torrent_callback)
 
     def on_button_copy_to_clipboard(self, menuitem, index):
-        text = get_value_in_selected_row(self.matching_treeView,
+        text = get_value_in_selected_row(self.matching_treeview,
                                          self.matching_store, column_index=index)
         if text is not None:
             gtk.clipboard_get().set_text(text)
@@ -612,11 +619,12 @@ class DialogSubscription():
         regex_include_case_sensitive = self.glade.get_widget("regex_include_case").get_active()
         regex_exclude_case_sensitive = self.glade.get_widget("regex_exclude_case").get_active()
         move_completed = ""
-        active_string = self.glade.get_widget("combobox_move_completed").get_active_text()
+        active_string = self.move_completed_path_chooser.get_text()
         if active_string is not None:
             move_completed = active_string.strip()
         download_location = ""
-        active_string = self.glade.get_widget("combobox_download_location").get_active_text()
+        #active_string = self.glade.get_widget("combobox_download_location").get_active_text()
+        active_string = self.download_location_path_chooser.get_text()
         if active_string is not None:
             download_location = active_string.strip()
         last_match = self.glade.get_widget("txt_last_matched").get_text()
@@ -698,8 +706,9 @@ class DialogSubscription():
         self.load_basic_fields_data()
         self.load_rssfeed_combobox_data()
         self.load_notifications_list_data()
-        self.load_move_completed_combobox_data()
-        self.load_download_location_combobox_data()
+        #self.load_move_completed_combobox_data()
+        #self.load_download_location_combobox_data()
+        self.load_path_choosers_data()
         self.load_last_matched_timestamp()
 
     def load_basic_fields_data(self):
@@ -780,33 +789,46 @@ class DialogSubscription():
                                              self.email_messages[key]["active"],
                                              on_added, on_completed])
 
-    def load_move_completed_combobox_data(self):
-        move_completed_value = None
-        move_completed_index = -1
+#    def load_move_completed_combobox_data(self):
+    def load_path_choosers_data(self):
+        print "load_move_completed:", self.move_completed_list
+        self.core_keys = [
+            "download_location",
+            "move_completed_path",
+            "move_completed_paths_list",
+            "download_location_paths_list",
+        ]
 
-        # Load the move completed values
-        for i in range(len(self.move_completed_list)):
-            if self.move_completed_list[i] == self.subscription_data["move_completed"]:
-                move_completed_index = i
-            self.move_completed_store.append([self.move_completed_list[i]])
+        def _on_config_values(config):
+            #self.core_config = config
+            print "_on_config_values:", _on_config_values
 
-        # Set active value in combobox
-        if move_completed_index != -1:
-            self.glade.get_widget("combobox_move_completed").set_active(move_completed_index)
+            if "move_completed_paths_list" in config:
+                self.move_completed_path_chooser.add_values(config["move_completed_paths_list"])
+            if "download_location_paths_list" in config:
+                self.download_location_path_chooser.add_values(config["download_location_paths_list"])
 
-    def load_download_location_combobox_data(self):
-        download_location_value = None
-        download_location_index = -1
+            self.move_completed_path_chooser.set_text(config["move_completed_path"])
+            self.download_location_path_chooser.set_text(config["download_location"])
 
-        # Load the download location values
-        for i in range(len(self.download_location_list)):
-            if self.download_location_list[i] == self.subscription_data["download_location"]:
-                download_location_index = i
-            self.download_location_store.append([self.download_location_list[i]])
+        client.core.get_config_values(self.core_keys).addCallback(_on_config_values)
 
-        # Set active value in combobox
-        if download_location_index != -1:
-            self.glade.get_widget("combobox_download_location").set_active(download_location_index)
+#    def load_download_location_combobox_data(self):
+#        self.download_location_path_chooser.add_values(self.download_location_list)
+#        print "load_download_location:", self.download_location_list
+
+        #download_location_value = None
+        #download_location_index = -1
+        #
+        ## Load the download location values
+        #for i in range(len(self.download_location_list)):
+        #    if self.download_location_list[i] == self.subscription_data["download_location"]:
+        #        download_location_index = i
+        #    self.download_location_store.append([self.download_location_list[i]])
+        #
+        ## Set active value in combobox
+        #if download_location_index != -1:
+        #    self.glade.get_widget("combobox_download_location").set_active(download_location_index)
 
     def load_last_matched_timestamp(self):
         self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])
