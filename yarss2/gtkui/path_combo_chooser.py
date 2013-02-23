@@ -129,15 +129,27 @@ class ValueList(object):
                 index -= 1
             if index >= 0:
                 path = (index, )
-                self.treeview.set_cursor(path)
+            self.treeview.set_cursor(path)
 
-    def set_selected_value(self, value):
+    def set_selected_value(self, value, select_first=False):
+        """
+        Select the row of the list with value
+
+        :param value: the value to be selected
+        :type  value: str
+        :param select_first: if the first item should be selected if the value if not found.
+        :type  select_first: boolean
+
+        """
         for i, row in enumerate(self.tree_store):
             if row[0] == value:
                 self.treeview.set_cursor((i))
                 return
-        # If value doesn't exist, select none
-        self.treeview.get_selection().unselect_all()
+        # The value was not found
+        if select_first:
+            self.treeview.set_cursor((0,))
+        else:
+            self.treeview.get_selection().unselect_all()
 
     def on_treeview_key_press_event(self, widget, event):
         """
@@ -310,6 +322,11 @@ class StoredValuesList(ValueList):
             self.path_list_popup.popup(None, None, None, event.button, time, data=path)
             self.path_list_popup.show_all()
 
+    def remove_selected_path(self):
+        ValueList.remove_selected_path(self)
+        # Resize popup
+        PathChooserPopup.popup(self)
+
     def on_stored_values_treeview_key_press_event(self, widget, event):
         """
         Mimics Combobox behavior
@@ -440,7 +457,10 @@ class PathChooserPopup(object):
         Returns the size of the popup window and the coordinates on the screen.
 
         """
+        self.popup_buttonbox = self.builder.get_object("buttonbox")
+
         # Necessary for the first call, to make treeview.size_request give sensible values
+        #self.popup_window.realize()
         self.treeview.realize()
 
         # We start with the coordinates of the parent window
@@ -450,28 +470,63 @@ class PathChooserPopup(object):
         x += self.entry.allocation.x
         y += self.entry.allocation.y
 
-        height = self.treeview.size_request()[1]
+        height_extra = 8
+
+        height = self.popup_window.size_request()[1]
         width = self.popup_window.size_request()[0]
 
-        # Minimum width is the width of the path entry hbox
-        if width < self.entry.allocation.width:
-            width = self.entry.allocation.width
+        treeview_height = self.treeview.size_request()[1]
+        treeview_width = self.treeview.size_request()[0]
 
-        if len(self.tree_store) > 0:
+        if treeview_height > height:
+            height = treeview_height + height_extra
+
+        butonbox_height = max(self.popup_buttonbox.size_request()[1], self.popup_buttonbox.allocation.height)
+        butonbox_width = max(self.popup_buttonbox.size_request()[0], self.popup_buttonbox.allocation.width)
+
+        if treeview_height > butonbox_height and treeview_height < height :
+            height = treeview_height + height_extra
+
+        # After removing a element from the tree store, self.treeview.size_request()[0]
+        # returns -1 for some reason, so the requested width cannot be used until the treeview
+        # has been displayed once.
+        if treeview_width != -1:
+            width = treeview_width + butonbox_width
+        # The list is empty, so ignore initial popup width request
+        # Will be set to the minimum width next
+        elif len(self.tree_store) == 0:
+            width = 0
+
+        # Minimum width is the width of the path entry + width of buttonbox
+        if width < self.entry.allocation.width + butonbox_width:
+            width = self.entry.allocation.width + butonbox_width
+
+        # 10 is extra spacing
+        content_width = self.treeview.size_request()[0] + butonbox_width + 10
+
+        # If self.max_visible_rows is -1, not restriction is set
+        if len(self.tree_store) > 0 and self.max_visible_rows > 0:
             # The height for one row in the list
-            row_height = height / len(self.tree_store)
+            row_height = self.treeview.size_request()[1] / len(self.tree_store)
             # Adjust the height according to the max number of rows
-            if height > row_height * self.max_visible_rows:
-                height = row_height * self.max_visible_rows
+            max_height = row_height * self.max_visible_rows
+            # Restrict height to max_visible_rows
+            if max_height + height_extra < height:
+                height = max_height
+                height += height_extra
+                # Increase width because of vertical scrollbar
+                content_width += 15
+
+        # Minimum height is the height of the button box
+        if height < butonbox_height + height_extra:
+            height = butonbox_height + height_extra
+
+        if content_width > width:
+            width = content_width
 
         screen = self.path_entry.get_screen()
         monitor_num = screen.get_monitor_at_window(self.path_entry.window)
         monitor = screen.get_monitor_geometry(monitor_num)
-
-        # Add the height of the popup subtracted the total height of the treeview
-        # This is to accomodate for the height of the buttonbox and borders/spacing
-        # Need +1 for when treeview is empty, or it will decrease by one for each time it's popped.
-        height += self.popup_window.allocation.height - self.treeview.allocation.height + 1
 
         if x < monitor.x:
             x = monitor.x
@@ -513,7 +568,7 @@ class PathChooserPopup(object):
 
         Sets the text of the entry to the value in path
         """
-        self.path_entry.set_text(self.tree_store[path][0])
+        self.path_entry.set_text(self.tree_store[path][0], set_file_chooser_folder=True)
         if popdown:
             self.popdown()
 
@@ -556,7 +611,6 @@ class StoredValuesPopup(StoredValuesList, PathChooserPopup):
         self.builder = builder
         self.treeview = self.builder.get_object("stored_values_treeview")
         self.popup_window = self.builder.get_object("stored_values_popup_window")
-        self.popup_content_box = self.builder.get_object("popup_content_box")
         self.popup_buttonbox = self.builder.get_object("buttonbox")
 
         self.path_entry = path_entry
@@ -608,7 +662,6 @@ class StoredValuesPopup(StoredValuesList, PathChooserPopup):
 
         # Set value selected if it exists
         self.set_selected_value(self.path_entry.get_text())
-        #self.set_selected_value(self.get_text())
 
 ###################################################
 # Callbacks
@@ -667,7 +720,7 @@ class StoredValuesPopup(StoredValuesList, PathChooserPopup):
 
     def on_button_remove_clicked(self, widget):
         self.remove_selected_path()
-        self.popup()
+        return True
 
     def on_button_up_clicked(self, widget):
         self.handle_list_scroll(next=False, swap=True)
@@ -795,7 +848,7 @@ class PathAutoCompleter(object):
             value = self.completion_popup.get_selected_value()
             if value:
                 pos = len(self.path_entry.get_text())
-                self.path_entry.set_text(value)
+                self.path_entry.set_text(value, set_file_chooser_folder=False)
                 self.do_completion()
                 return True
         self.path_entry.entry.emit("key-press-event", event)
@@ -810,7 +863,6 @@ class PathAutoCompleter(object):
     def start_completion(self, value):
 
         def get_subdirs(dirname):
-            import os
             try:
                 return os.walk(dirname).next()[1]
             except StopIteration:
@@ -846,7 +898,7 @@ class PathAutoCompleter(object):
         common_prefix = os.path.commonprefix(paths)
 
         if len(common_prefix) > len(value):
-            self.path_entry.set_text(common_prefix)
+            self.path_entry.set_text(common_prefix, set_file_chooser_folder=True)
 
         self.path_entry.entry.set_position(len(self.path_entry.get_text()))
         if self.use_popup and len(paths) > 1:
@@ -867,6 +919,7 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         self.filechooser_visible = True
         self.properties_enabled = True
         self.builder = gtk.Builder()
+        self.popup_buttonbox = self.builder.get_object("buttonbox")
         self.builder.add_from_file(get_resource("path_combo_chooser.ui"))
         self.button_toggle = self.builder.get_object("button_toggle_dropdown")
         self.entry = self.builder.get_object("entry_text")
@@ -943,7 +996,7 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         """
         self.auto_completer.end_completion(value, paths)
 
-    def set_text(self, text):
+    def set_text(self, text, set_file_chooser_folder=True):
         """
         Set the text for the entry.
 
@@ -951,6 +1004,10 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         self.entry.set_text(text)
         self.entry.select_region(0, 0)
         self.entry.set_position(len(text))
+        self.set_selected_value(text, select_first=True)
+        if set_file_chooser_folder:
+            if os.path.isdir(text):
+                self.filechooser_button.set_current_folder(text)
 
     def get_text(self):
         """
@@ -959,7 +1016,10 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         return self.entry.get_text()
 
     def _on_filechooser_button_current_folder_changed(self, widget):
-        self.set_text(widget.get_filename())
+        text = widget.get_filename()
+        if not text.endswith(os.sep):
+            text += os.sep
+        self.set_text(text, set_file_chooser_folder=False)
 
     def _on_entry_text_key_press_event(self, widget, event):
         """
@@ -1110,6 +1170,7 @@ if __name__ == "__main__":
     box1.add(entry2)
 
     paths = ["/media/Movies-HD",
+             "/storage/media/media/media/Series/Grounded for life/Season 2/",
              "/media/torrent/in",
              "/media/Live-show/Misc",
              "/media/Live-show/Consert",
@@ -1135,6 +1196,7 @@ if __name__ == "__main__":
              ]
 
     entry1.add_values(paths)
+    #entry1.set_text("/media/Series/5")
     entry1.set_text("/")
 
     def list_value_added_event(widget, values):

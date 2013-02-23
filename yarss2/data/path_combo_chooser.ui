@@ -13,6 +13,7 @@
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment3">
+    <property name="lower">-1</property>
     <property name="upper">100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
@@ -44,7 +45,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <signal name="clicked" handler="on_config_dialog_button_close_clicked" swapped="no"/>
               </object>
               <packing>
@@ -84,7 +84,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="on_show_filechooser_checkbutton_toggled" swapped="no"/>
                       </object>
@@ -190,7 +189,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="on_enable_auto_completion_checkbutton_toggled" swapped="no"/>
                       </object>
@@ -201,7 +199,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
                         <signal name="pressed" handler="on_set_completion_accelerator_button_pressed" swapped="no"/>
                       </object>
                       <packing>
@@ -233,6 +230,12 @@
     <action-widgets>
       <action-widget response="0">config_dialog_button_close</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkListStore" id="completion_tree_store">
+    <columns>
+      <!-- column-name text -->
+      <column type="gchararray"/>
+    </columns>
   </object>
   <object class="GtkWindow" id="completion_popup_window">
     <property name="can_focus">False</property>
@@ -298,7 +301,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkListStore" id="completion_tree_store">
+  <object class="GtkListStore" id="stored_values_tree_store">
     <columns>
       <!-- column-name text -->
       <column type="gchararray"/>
@@ -306,7 +309,6 @@
   </object>
   <object class="GtkWindow" id="stored_values_popup_window">
     <property name="can_focus">False</property>
-    <property name="border_width">3</property>
     <property name="type">popup</property>
     <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
@@ -316,15 +318,15 @@
     <signal name="focus-out-event" handler="on_stored_values_popup_window_focus_out_event" swapped="no"/>
     <signal name="hide" handler="on_stored_values_popup_window_hide" swapped="no"/>
     <child>
-      <object class="GtkVBox" id="popup_content_box">
+      <object class="GtkHBox" id="hbox1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="border_width">3</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkScrolledWindow" id="scrolledwindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="has_focus">True</property>
-            <property name="is_focus">True</property>
             <property name="can_default">True</property>
             <property name="has_default">True</property>
             <property name="receives_default">True</property>
@@ -345,9 +347,8 @@
                 <signal name="scroll-event" handler="on_stored_values_treeview_scroll_event" swapped="no"/>
                 <child>
                   <object class="GtkTreeViewColumn" id="stored_values_treeview_column">
-                    <property name="resizable">True</property>
                     <property name="sizing">autosize</property>
-                    <property name="fixed_width">129</property>
+                    <property name="fixed_width">127</property>
                     <property name="title" translatable="yes">column</property>
                     <property name="expand">True</property>
                     <child>
@@ -370,114 +371,118 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHButtonBox" id="buttonbox">
+          <object class="GtkVBox" id="vbox2">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="spacing">1</property>
-            <property name="layout_style">center</property>
-            <signal name="key-press-event" handler="on_buttonbox_key_press_event" swapped="no"/>
             <child>
-              <object class="GtkButton" id="button_add">
-                <property name="label" translatable="yes">Add</property>
+              <object class="GtkVButtonBox" id="buttonbox">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_add_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_edit">
-                <property name="label" translatable="yes">Edit</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_edit_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_remove">
-                <property name="label" translatable="yes">Remove</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_remove_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_up">
-                <property name="label" translatable="yes">Up</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="has_tooltip">True</property>
-                <property name="tooltip_text" translatable="yes">Move selected row up in the list.
-Press CTRL and scroll up or press arrow up.</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_up_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_down">
-                <property name="label" translatable="yes">Down</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Move selected row down in the list.
-Press CTRL and scroll down or press arrow down.</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_down_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_properties">
-                <property name="width_request">15</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_button_properties_clicked" swapped="no"/>
+                <property name="can_focus">False</property>
+                <property name="spacing">1</property>
+                <property name="layout_style">start</property>
+                <signal name="key-press-event" handler="on_buttonbox_key_press_event" swapped="no"/>
                 <child>
-                  <object class="GtkImage" id="image1">
+                  <object class="GtkButton" id="button_add">
+                    <property name="label" translatable="yes">Add</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_add_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_edit">
+                    <property name="label" translatable="yes">Edit</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_edit_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_remove">
+                    <property name="label" translatable="yes">Remove</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_remove_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_up">
+                    <property name="label" translatable="yes">Up</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_up_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_down">
+                    <property name="label" translatable="yes">Down</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_down_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_properties">
                     <property name="width_request">15</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="stock">gtk-properties</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_button_properties_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage" id="image1">
+                        <property name="width_request">15</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="stock">gtk-properties</property>
+                      </object>
+                    </child>
                   </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">5</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
-                <property name="position">5</property>
+                <property name="padding">2</property>
+                <property name="position">0</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -488,12 +493,6 @@ Press CTRL and scroll down or press arrow down.</property>
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="stored_values_tree_store">
-    <columns>
-      <!-- column-name text -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -510,6 +509,8 @@ Press CTRL and scroll down or press arrow down.</property>
             <property name="action">select-folder</property>
             <property name="create_folders">False</property>
             <property name="local_only">False</property>
+            <property name="preview_widget_active">False</property>
+            <property name="title" translatable="yes">Select a Directory</property>
             <signal name="current-folder-changed" handler="on_filechooser_button_current_folder_changed" swapped="no"/>
           </object>
           <packing>
@@ -543,7 +544,6 @@ Press CTRL and scroll down or press arrow down.</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="use_action_appearance">False</property>
             <property name="focus_on_click">False</property>
             <signal name="button-press-event" handler="on_button_toggle_dropdown_button_press_event" swapped="no"/>
             <signal name="toggled" handler="on_button_toggle_dropdown_toggled" swapped="no"/>
