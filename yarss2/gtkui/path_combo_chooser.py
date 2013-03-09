@@ -941,6 +941,7 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
             'on_stored_values_popup_window_hide': self._on_stored_values_popup_window_hide,
             "on_button_toggle_dropdown_button_press_event": self._on_button_toggle_dropdown_button_press_event,
             "on_filechooser_button_current_folder_changed": self._on_filechooser_button_current_folder_changed,
+            "on_filechooser_button_show": self._on_filechooser_button_show,
             }
         signal_handlers.update(self.signal_handlers)
         signal_handlers.update(self.auto_completer.signal_handlers)
@@ -1020,6 +1021,11 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         if not text.endswith(os.sep):
             text += os.sep
         self.set_text(text, set_file_chooser_folder=False)
+
+    def _on_filechooser_button_show(self, widget):
+        """Hide the filechooser button"""
+        if not self.filechooser_visible:
+            self.set_filechooser_visible(False)
 
     def _on_entry_text_key_press_event(self, widget, event):
         """
@@ -1198,6 +1204,8 @@ if __name__ == "__main__":
     entry1.add_values(paths)
     #entry1.set_text("/media/Series/5")
     entry1.set_text("/")
+
+    entry1.set_filechooser_visible(False)
 
     def list_value_added_event(widget, values):
         print "Current list values:", widget.get_values()
