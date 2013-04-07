@@ -172,34 +172,7 @@ class Core(CorePluginBase):
 
     @export
     def get_path_completion(self, value):
-    	print "\n\nget_path_completion"
-    	print "value:", value
-        import os
-
-    	dirname = os.path.dirname(value)
-    	basename = os.path.basename(value)
-
-        def get_subdirs(dirname):
-            try:
-                return os.walk(dirname).next()[1]
-            except StopIteration:
-                # Invalid dirname
-                return []
-        dirs = get_subdirs(dirname)
-
-        # No completions available
-        if not dirs:
-            return []
-
-    	print "Dirs:", dirs
-    	matching_dirs = []
-
-    	for s in dirs:
-    		if s.startswith(basename):
-    			p = os.path.join(dirname, s)
-    			if not p.endswith("/"):
-    				p += "/"
-    			matching_dirs.append(p)
-
-    	print "matching_dirs:", matching_dirs
-    	return sorted(matching_dirs)
+        """
+        Returns the available path completions for the input value.
+        """
+        return yarss2.util.common.get_path_completion(value)

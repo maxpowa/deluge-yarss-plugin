@@ -171,6 +171,40 @@ def dicts_equals(dict1, dict2, debug=False):
                 ret = False
     return ret
 
+def get_path_completion(value):
+    """
+    Takes a path value and returns the available completions.
+
+    :param value: path to complete
+    :type value: string
+    :returns: a sorted list of available completions for the input value
+    :rtype: list
+
+    """
+    dirname = os.path.dirname(value)
+    basename = os.path.basename(value)
+    matching_dirs = []
+
+    def get_subdirs(dirname):
+        try:
+            return os.walk(dirname).next()[1]
+        except StopIteration:
+            # Invalid dirname
+            return []
+    dirs = get_subdirs(dirname)
+
+    # No completions available
+    if not dirs:
+        return []
+
+    for s in dirs:
+        if s.startswith(basename):
+            p = os.path.join(dirname, s)
+            if not p.endswith("/"):
+                p += "/"
+            matching_dirs.append(p)
+    return sorted(matching_dirs)
+
 
 class GeneralSubsConf:
     """General subscription config"""
