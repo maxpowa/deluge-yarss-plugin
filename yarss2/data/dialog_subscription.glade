@@ -152,7 +152,7 @@
                                 <property name="primary_icon_sensitive">True</property>
                                 <property name="secondary_icon_sensitive">True</property>
                                 <signal name="changed" handler="on_txt_regex_exclude_changed"/>
-                                <signal name="activate" handler="on_txt_regex_include_changed"/>
+                                <signal name="activate" handler="on_txt_regex_exclude_changed"/>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
