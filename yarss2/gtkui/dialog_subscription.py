@@ -80,6 +80,7 @@ class DialogSubscription():
         self.cookies = cookies
         self.log = logger
         self.rssfeedhandler = RSSFeedHandler(self.log)
+        self.new_subscription = not "key" in subscription_data
 
     def setup(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
@@ -706,8 +707,6 @@ class DialogSubscription():
         self.load_basic_fields_data()
         self.load_rssfeed_combobox_data()
         self.load_notifications_list_data()
-        #self.load_move_completed_combobox_data()
-        #self.load_download_location_combobox_data()
         self.load_path_choosers_data()
         self.load_last_matched_timestamp()
 
@@ -789,9 +788,7 @@ class DialogSubscription():
                                              self.email_messages[key]["active"],
                                              on_added, on_completed])
 
-#    def load_move_completed_combobox_data(self):
     def load_path_choosers_data(self):
-        print "load_move_completed:", self.move_completed_list
         self.core_keys = [
             "download_location",
             "move_completed_path",
@@ -800,35 +797,19 @@ class DialogSubscription():
         ]
 
         def _on_config_values(config):
-            #self.core_config = config
-            print "_on_config_values:", _on_config_values
-
             if "move_completed_paths_list" in config:
                 self.move_completed_path_chooser.add_values(config["move_completed_paths_list"])
             if "download_location_paths_list" in config:
                 self.download_location_path_chooser.add_values(config["download_location_paths_list"])
 
-            self.move_completed_path_chooser.set_text(config["move_completed_path"])
-            self.download_location_path_chooser.set_text(config["download_location"])
+            if self.new_subscription:
+                self.move_completed_path_chooser.set_text(config["move_completed_path"])
+                self.download_location_path_chooser.set_text(config["download_location"])
+            else:
+                self.move_completed_path_chooser.set_text(self.subscription_data["move_completed"])
+                self.download_location_path_chooser.set_text(self.subscription_data["download_location"])
 
         client.core.get_config_values(self.core_keys).addCallback(_on_config_values)
-
-#    def load_download_location_combobox_data(self):
-#        self.download_location_path_chooser.add_values(self.download_location_list)
-#        print "load_download_location:", self.download_location_list
-
-        #download_location_value = None
-        #download_location_index = -1
-        #
-        ## Load the download location values
-        #for i in range(len(self.download_location_list)):
-        #    if self.download_location_list[i] == self.subscription_data["download_location"]:
-        #        download_location_index = i
-        #    self.download_location_store.append([self.download_location_list[i]])
-        #
-        ## Set active value in combobox
-        #if download_location_index != -1:
-        #    self.glade.get_widget("combobox_download_location").set_active(download_location_index)
 
     def load_last_matched_timestamp(self):
         self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])

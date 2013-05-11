@@ -44,9 +44,11 @@ class RSSFeedHandler(object):
         self.agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
 
     def get_link(self, item):
-        link = item['link']
-        if len(item.enclosures) > 0 and item.enclosures[0].has_key("href"):
-            link = item.enclosures[0]["href"]
+        link = None
+        if "link" in item:
+            link = item['link']
+            if len(item.enclosures) > 0 and item.enclosures[0].has_key("href"):
+                link = item.enclosures[0]["href"]
         return link
 
     def _parse_size(self, string):

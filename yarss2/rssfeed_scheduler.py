@@ -77,9 +77,12 @@ class RSSFeedScheduler(object):
         # Already exists, so reschedule if interval has changed
         if self.rssfeed_timers.has_key(key):
             # Interval is the same, so return
-            if self.rssfeed_timers[key]["update_interval"] == interval:
-                return False
-            self.rssfeed_timers[key]["timer"].stop()
+            #if self.rssfeed_timers[key]["update_interval"] == interval:
+            #    return False
+            try:
+                self.rssfeed_timers[key]["timer"].stop()
+            except AssertionError, e:
+                self.log.warn("AssertionError:", e)
             self.rssfeed_timers[key]["update_interval"] = interval
         else:
             # New timer

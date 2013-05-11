@@ -182,7 +182,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="draw_indicator">True</property>
                               </widget>
                               <packing>
@@ -201,7 +200,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="draw_indicator">True</property>
                               </widget>
                               <packing>
@@ -219,7 +217,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
-                                <property name="use_action_appearance">False</property>
                                 <signal name="clicked" handler="on_button_fetch_clicked"/>
                               </widget>
                               <packing>
@@ -502,7 +499,6 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
-                                                <property name="use_action_appearance">False</property>
                                                 <signal name="clicked" handler="on_button_add_notication_clicked"/>
                                               </widget>
                                               <packing>
@@ -564,7 +560,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
-                                            <property name="use_action_appearance">False</property>
                                             <property name="yalign">0.95999997854232788</property>
                                             <signal name="clicked" handler="on_button_remove_notication_clicked"/>
                                           </widget>
@@ -649,33 +644,6 @@
                                     <property name="column_spacing">5</property>
                                     <property name="row_spacing">34</property>
                                     <child>
-                                      <widget class="GtkLabel" id="move_completed_label">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="xalign">0</property>
-                                        <property name="label" translatable="yes">Move completed</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="bottom_attach">2</property>
-                                        <property name="x_options"/>
-                                        <property name="y_options"/>
-                                        <property name="x_padding">8</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkLabel" id="download_location_label">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">Download location</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="top_attach">1</property>
-                                        <property name="bottom_attach">3</property>
-                                        <property name="x_options"/>
-                                        <property name="y_options"/>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <widget class="GtkAccelLabel" id="last_matched_label">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
@@ -712,7 +680,6 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_action_appearance">False</property>
                                         <signal name="clicked" handler="on_button_last_matched_reset_clicked"/>
                                       </widget>
                                       <packing>
@@ -730,7 +697,6 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_action_appearance">False</property>
                                         <signal name="clicked" handler="on_button_last_matched_now_clicked"/>
                                       </widget>
                                       <packing>
@@ -770,6 +736,33 @@
                                         <property name="left_attach">1</property>
                                         <property name="right_attach">4</property>
                                         <property name="bottom_attach">2</property>
+                                        <property name="y_options"/>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="move_completed_label">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="xalign">0</property>
+                                        <property name="label" translatable="yes">Move completed</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="top_attach">1</property>
+                                        <property name="bottom_attach">3</property>
+                                        <property name="x_options"/>
+                                        <property name="y_options"/>
+                                        <property name="x_padding">8</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="download_location_label">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Download location</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="bottom_attach">2</property>
+                                        <property name="x_options"/>
                                         <property name="y_options"/>
                                       </packing>
                                     </child>
@@ -963,7 +956,6 @@
                                                         <property name="sensitive">False</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="draw_indicator">True</property>
                                                       </widget>
                                                       <packing>
@@ -979,7 +971,6 @@
                                                         <property name="sensitive">False</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="active">True</property>
                                                         <property name="draw_indicator">True</property>
                                                       </widget>
@@ -996,7 +987,6 @@
                                                         <property name="sensitive">False</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="draw_indicator">True</property>
                                                       </widget>
                                                       <packing>
@@ -1012,7 +1002,6 @@
                                                         <property name="sensitive">False</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="draw_indicator">True</property>
                                                       </widget>
                                                       <packing>
@@ -1039,7 +1028,6 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="active">True</property>
                                                         <property name="draw_indicator">True</property>
                                                         <signal name="toggled" handler="on_general_checkBox_toggled"/>
@@ -1051,7 +1039,6 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="active">True</property>
                                                         <property name="draw_indicator">True</property>
                                                         <signal name="toggled" handler="on_general_checkBox_toggled"/>
@@ -1067,7 +1054,6 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="active">True</property>
                                                         <property name="draw_indicator">True</property>
                                                         <signal name="toggled" handler="on_general_checkBox_toggled"/>
@@ -1083,7 +1069,6 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
-                                                        <property name="use_action_appearance">False</property>
                                                         <property name="active">True</property>
                                                         <property name="draw_indicator">True</property>
                                                         <signal name="toggled" handler="on_general_checkBox_toggled"/>
@@ -1230,7 +1215,6 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">5</property>
-                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_cancel_clicked"/>
                       </widget>
                       <packing>
@@ -1247,7 +1231,6 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="border_width">4</property>
-                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_save_clicked"/>
                       </widget>
                       <packing>
