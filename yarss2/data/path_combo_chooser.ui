@@ -25,8 +25,8 @@
     <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>
-    <signal name="key-release-event" handler="on_completion_config_dialog_key_release_event" swapped="no"/>
-    <signal name="delete-event" handler="on_completion_config_dialog_delete_event" swapped="no"/>
+    <signal name="key-release-event" handler="on_completion_config_dialog_key_release_event"/>
+    <signal name="delete-event" handler="on_completion_config_dialog_delete_event"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox1">
         <property name="visible">True</property>
@@ -45,7 +45,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_config_dialog_button_close_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_config_dialog_button_close_clicked"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -85,7 +85,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_show_filechooser_checkbutton_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_show_filechooser_checkbutton_toggled"/>
                       </object>
                       <packing>
                         <property name="right_attach">2</property>
@@ -113,7 +113,7 @@
                         <property name="adjustment">adjustment3</property>
                         <property name="climb_rate">1</property>
                         <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_visible_rows_spinbutton_value_changed" swapped="no"/>
+                        <signal name="value-changed" handler="on_visible_rows_spinbutton_value_changed"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -190,7 +190,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_enable_auto_completion_checkbutton_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_enable_auto_completion_checkbutton_toggled"/>
                       </object>
                     </child>
                     <child>
@@ -199,7 +199,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="pressed" handler="on_set_completion_accelerator_button_pressed" swapped="no"/>
+                        <signal name="pressed" handler="on_set_completion_accelerator_button_pressed"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -244,9 +244,9 @@
     <property name="destroy_with_parent">True</property>
     <property name="decorated">False</property>
     <property name="deletable">False</property>
-    <signal name="button-press-event" handler="on_completion_popup_window_button_press_event" swapped="no"/>
-    <signal name="key-press-event" handler="on_completion_popup_window_key_press_event" swapped="no"/>
-    <signal name="focus-out-event" handler="on_completion_popup_window_focus_out_event" swapped="no"/>
+    <signal name="button-press-event" handler="on_completion_popup_window_button_press_event"/>
+    <signal name="key-press-event" handler="on_completion_popup_window_key_press_event"/>
+    <signal name="focus-out-event" handler="on_completion_popup_window_focus_out_event"/>
     <child>
       <object class="GtkVBox" id="popup_content_box1">
         <property name="visible">True</property>
@@ -272,9 +272,9 @@
                 <property name="headers_clickable">False</property>
                 <property name="search_column">0</property>
                 <property name="show_expanders">False</property>
-                <signal name="button-press-event" handler="on_completion_treeview_mouse_button_press_event" swapped="no"/>
-                <signal name="key-press-event" handler="on_completion_treeview_key_press_event" swapped="no"/>
-                <signal name="scroll-event" handler="on_completion_treeview_scroll_event" swapped="no"/>
+                <signal name="button-press-event" handler="on_completion_treeview_mouse_button_press_event"/>
+                <signal name="key-press-event" handler="on_completion_treeview_key_press_event"/>
+                <signal name="scroll-event" handler="on_completion_treeview_scroll_event"/>
                 <child>
                   <object class="GtkTreeViewColumn" id="completion_treeview_column">
                     <property name="sizing">autosize</property>
@@ -314,9 +314,9 @@
     <property name="destroy_with_parent">True</property>
     <property name="decorated">False</property>
     <property name="deletable">False</property>
-    <signal name="button-press-event" handler="on_stored_values_popup_window_button_press_event" swapped="no"/>
-    <signal name="focus-out-event" handler="on_stored_values_popup_window_focus_out_event" swapped="no"/>
-    <signal name="hide" handler="on_stored_values_popup_window_hide" swapped="no"/>
+    <signal name="button-press-event" handler="on_stored_values_popup_window_button_press_event"/>
+    <signal name="focus-out-event" handler="on_stored_values_popup_window_focus_out_event"/>
+    <signal name="hide" handler="on_stored_values_popup_window_hide"/>
     <child>
       <object class="GtkHBox" id="hbox1">
         <property name="visible">True</property>
@@ -342,9 +342,9 @@
                 <property name="headers_clickable">False</property>
                 <property name="search_column">0</property>
                 <property name="show_expanders">False</property>
-                <signal name="button-press-event" handler="on_stored_values_treeview_mouse_button_press_event" swapped="no"/>
-                <signal name="key-press-event" handler="on_stored_values_treeview_key_press_event" swapped="no"/>
-                <signal name="scroll-event" handler="on_stored_values_treeview_scroll_event" swapped="no"/>
+                <signal name="button-press-event" handler="on_stored_values_treeview_mouse_button_press_event"/>
+                <signal name="key-press-event" handler="on_stored_values_treeview_key_press_event"/>
+                <signal name="scroll-event" handler="on_stored_values_treeview_scroll_event"/>
                 <child>
                   <object class="GtkTreeViewColumn" id="stored_values_treeview_column">
                     <property name="sizing">autosize</property>
@@ -353,7 +353,7 @@
                     <property name="expand">True</property>
                     <child>
                       <object class="GtkCellRendererText" id="stored_values_cellrenderertext">
-                        <signal name="edited" handler="on_cellrenderertext_edited" swapped="no"/>
+                        <signal name="edited" handler="on_cellrenderertext_edited"/>
                       </object>
                       <attributes>
                         <attribute name="text">0</attribute>
@@ -380,14 +380,14 @@
                 <property name="can_focus">False</property>
                 <property name="spacing">1</property>
                 <property name="layout_style">start</property>
-                <signal name="key-press-event" handler="on_buttonbox_key_press_event" swapped="no"/>
+                <signal name="key-press-event" handler="on_buttonbox_key_press_event"/>
                 <child>
                   <object class="GtkButton" id="button_add">
                     <property name="label" translatable="yes">Add</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_add_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_add_clicked"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -401,7 +401,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_edit_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_edit_clicked"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -415,7 +415,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_remove_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_remove_clicked"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -429,7 +429,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_up_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_up_clicked"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -443,7 +443,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_down_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_down_clicked"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -457,7 +457,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_properties_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_button_properties_clicked"/>
                     <child>
                       <object class="GtkImage" id="image1">
                         <property name="width_request">15</property>
@@ -510,8 +510,8 @@
             <property name="local_only">False</property>
             <property name="preview_widget_active">False</property>
             <property name="title" translatable="yes">Select a Directory</property>
-            <signal name="show" handler="on_filechooser_button_show" swapped="no"/>
-            <signal name="current-folder-changed" handler="on_filechooser_button_current_folder_changed" swapped="no"/>
+            <signal name="show" handler="on_filechooser_button_show"/>
+            <signal name="current-folder-changed" handler="on_filechooser_button_current_folder_changed"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -528,10 +528,10 @@
             <property name="secondary_icon_activatable">False</property>
             <property name="primary_icon_sensitive">True</property>
             <property name="secondary_icon_sensitive">True</property>
-            <signal name="insert-text" handler="on_entry_text_insert_text" swapped="no"/>
-            <signal name="key-press-event" handler="on_entry_text_key_press_event" swapped="no"/>
-            <signal name="delete-text" handler="on_entry_text_delete_text" swapped="no"/>
-            <signal name="scroll-event" handler="on_entry_text_scroll_event" swapped="no"/>
+            <signal name="insert-text" handler="on_entry_text_insert_text"/>
+            <signal name="key-press-event" handler="on_entry_text_key_press_event"/>
+            <signal name="delete-text" handler="on_entry_text_delete_text"/>
+            <signal name="scroll-event" handler="on_entry_text_scroll_event"/>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -545,9 +545,9 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="focus_on_click">False</property>
-            <signal name="button-press-event" handler="on_button_toggle_dropdown_button_press_event" swapped="no"/>
-            <signal name="toggled" handler="on_button_toggle_dropdown_toggled" swapped="no"/>
-            <signal name="scroll-event" handler="on_button_toggle_dropdown_scroll_event" swapped="no"/>
+            <signal name="button-press-event" handler="on_button_toggle_dropdown_button_press_event"/>
+            <signal name="toggled" handler="on_button_toggle_dropdown_toggled"/>
+            <signal name="scroll-event" handler="on_button_toggle_dropdown_scroll_event"/>
             <child>
               <object class="GtkVBox" id="vbox1">
                 <property name="height_request">10</property>

@@ -112,16 +112,14 @@ class RSSFeedHandler(object):
         try:
             parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, agent=self.agent, timeout=10)
         except Exception, e:
-            self.log.warn("Exception occured in feedparser:" + str(e))
+            self.log.warn("Exception occured in feedparser: " + str(e))
             self.log.warn("Feedparser was called with url: '%s' and header: '%s'" % (rssfeed_data["url"], cookie_header))
-            self.log.warn("Stacktrace:" + common.get_exception_string())
+            self.log.warn("Stacktrace:\n" + common.get_exception_string())
             return None
         return_dict["raw_result"] = parsed_feed
 
         # Error parsing
         if parsed_feed["bozo"] == 1:
-            self.log.warn("Exception occured when fetching feed: %s" %
-                     (str(parsed_feed["bozo_exception"])))
             return_dict["bozo_exception"] = parsed_feed["bozo_exception"]
 
         # Store ttl value if present

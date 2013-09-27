@@ -72,24 +72,21 @@ class RSSFeedScheduler(object):
         """Schedule a timer for the specified interval."""
         try:
             interval = int(interval)
-        except:
+        except ValueError, e:
             self.log.error("Failed to convert interval '%s' to int!" % str(interval))
-        # Already exists, so reschedule if interval has changed
+            return False
+        # Already exists, so reschedule
         if self.rssfeed_timers.has_key(key):
-            # Interval is the same, so return
-            #if self.rssfeed_timers[key]["update_interval"] == interval:
-            #    return False
             try:
                 self.rssfeed_timers[key]["timer"].stop()
             except AssertionError, e:
                 self.log.warn("AssertionError:", e)
+                return False
             self.rssfeed_timers[key]["update_interval"] = interval
         else:
             # New timer
-            # Second argument, the rssfeedkey is passed as argument in the callback method
-            #timer = LoopingCall(self.rssfeed_update_handler, (key))
+            # Second argument, the rssfeedkey is passed as argument to the callback method
             timer = LoopingCall(self.queue_rssfeed_update, key)
-
             self.rssfeed_timers[key] = {"timer": timer, "update_interval": interval}
         self.rssfeed_timers[key]["timer"].start(interval * 60, now=False) # Multiply to get seconds
         return True
@@ -102,6 +99,20 @@ class RSSFeedScheduler(object):
         self.rssfeed_timers[key]["timer"].stop()
         del self.rssfeed_timers[key]
         return True
+
+    def rssfeed_update_handler_safe(self, rssfeed_key=None, subscription_key=None):
+        """
+        This function is called by the LoopingCall, and should avoid passing any
+        raised exceptions back to the loopingcall. This is to make sure the loopingcall
+        doesn't stop.
+        """
+        try:
+            return self.rssfeed_update_handler(rssfeed_key=rssfeed_key, subscription_key=subscription_key)
+        except (Exception, KeyError) as e:
+            import traceback
+            exc_str = traceback.format_exc()
+            self.log.warn("An exception was thrown by the RSS update handler. Please report this bug!\n%s" % exc_str)
+            return False
 
     def rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
         """Goes through all the feeds and runs the active ones.
@@ -120,7 +131,6 @@ class RSSFeedScheduler(object):
         # Fetching the torrent files. Do this slow task in non-main thread.
         for torrent in matching_torrents:
             torrent["torrent_download"] = self.torrent_handler.get_torrent(torrent)
-
 
         # Update TTL value?
         if fetch_result.has_key("ttl"):
@@ -155,7 +165,7 @@ class RSSFeedScheduler(object):
         add_torrent_func(save_subscription_func, matching_torrents, config)
 
     def queue_rssfeed_update(self, *args, **kwargs):
-        d = self.run_queue.push(self.rssfeed_update_handler, *args, **kwargs)
+        d = self.run_queue.push(self.rssfeed_update_handler_safe, *args, **kwargs)
         d.addCallback(self.add_torrents_callback)
         return d
 

@@ -38,30 +38,54 @@ import datetime
 import gtk
 import re
 
+from twisted.internet import defer
+
 from deluge.config import Config
 import deluge.configmanager
 from deluge.log import LOG as log
+import deluge.component as component
 import deluge.common
 json = deluge.common.json
 
 import yarss2.util.common
 from yarss2 import yarss_config
+
+import yarss2.gtkui.dialog_subscription
+
+import deluge.ui.client
+from deluge.ui.client import Client
+
 from yarss2.gtkui.dialog_subscription import DialogSubscription
 from yarss2.util.logger import Logger
 
 import common
+import deluge.configmanager
+import time
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
     def setUp(self):
         self.log = Logger()
+        deluge.ui.client.client = Client()
+        self.client = deluge.ui.client.client
+        self.client.start_classic_mode()
+
+    def tearDown(self):
+        d = component.shutdown()
+        # Components aren't removed from registry in component.shutdown...
+        # so must do that manually
+        for c_name in component._ComponentRegistry.components.keys():
+            del component._ComponentRegistry.components[c_name]
+        return d
 
     def test_rssfeed_selected(self):
+        #deluge.configmanager.set_config_dir("/home/bro/programmer/deluge/deluge-yarss-plugin/yarss2/tests/config")
+        yarss2.gtkui.dialog_subscription.client = self.client
+
         def verify_result(empty, subscription_dialog):
             stored_items = common.load_json_testdata()
             result = self.get_rssfeed_store_content(subscription_dialog)
             self.assertTrue(self.compare_dicts_content(stored_items, result))
-
         defered = self.run_select_rssfeed(callback_func=verify_result)
         return defered
 
@@ -100,7 +124,9 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_dialog.setup()
 
         def pass_func(*arg):
-            pass
+            #pass
+            print "PASS FUNC"
+            return defer.Deferred()
 
         class DialogWrapper(object):
             def __init__(self, dialog):
@@ -111,13 +137,15 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
 
         # Override the default selection callback
-        subscription_dialog.method_perform_rssfeed_selection = pass_func
+        #subscription_dialog.method_perform_rssfeed_selection = pass_func
+        subscription_dialog.perform_rssfeed_selection = pass_func
 
         # Sets the index 0 of rssfeed combox activated.
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
         rssfeeds_combobox.set_active(1)
 
-        defered = subscription_dialog.perform_rssfeed_selection()
+        #defered = subscription_dialog.perform_rssfeed_selection()
+        defered = subscription_dialog.method_perform_rssfeed_selection()
         defered.addCallback(callback_func, subscription_dialog)
         return defered
 

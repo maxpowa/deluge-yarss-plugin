@@ -119,10 +119,6 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         # Should now be 6 timers
         self.assertEquals(len(self.scheduler.rssfeed_timers.keys()), 6)
 
-    def test_interval_unchanged(self):
-        # Set timer 0 with same interval
-        self.assertFalse(self.scheduler.set_timer("0", 1))
-
     def test_rssfeed_update_handler(self):
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
         self.config.set_config({"subscriptions": {"0": subscription} })
@@ -142,6 +138,21 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         # last_update should not have changed
         self.assertEquals(old_last_update, self.rssfeeds["0"]["last_update"])
 
+
+#rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
+
+    def test_rssfeed_update_handler_exception(self):
+        subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
+        self.config.set_config({"subscriptions": {"0": subscription} })
+
+        # Check that last_update changes
+        old_last_update = self.rssfeeds["0"]["last_update"]
+
+        # Run the rssfeed with invalid key
+        ret = self.scheduler.rssfeed_update_handler_safe("0")
+        self.scheduler.rssfeed_update_handler_safe("0")
+        self.assertFalse(self.scheduler.rssfeed_update_handler_safe(1))
+        self.assertRaises(KeyError, self.scheduler.rssfeed_update_handler, 1)
 
     def test_ttl_value_updated(self):
         config = common.get_test_config_dict()

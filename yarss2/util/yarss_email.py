@@ -112,7 +112,7 @@ def send_email(email_conf, server_conf):
         mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
         mailServer.quit()
     except Exception, e:
-        log.error("Sending email notification failed: %s", e)
+        log.error("Sending email notification failed: %s", str(e))
         return False
     else:
         log.info("Sending email notification of finished torrent was successful")

@@ -8,9 +8,13 @@ License: GPLv3
 
 Changelog
 
-v1.2.1 - 2013-01-12
+v1.3.0 - 2013-09-27
 
-Bug Fixes:
+* Added new path chooser to settings.
+* If an error occurs when fetching RSS feeds it should no longer stop the
+  scheduler from running.
+
+v1.2.1 - 2013-01-12
 
 * Fixed bug causing running subscriptions manually to fail.
 

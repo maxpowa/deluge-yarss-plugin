@@ -36,7 +36,6 @@
 import datetime
 import threading
 
-import twisted.internet.defer as defer
 from twisted.trial import unittest
 
 from deluge.config import Config

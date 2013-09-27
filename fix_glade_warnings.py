@@ -22,6 +22,6 @@ if __name__ == '__main__':
 
     dirList = os.listdir(path)
     for fname in dirList:
-        if fname.endswith(".glade"):
+        if fname.endswith(".glade") or fname.endswith(".ui"):
             fix_glade_file(os.path.join(path, fname))
 
