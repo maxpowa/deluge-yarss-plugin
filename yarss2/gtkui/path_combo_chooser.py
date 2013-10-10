@@ -41,7 +41,8 @@ import datetime
 
 import pygtk
 import gtk
-from gtk import gdk, keysyms
+from gtk import gdk
+import keysyms
 
 pygtk.require('2.0')
 

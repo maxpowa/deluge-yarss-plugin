@@ -8,6 +8,14 @@ License: GPLv3
 
 Changelog
 
+v1.3.1 - 2013-10-06
+
+* Included missing file for Windows. (gtk.keysyms)
+
+Bug Fix:
+
+* Fix incorrect handler in exclude regex textbox (Bart Nagel)
+
 v1.3.0 - 2013-09-27
 
 * Added new path chooser to settings.

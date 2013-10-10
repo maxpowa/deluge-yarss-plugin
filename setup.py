@@ -45,7 +45,7 @@ from setuptools import setup, find_packages
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.development@gmail.com"
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 __url__ = "http://dev.deluge-torrent.org/wiki/Plugins/YaRSS2"
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
