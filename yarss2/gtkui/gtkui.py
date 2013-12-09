@@ -635,6 +635,65 @@ class GtkUI(GtkPluginBase):
         viewport.add(self.cookies_treeview)
         viewport.show_all()
 
+        # Setup popop in cookies list to copy text to clipboard
+        self.cookie_list_popup_menu = gtk.Menu()
+        menuitem_copy_cookie = gtk.MenuItem("Copy cookie to clipboard")
+        menuitem_copy_cookie.connect("activate", self.on_button_copy_cookie_to_clipboard)
+        self.cookie_list_popup_menu.append(menuitem_copy_cookie)
+        self.cookies_treeview.connect('button-press-event', self.handle_mouse_right_click_popup,
+                                      self.cookie_list_popup_menu)
+
+    def on_button_copy_cookie_to_clipboard(self, menuitem):
+        cookie = self.get_value_in_selected_row(self.cookies_treeview,
+                                                self.cookies_store,
+                                                column_index=3)
+        if cookie is not None:
+            gtk.clipboard_get().set_text(cookie)
+
+    def get_value_in_selected_row(self, treeview, store, column_index=0):
+        """Helper to get the value at index 'index_column' of the selected element
+        in the given treeview.
+        return None of no item is selected.
+        """
+        tree, tree_id = treeview.get_selection().get_selected()
+        if tree_id:
+            value = store.get_value(tree_id, column_index)
+            return value
+        return None
+
+    def handle_mouse_right_click_popup(self, treeview, event, callback_data=None):
+        """Shows popup on selected row when right clicking"""
+        if event.button == 3:
+            if callback_data is None:
+                return False
+            popupmenu_single_selection = callback_data
+            popupmenu_multi_selection = None
+            if type(callback_data) is tuple:
+                popupmenu_single_selection, popupmenu_multi_selection = callback_data
+            x = int(event.x)
+            y = int(event.y)
+            time = event.time
+            pthinfo = treeview.get_path_at_pos(x, y)
+            model = treeview.get_model()
+            it = model.get_iter(pthinfo[0])
+            link = model.get_value(it, 0)
+            if link is None:
+                return False
+            if pthinfo is not None:
+                path, col, cellx, celly = pthinfo
+                treeview.grab_focus()
+                # Only show popup when right clicking a selected file
+                if not treeview.get_selection().iter_is_selected(it):
+                    return True
+                if popupmenu_multi_selection is not None and treeview.get_selection().count_selected_rows() > 1:
+                    popupmenu_multi_selection.popup(None, None, None, event.button, time, data=path)
+                    popupmenu_multi_selection.show_all()
+                else:
+                    popupmenu_single_selection.popup(None, None, None, event.button, time, data=path)
+                    popupmenu_single_selection.show_all()
+            return True
+
+
     def create_cookies_columns(self, treeview):
         # store: key, active, site, value
 

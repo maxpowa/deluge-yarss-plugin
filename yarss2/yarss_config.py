@@ -455,7 +455,7 @@ def get_fresh_email_config():
     config_dict["smtp_password"] = u""
     config_dict["default_email_to_address"] = u""
     config_dict["default_email_subject"] = u"[YaRSS2]: RSS event ($subscription_title)"
-    config_dict["default_email_message"] = u"Hi\n\nThe following torrents have been downloaded:\n$torrentlist\nRegards"
+    config_dict["default_email_message"] = u"Hi\n\nThe following torrents have been added:\n$torrentlist\nRegards"
     return config_dict
 
 def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_update=u"",

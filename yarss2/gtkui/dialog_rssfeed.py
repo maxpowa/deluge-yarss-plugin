@@ -41,6 +41,7 @@
 #
 
 import gtk
+import re
 from urlparse import urlparse
 
 from deluge.log import LOG as log
@@ -101,7 +102,8 @@ class DialogRSSFeed():
             md.destroy()
             return
         self.rssfeed["name"] = name
-        self.rssfeed["url"] = url
+        # Handle spaces in url
+        self.rssfeed["url"] = re.sub('\s', '%20', url.strip())
         self.rssfeed["update_interval"] = int(update_interval)
         self.rssfeed["site"] = urlparse(url).netloc
         self.rssfeed["obey_ttl"] = obey_ttl

@@ -143,7 +143,6 @@ def send_torrent_email(email_configurations, email_msg, subscription_data=None,
         msg_plain = email_data["message"].replace("$torrentlist", torrentlist_plain)
         torrentlist_html = "<ul><li>%s </li></ul>" % \
             "</li> \n <li> ".join(f for f in torrent_name_list)
-        msg_html = email_data["message"]
         msg_html = email_data["message"].replace('\n', '<br/>')
         msg_html = re.sub(r'\$torrentlist(<br/>){1}?', torrentlist_html, msg_html)
         email_data["message"] = msg_plain
