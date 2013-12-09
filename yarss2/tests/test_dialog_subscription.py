@@ -47,6 +47,8 @@ import deluge.component as component
 import deluge.common
 json = deluge.common.json
 
+import common
+
 import yarss2.util.common
 from yarss2 import yarss_config
 
@@ -58,7 +60,7 @@ from deluge.ui.client import Client
 from yarss2.gtkui.dialog_subscription import DialogSubscription
 from yarss2.util.logger import Logger
 
-import common
+
 import deluge.configmanager
 import time
 

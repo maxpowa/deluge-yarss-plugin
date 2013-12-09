@@ -138,9 +138,6 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         # last_update should not have changed
         self.assertEquals(old_last_update, self.rssfeeds["0"]["last_update"])
 
-
-#rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
-
     def test_rssfeed_update_handler_exception(self):
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
         self.config.set_config({"subscriptions": {"0": subscription} })

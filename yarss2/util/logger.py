@@ -32,6 +32,8 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
+from OpenSSL.SSL import Error as SSLError
+
 import deluge.component as component
 from deluge.event import DelugeEvent
 from deluge.log import LOG as log
@@ -78,3 +80,5 @@ class Logger(object):
             component.get("EventManager").emit(GtkUILogMessageEvent(message))
         except KeyError:
             pass
+        except SSLError, e:
+            log.info("Caught OpenSSL.SSL.Error in gtkui_log_message_event")

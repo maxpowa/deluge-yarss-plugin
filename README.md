@@ -8,6 +8,15 @@ License: GPLv3
 
 Changelog
 
+v1.3.2 - 2013-12-10
+
+* Now handles RSS url's that have spaces
+* Added right click option to copy a cookie
+
+Bug Fix:
+
+* Fix log window causing crash of Deluge.
+
 v1.3.1 - 2013-10-06
 
 * Included missing file for Windows. (gtk.keysyms)

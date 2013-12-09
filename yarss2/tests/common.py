@@ -46,6 +46,10 @@ from yarss2 import yarss_config
 
 import deluge.log
 deluge.log.setupLogger("none")
+import pkg_resources, sys
+from deluge.log import LOG as log
+from yarss2 import load_libs
+load_libs()
 
 def get_default_subscriptions(count):
     subscriptions = {}
@@ -69,7 +73,6 @@ def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_c
     deluge_config = deluge.config.Config(config_filename,
                                          yarss2.yarss_config.default_prefs(), config_dir=config_dir)
     core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS, config_dir=config_dir)
-    from deluge.log import LOG as log
     config = yarss2.yarss_config.YARSSConfig(log, config=deluge_config, core_config=core_config, verify_config=verify_config)
     return config
 

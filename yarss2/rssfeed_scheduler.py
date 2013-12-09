@@ -32,6 +32,8 @@
 #    statement from all source files in the program, then also delete it here.
 #
 
+import traceback
+
 import twisted.internet.defer as defer
 from twisted.internet.task import LoopingCall
 from twisted.internet import threads
@@ -108,11 +110,10 @@ class RSSFeedScheduler(object):
         """
         try:
             return self.rssfeed_update_handler(rssfeed_key=rssfeed_key, subscription_key=subscription_key)
-        except (Exception, KeyError) as e:
-            import traceback
+        except:
+            traceback.print_exc()
             exc_str = traceback.format_exc()
             self.log.warn("An exception was thrown by the RSS update handler. Please report this bug!\n%s" % exc_str)
-            return False
 
     def rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
         """Goes through all the feeds and runs the active ones.
