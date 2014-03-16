@@ -36,6 +36,7 @@ import os
 
 from deluge.core.torrent import TorrentOptions
 from deluge._libtorrent import lt
+from deluge.common import utf8_encoded
 import deluge.component as component
 
 from yarss2.util import common, http
@@ -140,7 +141,7 @@ class TorrentHandler(object):
 
         if download.is_magnet:
             self.log.info("Adding magnet: '%s'" % torrent_url)
-            download.torrent_id = component.get("TorrentManager").add(options=options, magnet=download.url)
+            download.torrent_id = component.get("TorrentManager").add(options=options, magnet=utf8_encoded(download.url))
         else:
             self.log.info("Adding torrent: '%s' using cookies: %s" % (torrent_url, str(site_cookies_dict)))
             # Error occured
