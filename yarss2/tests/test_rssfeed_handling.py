@@ -179,6 +179,22 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
+    def test_feedparser_dates(self):
+        file_url = yarss2.util.common.get_resource("rss_with_special_dates.rss", path="tests/data/")
+        from yarss2.lib.feedparser import feedparser
+        parsed_feed = feedparser.parse(file_url)
+
+        for item in parsed_feed['items']:
+            # Some RSS feeds do not have a proper timestamp
+            dt = None
+            if item.has_key('published_parsed'):
+                published_parsed = item['published_parsed']
+                #print "published_parsed:", published_parsed
+                import time
+                test_val = time.struct_time((2014, 4, 10, 3, 44, 14, 3, 100, -1))
+                self.assertEquals(test_val, published_parsed)
+                break
+
     #def test_label(self):
     #    #from deluge.ui.client import sclient
     #    #sclient.set_core_uri()
