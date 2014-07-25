@@ -1,4 +1,4 @@
-YaRSS2: Yet another RSS 2, a RSS plugin for Deluge.
+## YaRSS2 : Yet another RSS 2, a RSS plugin for Deluge ##
 
 Author: Bro <bro.development@gmail.com>
 
@@ -6,24 +6,56 @@ Based on YaRSS by Camillo Dell'mour
 
 License: GPLv3
 
-Changelog
+## Building the plugin ##
+
+```
+#!bash
+
+$ python setup.py bdist_egg
+```
+
+
+## Running the tests ##
+The directory containing yarss2 must be on the PYTHONPATH
+
+e.g.
+
+```
+#!bash
+
+yarss2$ export PYTHONPATH=$PYTHONPATH:$PWD/..
+```
+
+
+Run the tests with:
+
+```
+#!bash
+
+yarss2$ trial tests
+```
+
+
+## Changelog ##
+
+v1.3.3 - 2014-07-25
+
+* Updated feedparser to 5.1.3
+* Fix Libtorrent error when adding magnet links in Deluge 1.3.3
 
 v1.3.2 - 2013-12-10
 
-* Now handles RSS url's that have spaces
-* Added right click option to copy a cookie
+ + Features
+    * Now handles RSS url's that have spaces
+    * Added right click option to copy a cookie
 
-Bug Fix:
-
-* Fix log window causing crash of Deluge.
+ + Bug Fix
+     * Fix log window causing crash of Deluge.
 
 v1.3.1 - 2013-10-06
 
-* Included missing file for Windows. (gtk.keysyms)
-
-Bug Fix:
-
-* Fix incorrect handler in exclude regex textbox (Bart Nagel)
+ * Fix incorrect handler in exclude regex textbox (Bart Nagel)
+ * Included missing file for Windows. (gtk.keysyms)
 
 v1.3.0 - 2013-09-27
 
@@ -37,23 +69,24 @@ v1.2.1 - 2013-01-12
 
 v1.2.0 - 2012-12-10
 
-* Added new options in the subscription dialog (Bandwidth, General).
-* Added support for the enclosure tag in RSS feeds.
-* Using the requests library to handle redirects properly so that non-direct
-  torrent links work.
-* Added "Copy link to clipboard" button to the right click menu in the
-  subscription panel.
-* When failing to download a torrent in the dialog subscription, the page
-  content is now shown in a message pane at the bottom.
-* Removed GTK (client) dependency on libtorrent-python
+ + Features
+    * Added new options in the subscription dialog (Bandwidth, General).
+    * Added support for the enclosure tag in RSS feeds.
+    * Using the requests library to handle redirects properly so that non-direct
+      torrent links work.
+    * Added "Copy link to clipboard" button to the right click menu in the
+      subscription panel.
+    * When failing to download a torrent in the dialog subscription, the page
+      content is now shown in a message pane at the bottom.
+    * Removed GTK (client) dependency on libtorrent-python
 
-Bug Fixes:
 
-* Fixed bug crashing Deluge when adding torrents
-* The checkbox ("On torrent added") to enable a notification in the list of
-  notifications
-  for a subscription was not working.
-* Tooltips were displayed on the wrong row.
+ + Bug Fix:
+    * Fixed bug crashing Deluge when adding torrents
+    * The checkbox ("On torrent added") to enable a notification in the list of
+      notifications
+      for a subscription was not working.
+    * Tooltips were displayed on the wrong row.
 
 v1.1.3 - 2012-10-17
 
@@ -113,15 +146,3 @@ v1.0 - 2012-03-27
 * First release
 
 (Tested with Deluge 1.3.5)
-
-Tests
-============
-The directory containing yarss2 must be on the PYTHONPATH
-
-e.g.
-yarss2$ export PYTHONPATH=$PYTHONPATH:$PWD/..
-
-Run tests:
-yarss2$ trial tests
-
-
