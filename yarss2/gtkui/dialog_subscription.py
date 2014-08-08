@@ -797,9 +797,9 @@ class DialogSubscription():
         ]
 
         def _on_config_values(config):
-            if not config["move_completed_paths_list"] is None:
+            if not config.get("move_completed_paths_list", None) is None:
                 self.move_completed_path_chooser.add_values(config["move_completed_paths_list"])
-            if not config["download_location_paths_list"] is None:
+            if not config.get("download_location_paths_list", None) is None:
                 self.download_location_path_chooser.add_values(config["download_location_paths_list"])
 
             if self.new_subscription:
