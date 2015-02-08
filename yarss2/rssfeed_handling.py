@@ -229,10 +229,10 @@ class RSSFeedHandler(object):
             if rssfeed_data.get("prefer_magnet", None) and magnet:
                 link = magnet
 
+            storage_folder = item.get('folder', None)
             rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link,
                                                               torrent=torrent, magnet=magnet,
-                                                              published_date=published_date)
-
+                                                              published_date=published_date, folder=storage_folder)
             key += 1
 
         if no_publish_time:
@@ -242,7 +242,7 @@ class RSSFeedHandler(object):
         return return_dict
 
     def _new_rssfeeds_dict_item(self, title, link=None, torrent=None, magnet=None,
-                                published_date=None, key=None):
+                                published_date=None, key=None, folder=None):
         d = {}
         d["title"] = title
         d["link"] = link
@@ -250,6 +250,7 @@ class RSSFeedHandler(object):
         d["updated"] = ""
         d["magnet"] = magnet
         d["torrent"] = torrent
+        d["folder"] = folder
 
         if published_date:
             d["updated"] = published_date
@@ -447,4 +448,5 @@ class RSSFeedHandler(object):
                                                     "site_cookies_dict": fetch_data["site_cookies_dict"],
                                                     "user_agent": fetch_data["user_agent"],
                                                     "referrer": rssfeed_data["url"],
-                                                    "subscription_data": subscription_data})
+                                                    "subscription_data": subscription_data,
+                                                    "folder": matches[key]["folder"]})

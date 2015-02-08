@@ -105,11 +105,22 @@ class TorrentHandler(object):
             download = self.get_torrent(torrent_info)
 
         if subscription_data:
+            sub_folder = None
+            if torrent_info["folder"]:
+                self.log.info("Torrent info specifies folder: '%s'" % torrent_info["folder"], gtkui=False)
+                # Sanitize the folder to avoid directory traversal, can still traverse down
+                sub_folder = torrent_info["folder"].replace("..\\","").replace("../","")
+                sub_folder = sub_folder.translate(str.maketrans('','',':*?"<>|')) # Remove disallowed chars
+                sub_folder = os.path.normpath(sub_folder.lstrip('\\/'))
             if len(subscription_data["move_completed"]) > 0:
                 options["move_completed"] = True
                 options["move_completed_path"] = subscription_data["move_completed"]
+                if sub_folder:
+                    options["move_completed_path"] = os.path.join(options["move_completed_path"],sub_folder)
             if len(subscription_data["download_location"]) > 0:
                 options["download_location"] = subscription_data["download_location"]
+                if sub_folder:
+                    options["download_location"] = os.path.join(options["download_location"],sub_folder)
             if subscription_data["add_torrents_in_paused_state"] != GeneralSubsConf.DEFAULT:
                 options["add_paused"] = GeneralSubsConf().get_boolean(subscription_data["add_torrents_in_paused_state"])
             if subscription_data["auto_managed"] != GeneralSubsConf.DEFAULT:

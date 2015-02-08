@@ -76,6 +76,7 @@ class RSSItem:
     guid: Optional[str] = attr.ib()
     pub_date: Optional[datetime] = attr.ib()
     source: Optional[RSSSource] = attr.ib()
+    folder: Optional[str] = attr.ib()
 
     # Extension
     torrent: Optional[RSSTorrent] = attr.ib()
@@ -224,6 +225,7 @@ def _get_item(element: Element) -> RSSItem:
     guid = get_text(root, 'guid')
     pub_date = get_datetime(root, 'pubDate')
     source = _get_source(root, 'source')
+    folder = get_text(root, 'folder')
     torrent = _get_torrent_element(root)
     torrent_item = _get_torrent_item(root)
     content_encoded = get_text(root, 'content:encoded')
@@ -238,6 +240,7 @@ def _get_item(element: Element) -> RSSItem:
         guid,
         pub_date,
         source,
+        folder,
         torrent,
         torrent_item,
         content_encoded,
