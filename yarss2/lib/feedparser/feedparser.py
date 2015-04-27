@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Universal feed parser
 
 Handles RSS 0.9x, RSS 1.0, RSS 2.0, CDF, Atom 0.3, and Atom 1.0 feeds
@@ -10,10 +9,10 @@ Required: Python 2.4 or later
 Recommended: iconv_codec <http://cjkpython.i18n.org/>
 """
 
-__version__ = "5.1.3"
+__version__ = "5.2.0"
 __license__ = """
-Copyright (c) 2010-2013 Kurt McKee <contactme@kurtmckee.org>
-Copyright (c) 2002-2008 Mark Pilgrim
+Copyright 2010-2015 Kurt McKee <contactme@kurtmckee.org>
+Copyright 2002-2008 Mark Pilgrim
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -307,6 +306,9 @@ class FeedParserDict(dict):
               'tagline': 'subtitle',
               'tagline_detail': 'subtitle_detail'}
     def __getitem__(self, key):
+        '''
+        :return: A :class:`FeedParserDict`.
+        '''
         if key == 'category':
             try:
                 return dict.__getitem__(self, 'tags')[0]['term']
@@ -369,6 +371,9 @@ class FeedParserDict(dict):
     has_key = __contains__
 
     def get(self, key, default=None):
+        '''
+        :return: A :class:`FeedParserDict`.
+        '''
         try:
             return self.__getitem__(key)
         except KeyError:
@@ -537,10 +542,10 @@ class _FeedParserMixin:
         self.incontributor = 0
         self.inpublisher = 0
         self.insource = 0
-        
+
         # georss
         self.ingeometry = 0
-        
+
         self.sourcedata = FeedParserDict()
         self.contentparams = FeedParserDict()
         self._summaryKey = None
@@ -923,26 +928,17 @@ class _FeedParserMixin:
         # address common error where people take data that is already
         # utf-8, presume that it is iso-8859-1, and re-encode it.
         if self.encoding in (u'utf-8', u'utf-8_INVALID_PYTHON_3') and isinstance(output, unicode):
-            self.error_occured = False
-            def error_handler(exc):
-                """This avoids pesky prints to stdout by decode when it fails"""
-                self.error_occured = True
-                l = []
-                return (u"".join(l), exc.end)
             try:
-                codecs.register_error("decoding-error-handler", error_handler)
-                output2 = output.encode('iso-8859-1').decode('utf-8', "decoding-error-handler")
-                if not self.error_occured:
-                    output = output2
-            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                output = output.encode('iso-8859-1').decode('utf-8')
+            except (UnicodeEncodeError, UnicodeDecodeError):
                 pass
 
         # map win-1252 extensions to the proper code points
         if isinstance(output, unicode):
             output = output.translate(_cp1252)
 
-        # categories/tags/keywords/whatever are handled in _end_category
-        if element == 'category':
+        # categories/tags/keywords/whatever are handled in _end_category or _end_tags or _end_itunes_keywords
+        if element in ('category', 'tags', 'itunes_keywords'):
             return output
 
         if element == 'title' and -1 < self.title_depth <= self.depth:
@@ -960,7 +956,7 @@ class _FeedParserMixin:
                     # query variables in urls in link elements are improperly
                     # converted from `?a=1&b=2` to `?a=1&b;=2` as if they're
                     # unhandled character references. fix this special case.
-                    output = re.sub("&amp;", "&", output)
+                    output = output.replace('&amp;', '&')
                     output = re.sub("&([A-Za-z0-9_]+);", "&\g<1>", output)
                     self.entries[-1][element] = output
                     if output:
@@ -1299,7 +1295,7 @@ class _FeedParserMixin:
 
     def _sync_author_detail(self, key='author'):
         context = self._getContext()
-        detail = context.get('%s_detail' % key)
+        detail = context.get('%ss' % key, [FeedParserDict()])[-1]
         if detail:
             name = detail.get('name')
             email = detail.get('email')
@@ -1328,11 +1324,11 @@ class _FeedParserMixin:
                     author = author[:-1]
                 author = author.strip()
             if author or email:
-                context.setdefault('%s_detail' % key, FeedParserDict())
+                context.setdefault('%s_detail' % key, detail)
             if author:
-                context['%s_detail' % key]['name'] = author
+                detail['name'] = author
             if email:
-                context['%s_detail' % key]['email'] = email
+                detail['email'] = email
 
     def _start_subtitle(self, attrsD):
         self.pushContent('subtitle', attrsD, u'text/plain', 1)
@@ -1389,6 +1385,20 @@ class _FeedParserMixin:
         self.pop('publisher')
         self._sync_author_detail('publisher')
     _end_webmaster = _end_dc_publisher
+
+    def _start_dcterms_valid(self, attrsD):
+        self.push('validity', 1)
+
+    def _end_dcterms_valid(self):
+        for validity_detail in self.pop('validity').split(';'):
+            if '=' in validity_detail:
+                key, value = validity_detail.split('=', 1)
+                if key == 'start':
+                    self._save('validity_start', value, overwrite=True)
+                    self._save('validity_start_parsed', _parse_date(value), overwrite=True)
+                elif key == 'end':
+                    self._save('validity_end', value, overwrite=True)
+                    self._save('validity_end_parsed', _parse_date(value), overwrite=True)
 
     def _start_published(self, attrsD):
         self.push('published', 1)
@@ -1459,7 +1469,7 @@ class _FeedParserMixin:
         geometry = _parse_georss_line(self.pop('geometry'))
         if geometry:
             self._save_where(geometry)
-    
+
     def _end_georss_polygon(self):
         this = self.pop('geometry')
         geometry = _parse_georss_polygon(this)
@@ -1585,9 +1595,19 @@ class _FeedParserMixin:
         tags = context.setdefault('tags', [])
         if (not term) and (not scheme) and (not label):
             return
-        value = FeedParserDict({'term': term, 'scheme': scheme, 'label': label})
+        value = FeedParserDict(term=term, scheme=scheme, label=label)
         if value not in tags:
             tags.append(value)
+
+    def _start_tags(self, attrsD):
+        # This is a completely-made up element. Its semantics are determined
+        # only by a single feed that precipitated bug report 392 on Google Code.
+        # In short, this is junk code.
+        self.push('tags', 1)
+
+    def _end_tags(self):
+        for term in self.pop('tags').split(','):
+            self._addTag(term.strip(), None, None)
 
     def _start_category(self, attrsD):
         term = attrsD.get('term')
@@ -1606,6 +1626,11 @@ class _FeedParserMixin:
         for term in self.pop('itunes_keywords').split(','):
             if term.strip():
                 self._addTag(term.strip(), u'http://www.itunes.com/', None)
+
+    def _end_media_keywords(self):
+        for term in self.pop('media_keywords').split(','):
+            if term.strip():
+                self._addTag(term.strip(), None, None)
 
     def _start_itunes_category(self, attrsD):
         self._addTag(attrsD.get('text'), u'http://www.itunes.com/', None)
@@ -1837,6 +1862,17 @@ class _FeedParserMixin:
         # don't do anything, but don't break the enclosed tags either
         pass
 
+    def _start_media_rating(self, attrsD):
+        context = self._getContext()
+        context.setdefault('media_rating', attrsD)
+        self.push('rating', 1)
+
+    def _end_media_rating(self):
+        rating = self.pop('rating')
+        if rating is not None and rating.strip():
+            context = self._getContext()
+            context['media_rating']['content'] = rating
+
     def _start_media_credit(self, attrsD):
         context = self._getContext()
         context.setdefault('media_credit', [])
@@ -1858,7 +1894,7 @@ class _FeedParserMixin:
         restriction = self.pop('restriction')
         if restriction != None and len(restriction.strip()) != 0:
             context = self._getContext()
-            context['media_restriction']['content'] = restriction
+            context['media_restriction']['content'] = [cc.strip().lower() for cc in restriction.split(' ')]
 
     def _start_media_license(self, attrsD):
         context = self._getContext()
@@ -1915,11 +1951,11 @@ class _FeedParserMixin:
             self.psc_chapters_flag = True
             attrsD['chapters'] = []
             self._getContext()['psc_chapters'] = FeedParserDict(attrsD)
-            
+
     def _end_psc_chapters(self):
         # Transition from True -> False
         self.psc_chapters_flag = False
-        
+
     def _start_psc_chapter(self, attrsD):
         if self.psc_chapters_flag:
             start = self._getAttribute(attrsD, 'start')
@@ -2239,6 +2275,8 @@ class _LooseFeedParser(_FeedParserMixin, _BaseHTMLProcessor):
             data = data.replace('&amp;', '&')
             data = data.replace('&quot;', '"')
             data = data.replace('&apos;', "'")
+            data = data.replace('&#x2f;', '/')
+            data = data.replace('&#x2F;', '/')
         return data
 
     def strattrs(self, attrs):
@@ -2248,6 +2286,7 @@ class _RelativeURIResolver(_BaseHTMLProcessor):
     relative_uris = set([('a', 'href'),
                      ('applet', 'codebase'),
                      ('area', 'href'),
+                     ('audio', 'src'),
                      ('blockquote', 'cite'),
                      ('body', 'background'),
                      ('del', 'cite'),
@@ -2270,7 +2309,9 @@ class _RelativeURIResolver(_BaseHTMLProcessor):
                      ('object', 'usemap'),
                      ('q', 'cite'),
                      ('script', 'src'),
-                     ('video', 'poster')])
+                     ('source', 'src'),
+                     ('video', 'poster'),
+                     ('video', 'src')])
 
     def __init__(self, baseuri, encoding, _type):
         _BaseHTMLProcessor.__init__(self, encoding, _type)
@@ -2374,21 +2415,154 @@ class _HTMLSanitizer(_BaseHTMLProcessor):
     valid_css_values = re.compile('^(#[0-9a-f]+|rgb\(\d+%?,\d*%?,?\d*%?\)?|' +
       '\d{0,2}\.?\d{0,2}(cm|em|ex|in|mm|pc|pt|px|%|,|\))?)$')
 
-    mathml_elements = set(['annotation', 'annotation-xml', 'maction', 'math',
-      'merror', 'mfenced', 'mfrac', 'mi', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded',
-      'mphantom', 'mprescripts', 'mroot', 'mrow', 'mspace', 'msqrt', 'mstyle',
-      'msub', 'msubsup', 'msup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder',
-      'munderover', 'none', 'semantics'])
+    mathml_elements = set([
+        'annotation',
+        'annotation-xml',
+        'maction',
+        'maligngroup',
+        'malignmark',
+        'math',
+        'menclose',
+        'merror',
+        'mfenced',
+        'mfrac',
+        'mglyph',
+        'mi',
+        'mlabeledtr',
+        'mlongdiv',
+        'mmultiscripts',
+        'mn',
+        'mo',
+        'mover',
+        'mpadded',
+        'mphantom',
+        'mprescripts',
+        'mroot',
+        'mrow',
+        'ms',
+        'mscarries',
+        'mscarry',
+        'msgroup',
+        'msline',
+        'mspace',
+        'msqrt',
+        'msrow',
+        'mstack',
+        'mstyle',
+        'msub',
+        'msubsup',
+        'msup',
+        'mtable',
+        'mtd',
+        'mtext',
+        'mtr',
+        'munder',
+        'munderover',
+        'none',
+        'semantics',
+    ])
 
-    mathml_attributes = set(['actiontype', 'align', 'columnalign', 'columnalign',
-      'columnalign', 'close', 'columnlines', 'columnspacing', 'columnspan', 'depth',
-      'display', 'displaystyle', 'encoding', 'equalcolumns', 'equalrows',
-      'fence', 'fontstyle', 'fontweight', 'frame', 'height', 'linethickness',
-      'lspace', 'mathbackground', 'mathcolor', 'mathvariant', 'mathvariant',
-      'maxsize', 'minsize', 'open', 'other', 'rowalign', 'rowalign', 'rowalign',
-      'rowlines', 'rowspacing', 'rowspan', 'rspace', 'scriptlevel', 'selection',
-      'separator', 'separators', 'stretchy', 'width', 'width', 'xlink:href',
-      'xlink:show', 'xlink:type', 'xmlns', 'xmlns:xlink'])
+    mathml_attributes = set([
+        'accent',
+        'accentunder',
+        'actiontype',
+        'align',
+        'alignmentscope',
+        'altimg',
+        'altimg-height',
+        'altimg-valign',
+        'altimg-width',
+        'alttext',
+        'bevelled',
+        'charalign',
+        'close',
+        'columnalign',
+        'columnlines',
+        'columnspacing',
+        'columnspan',
+        'columnwidth',
+        'crossout',
+        'decimalpoint',
+        'denomalign',
+        'depth',
+        'dir',
+        'display',
+        'displaystyle',
+        'edge',
+        'encoding',
+        'equalcolumns',
+        'equalrows',
+        'fence',
+        'fontstyle',
+        'fontweight',
+        'form',
+        'frame',
+        'framespacing',
+        'groupalign',
+        'height',
+        'href',
+        'id',
+        'indentalign',
+        'indentalignfirst',
+        'indentalignlast',
+        'indentshift',
+        'indentshiftfirst',
+        'indentshiftlast',
+        'indenttarget',
+        'infixlinebreakstyle',
+        'largeop',
+        'length',
+        'linebreak',
+        'linebreakmultchar',
+        'linebreakstyle',
+        'lineleading',
+        'linethickness',
+        'location',
+        'longdivstyle',
+        'lquote',
+        'lspace',
+        'mathbackground',
+        'mathcolor',
+        'mathsize',
+        'mathvariant',
+        'maxsize',
+        'minlabelspacing',
+        'minsize',
+        'movablelimits',
+        'notation',
+        'numalign',
+        'open',
+        'other',
+        'overflow',
+        'position',
+        'rowalign',
+        'rowlines',
+        'rowspacing',
+        'rowspan',
+        'rquote',
+        'rspace',
+        'scriptlevel',
+        'scriptminsize',
+        'scriptsizemultiplier',
+        'selection',
+        'separator',
+        'separators',
+        'shift',
+        'side',
+        'src',
+        'stackalign',
+        'stretchy',
+        'subscriptshift',
+        'superscriptshift',
+        'symmetric',
+        'voffset',
+        'width',
+        'xlink:href',
+        'xlink:show',
+        'xlink:type',
+        'xmlns',
+        'xmlns:xlink',
+    ])
 
     # svgtiny - foreignObject + linearGradient + radialGradient + stop
     svg_elements = set(['a', 'animate', 'animateColor', 'animateMotion',
@@ -2653,6 +2827,8 @@ def _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, h
 
     if request_headers is supplied it is a dictionary of HTTP request headers
     that will override the values generated by FeedParser.
+
+    :return: A :class:`StringIO.StringIO` or :class:`io.BytesIO`.
     """
 
     if hasattr(url_file_stream_or_string, 'read'):
@@ -2824,7 +3000,7 @@ try:
     del regex
 except NameError:
     pass
-    
+
 def _parse_date_iso8601(dateString):
     '''Parse a variety of ISO-8601-compatible formats like 20040105'''
     m = None
@@ -3039,9 +3215,6 @@ def _parse_date_hungarian(dateString):
     return _parse_date_w3dtf(w3dtfdate)
 registerDateHandler(_parse_date_hungarian)
 
-# Not used, but this had a bug, so mst be looked at
-_rfc822_hour = "(?P<hour>\d{1,2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
-
 timezonenames = {
     'ut': 0, 'gmt': 0, 'z': 0,
     'adt': -3, 'ast': -4, 'at': -4,
@@ -3069,7 +3242,7 @@ def _parse_date_w3dtf(datestr):
             parts.append('00:00:00z')
     elif len(parts) > 2:
         return None
-    date = parts[0].split('-', 2) 
+    date = parts[0].split('-', 2)
     if not date or len(date[0]) != 4:
         return None
     # Ensure that `date` has 3 elements. Using '1' sets the default
@@ -3226,13 +3399,31 @@ registerDateHandler(_parse_date_rfc822)
 _months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
            'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 def _parse_date_asctime(dt):
-    """Parse asctime-style dates"""
-    dayname, month, day, remainder = dt.split(None, 3)
-    # Convert month and day into zero-padded integers
-    month = '%02i ' % (_months.index(month.lower()) + 1)
-    day = '%02i ' % (int(day),)
-    dt = month + day + remainder
-    return time.strptime(dt, '%m %d %H:%M:%S %Y')[:-1] + (0, )
+    """Parse asctime-style dates.
+
+    Converts asctime to RFC822-compatible dates and uses the RFC822 parser
+    to do the actual parsing.
+
+    Supported formats (format is standardized to the first one listed):
+
+    * {weekday name} {month name} dd hh:mm:ss {+-tz} yyyy
+    * {weekday name} {month name} dd hh:mm:ss yyyy
+    """
+
+    parts = dt.split()
+
+    # Insert a GMT timezone, if needed.
+    if len(parts) == 5:
+        parts.insert(4, '+0000')
+
+    # Exit if there are not six parts.
+    if len(parts) != 6:
+        return None
+
+    # Reassemble the parts in an RFC822-compatible order and parse them.
+    return _parse_date_rfc822(' '.join([
+        parts[0], parts[2], parts[1], parts[5], parts[3], parts[4],
+    ]))
 registerDateHandler(_parse_date_asctime)
 
 def _parse_date_perforce(aDateString):
@@ -3251,15 +3442,6 @@ def _parse_date_perforce(aDateString):
     if tm:
         return time.gmtime(rfc822.mktime_tz(tm))
 registerDateHandler(_parse_date_perforce)
-
-def _parse_date_fallback(dateString):
-    '''Parse strings in the english? date format (10/04/2014 03:45:49)'''
-    try:
-        return time.strptime(dateString, "%d/%m/%Y %H:%M:%S")
-    except ValueError:
-        return
-registerDateHandler(_parse_date_fallback)
-
 
 def _parse_date(dateString):
     '''Parses a variety of date formats into a 9-tuple in GMT'''
@@ -3419,7 +3601,7 @@ def convert_to_utf8(http_headers, data):
                                  u'application/xml-external-parsed-entity')
     text_content_types = (u'text/xml', u'text/xml-external-parsed-entity')
     if (http_content_type in application_content_types) or \
-       (http_content_type.startswith(u'application/') and 
+       (http_content_type.startswith(u'application/') and
         http_content_type.endswith(u'+xml')):
         acceptable_content_type = 1
         rfc3023_encoding = http_encoding or xml_encoding or u'utf-8'
@@ -3457,17 +3639,21 @@ def convert_to_utf8(http_headers, data):
 
     # determine character encoding
     known_encoding = 0
-    chardet_encoding = None
+    lazy_chardet_encoding = None
     tried_encodings = []
     if chardet:
-        chardet_encoding = chardet.detect(data)['encoding']
-        if not chardet_encoding:
-            chardet_encoding = ''
-        if not isinstance(chardet_encoding, unicode):
-            chardet_encoding = unicode(chardet_encoding, 'ascii', 'ignore')
+        def lazy_chardet_encoding():
+            chardet_encoding = chardet.detect(data)['encoding']
+            if not chardet_encoding:
+                chardet_encoding = ''
+            if not isinstance(chardet_encoding, unicode):
+                chardet_encoding = unicode(chardet_encoding, 'ascii', 'ignore')
+            return chardet_encoding
     # try: HTTP encoding, declared XML encoding, encoding sniffed from BOM
     for proposed_encoding in (rfc3023_encoding, xml_encoding, bom_encoding,
-                              chardet_encoding, u'utf-8', u'windows-1252', u'iso-8859-2'):
+                              lazy_chardet_encoding, u'utf-8', u'windows-1252', u'iso-8859-2'):
+        if callable(proposed_encoding):
+            proposed_encoding = proposed_encoding()
         if not proposed_encoding:
             continue
         if proposed_encoding in tried_encodings:
@@ -3606,7 +3792,7 @@ def _parse_georss_polygon(value, swap=True, dims=2):
     # A polygon contains a space separated list of latitude-longitude pairs,
     # with each pair separated by whitespace. There must be at least four
     # pairs, with the last being identical to the first (so a polygon has a
-    # minimum of three actual points). 
+    # minimum of three actual points).
     try:
         ring = list(_gen_georss_coords(value, swap, dims))
     except (IndexError, ValueError):
@@ -3629,11 +3815,13 @@ def _parse_georss_box(value, swap=True, dims=2):
 # end geospatial parsers
 
 
-def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, referrer=None, handlers=None, request_headers=None, response_headers=None, timeout=None):
+def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, referrer=None, handlers=None, request_headers=None, response_headers=None, timeout='Global'):
     '''Parse a feed from a URL, file, stream, or string.
 
     request_headers, if given, is a dict from http header name to value to add
     to the request; this overrides internally generated values.
+
+    :return: A :class:`FeedParserDict`.
     '''
 
     if handlers is None:
@@ -3642,6 +3830,9 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
         request_headers = {}
     if response_headers is None:
         response_headers = {}
+    if timeout == 'Global':
+        import socket
+        timeout = socket.getdefaulttimeout()
 
     result = FeedParserDict()
     result['feed'] = FeedParserDict()
@@ -3650,7 +3841,7 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
     if not isinstance(handlers, list):
         handlers = [handlers]
     try:
-        f = _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, timeout=timeout)
+        f = _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, timeout)
         data = f.read()
     except Exception, e:
         result['bozo'] = 1
