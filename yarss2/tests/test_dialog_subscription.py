@@ -76,7 +76,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             p = re.compile(search_regex)
             match_count = 0
             for k in result:
-                if result[k]["matches"]:
+                if result[k]["matches"] == True:
                     match_count += 1
                     self.assertTrue(p.search(result[k]["title"]))
             self.assertEquals(match_count, expected_match_count)

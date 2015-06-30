@@ -42,7 +42,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
         self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
-        self.assertEquals(parsed_feed["cookie_header"], {'Cookie': 'uid=18463; passkey=b830f87d023037f9393749s932'})
+        self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")), ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
 
     def test_get_link(self):
         file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")

@@ -19,13 +19,13 @@ class HTTPTestCase(unittest.TestCase):
         pass
 
     def test_encode_cookie_values(self):
-        expected = "key3=value3; key2=value2; key1=value1"
+        expected = ['key1=value1', 'key2=value2', 'key3=value3']
         cookie_pairs = {}
         cookie_pairs["key1"] = "value1"
         cookie_pairs["key2"] = "value2"
         cookie_pairs["key3"] = "value3"
         encoded = http.encode_cookie_values(cookie_pairs)
-        self.assertEquals(encoded, expected)
+        self.assertEquals(sorted(encoded.split("; ")), expected)
 
     def test_get_cookie_header(self):
         url = "http://basename.com/øashdnf/klasflas/dfnmalskdfn/malskdfnmasloal"
@@ -39,7 +39,7 @@ class HTTPTestCase(unittest.TestCase):
         expected_cookie = "key2=value2; key1=value1"
         header = http.get_cookie_header(cookies, url)
         self.assertTrue(header.has_key("Cookie"))
-        self.assertEquals(header["Cookie"], expected_cookie)
+        self.assertEquals(sorted(header["Cookie"].split("; ")), sorted(expected_cookie.split("; ")))
 
     def test_get_matching_cookies_dict(self):
         cookies = {}
