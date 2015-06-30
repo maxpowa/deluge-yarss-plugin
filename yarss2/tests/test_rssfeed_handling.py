@@ -1,36 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-# test_rssfeed_handling.py
+# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
 #
-# Copyright (C) 2012 Bro
-#
-# Deluge is free software.
-#
-# You may redistribute it and/or modify it under the terms of the
-# GNU General Public License, as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option)
-# any later version.
-#
-# deluge is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with deluge.    If not, write to:
-# 	The Free Software Foundation, Inc.,
-# 	51 Franklin Street, Fifth Floor
-# 	Boston, MA  02110-1301, USA.
-#
-#    In addition, as a special exception, the copyright holders give
-#    permission to link the code of portions of this program with the OpenSSL
-#    library.
-#    You must obey the GNU General Public License in all respects for all of
-#    the code used other than OpenSSL. If you modify file(s) with this
-#    exception, you may extend this exception to your version of the file(s),
-#    but you are not obligated to do so. If you do not wish to do so, delete
-#    this exception statement from your version. If you delete this exception
-#    statement from all source files in the program, then also delete it here.
+# This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
+# the additional special exception to link portions of this program with the OpenSSL library.
+# See LICENSE for more details.
 #
 
 import datetime
@@ -186,14 +160,20 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
         for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
-            dt = None
             if item.has_key('published_parsed'):
                 published_parsed = item['published_parsed']
-                #print "published_parsed:", published_parsed
                 import time
-                test_val = time.struct_time((2014, 4, 10, 3, 44, 14, 3, 100, -1))
+                test_val = time.struct_time((2014, 4, 10, 3, 44, 14, 3, 100, 0))
                 self.assertEquals(test_val, published_parsed)
                 break
+
+    #def test_download_link_with_equal_sign(self):
+    #    file_url = yarss2.util.common.get_resource("rss_with_equal_sign_in_link.rss", path="tests/data/")
+    #    from yarss2.lib.feedparser import feedparser
+    #    from yarss2.torrent_handling import TorrentHandler, TorrentDownload
+    #    rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
+    #    parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=None)
+    #    print "parsed_feed:", parsed_feed["items"]
 
     #def test_label(self):
     #    #from deluge.ui.client import sclient
