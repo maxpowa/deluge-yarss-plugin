@@ -15,11 +15,15 @@
 # See LICENSE for more details.
 #
 
+import sys
+
+import pkg_resources
 from deluge.plugins.init import PluginInitBase
 
-import pkg_resources, sys
 import yarss2.util.logger
+
 log = yarss2.util.logger.Logger()
+
 
 def load_libs():
     egg = pkg_resources.require("YaRSS2")[0]
@@ -29,16 +33,18 @@ def load_libs():
         sys.path.append(location)
         log.info("Appending to sys.path: '%s'" % location)
 
+
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
         load_libs()
-        from core import Core as _plugin_cls
-        self._plugin_cls = _plugin_cls
+        from core import Core as CorePluginClass
+        self._plugin_cls = CorePluginClass
         super(CorePlugin, self).__init__(plugin_name)
+
 
 class GtkUIPlugin(PluginInitBase):
     def __init__(self, plugin_name):
         load_libs()
-        from gtkui.gtkui import GtkUI as _plugin_cls
-        self._plugin_cls = _plugin_cls
+        from gtkui.gtkui import GtkUI as GtkUIPluginClass
+        self._plugin_cls = GtkUIPluginClass
         super(GtkUIPlugin, self).__init__(plugin_name)

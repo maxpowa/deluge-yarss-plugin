@@ -7,10 +7,12 @@
 # See LICENSE for more details.
 #
 
-import re, traceback, datetime
+import datetime
+import re
 
 from yarss2.lib.feedparser import feedparser
-from yarss2.util import http, common
+from yarss2.util import common, http
+
 
 class RSSFeedHandler(object):
 
@@ -22,7 +24,7 @@ class RSSFeedHandler(object):
         link = None
         if "link" in item:
             link = item['link']
-            if len(item.enclosures) > 0 and item.enclosures[0].has_key("href"):
+            if len(item.enclosures) > 0 and "href" in item.enclosures[0]:
                 link = item.enclosures[0]["href"]
         return link
 
@@ -35,12 +37,6 @@ class RSSFeedHandler(object):
             groupdict = match.groupdict()
             size = groupdict["size"]
             unit = groupdict["unit"]
-            #print "group0:", match.group(0)
-            #print "group1:", match.group(1)
-            #print "group2:", match.group(2)
-            #print "group3:", match.group(3)
-            #print "size:", size
-            #print "unit:", unit
             size_str = "%s %s" % (size, unit)
 
             if unit == "GB":
@@ -52,15 +48,15 @@ class RSSFeedHandler(object):
 
     def get_size(self, item):
         size = []
-        if len(item.enclosures) > 0 and item.enclosures[0].has_key("length"):
+        if len(item.enclosures) > 0 and "length" in item.enclosures[0]:
             s = item.enclosures[0]["length"]
             size.append(int(s))
 
-        if item.has_key("contentlength"):
+        if "contentlength" in item:
             size_bytes = int(item["contentlength"])
             size.append(int(size_bytes))
 
-        if item.has_key("summary_detail"):
+        if "summary_detail" in item:
             val = item["summary_detail"]["value"]
             size_bytes, size_str = self._parse_size(val)
             if size_str and size_bytes:
@@ -85,10 +81,12 @@ class RSSFeedHandler(object):
 
         # Will abort after 10 seconds if server doesn't answer
         try:
-            parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header, agent=self.agent, timeout=10)
+            parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header,
+                                           agent=self.agent, timeout=10)
         except Exception, e:
             self.log.warn("Exception occured in feedparser: " + str(e))
-            self.log.warn("Feedparser was called with url: '%s' and header: '%s'" % (rssfeed_data["url"], cookie_header))
+            self.log.warn("Feedparser was called with url: '%s' and header: '%s'" %
+                          (rssfeed_data["url"], cookie_header))
             self.log.warn("Stacktrace:\n" + common.get_exception_string())
             return None
         return_dict["raw_result"] = parsed_feed
@@ -98,14 +96,14 @@ class RSSFeedHandler(object):
             return_dict["bozo_exception"] = parsed_feed["bozo_exception"]
 
         # Store ttl value if present
-        if parsed_feed["feed"].has_key("ttl"):
+        if "ttl" in parsed_feed["feed"]:
             return_dict["ttl"] = parsed_feed["feed"]["ttl"]
         key = 0
         no_publish_time = False
         for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
             dt = None
-            if item.has_key('published_parsed'):
+            if 'published_parsed' in item:
                 published = item['published_parsed']
                 dt = datetime.datetime(* published[:6])
             else:
@@ -159,7 +157,7 @@ class RSSFeedHandler(object):
             if rssfeed_parsed[key]["link"] is None:
                 del rssfeed_parsed[key]
 
-        if options.has_key("custom_text_lines") and options["custom_text_lines"]:
+        if "custom_text_lines" in options and options["custom_text_lines"]:
             if not type(options["custom_text_lines"]) is list:
                 self.log.warn("type of custom_text_lines' must be list")
             else:
@@ -173,7 +171,6 @@ class RSSFeedHandler(object):
                 regex = common.string_to_unicode(options["regex_include"]).encode("utf-8")
                 p_include = re.compile(regex, flags)
             except Exception, e:
-                #traceback.print_exc(e)
                 self.log.warn("Regex compile error:" + str(e))
                 message = "Regex: %s" % e
                 p_include = None
@@ -184,7 +181,6 @@ class RSSFeedHandler(object):
                 regex = common.string_to_unicode(options["regex_exclude"]).encode("utf-8")
                 p_exclude = re.compile(regex, flags)
             except Exception, e:
-                #traceback.print_exc(e)
                 self.log.warn("Regex compile error:" + str(e))
                 message = "Regex: %s" % e
                 p_exclude = None
@@ -193,9 +189,9 @@ class RSSFeedHandler(object):
             item = rssfeed_parsed[key]
             title = item["title"].encode("utf-8")
 
-            if item.has_key("regex_exclude_match"):
+            if "regex_exclude_match" in item:
                 del item["regex_exclude_match"]
-            if item.has_key("regex_include_match"):
+            if "regex_include_match" in item:
                 del item["regex_include_match"]
 
             item["matches"] = False
@@ -212,7 +208,6 @@ class RSSFeedHandler(object):
             if item["matches"]:
                 matching_items[key] = rssfeed_parsed[key]
         return matching_items, message
-
 
     def fetch_feed_torrents(self, config, rssfeed_key, subscription_key=None):
         """Called to fetch torrents for a feed
@@ -245,7 +240,7 @@ class RSSFeedHandler(object):
             if subscription_key is not None and subscription_key != key:
                 continue
             subscription_data = config["subscriptions"][key]
-            if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] == True:
+            if subscription_data["rssfeed_key"] == rssfeed_key and subscription_data["active"] is True:
                 self.fetch_feed(subscription_data, rssfeed_data, fetch_data)
 
         if subscription_key is None:
@@ -256,11 +251,10 @@ class RSSFeedHandler(object):
             rssfeed_data["last_update"] = dt.isoformat()
         return fetch_data
 
-
     def handle_ttl(self, rssfeed_data, rssfeed_parsed, fetch_data):
         if rssfeed_data["obey_ttl"] is False:
             return
-        if rssfeed_parsed.has_key("ttl"):
+        if "ttl" in rssfeed_parsed:
             # Value is already TTL, so ignore
             try:
                 ttl = int(rssfeed_parsed["ttl"])
@@ -276,7 +270,7 @@ class RSSFeedHandler(object):
                 self.log.warn("Failed to convert TTL value '%s' to int!" % rssfeed_parsed["ttl"])
         else:
             self.log.warn("RSS Feed '%s' should obey TTL, but feed has no TTL value." %
-                     rssfeed_data["name"])
+                          rssfeed_data["name"])
             self.log.info("Obey TTL option set to False")
             rssfeed_data["obey_ttl"] = False
 
@@ -289,9 +283,9 @@ class RSSFeedHandler(object):
             rssfeed_parsed = self.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=fetch_data["site_cookies_dict"])
             if rssfeed_parsed is None:
                 return
-            if rssfeed_parsed.has_key("bozo_exception"):
+            if "bozo_exception" in rssfeed_parsed:
                 self.log.warn("bozo_exception when parsing rssfeed: %s" % str(rssfeed_parsed["bozo_exception"]))
-            if rssfeed_parsed.has_key("items"):
+            if "items" in rssfeed_parsed:
                 fetch_data["rssfeed_items"] = rssfeed_parsed["items"]
                 self.handle_ttl(rssfeed_data, rssfeed_parsed, fetch_data)
             else:
@@ -302,7 +296,8 @@ class RSSFeedHandler(object):
         options = subscription_data.copy()
         del options["custom_text_lines"]
         matches, message = self.update_rssfeeds_dict_matching(fetch_data["rssfeed_items"], options=options)
-        self.log.info("%d items in feed, %d matches the filter." % (len(fetch_data["rssfeed_items"]), len(matches.keys())))
+        self.log.info("%d items in feed, %d matches the filter." %
+                      (len(fetch_data["rssfeed_items"]), len(matches.keys())))
 
         last_match_dt = common.isodate_to_datetime(subscription_data["last_match"])
 

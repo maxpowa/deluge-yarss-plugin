@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-import os, re
+import os
+import re
 
 """Removes the swapped="no" attribute from glade files"""
+
 
 def fix_glade_file(filepath):
     print "Fixing:", filepath
@@ -24,4 +26,3 @@ if __name__ == '__main__':
     for fname in dirList:
         if fname.endswith(".glade") or fname.endswith(".ui"):
             fix_glade_file(os.path.join(path, fname))
-

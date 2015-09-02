@@ -7,7 +7,6 @@
 # See LICENSE for more details.
 #
 
-from twisted.trial import unittest
 import datetime
 
 import deluge.config
@@ -20,14 +19,16 @@ from yarss2 import yarss_config
 
 import deluge.log
 deluge.log.setupLogger("none")
-import pkg_resources, sys
-from deluge.log import LOG as log
+
+from deluge.log import LOG
 from yarss2 import load_libs
 load_libs()
+
 
 def disable_new_release_check():
     import deluge.core.preferencesmanager
     deluge.core.preferencesmanager.DEFAULT_PREFS["new_release_check"] = False
+
 
 def get_default_subscriptions(count):
     subscriptions = {}
@@ -38,11 +39,13 @@ def get_default_subscriptions(count):
             rssfeed_key="0", key=str(i), regex_include=None, regex_exclude=None)
     return subscriptions
 
+
 def get_default_rssfeeds(count):
     d = {}
     for i in range(count):
         d[str(i)] = yarss_config.get_fresh_rssfeed_config(key=str(i))
     return d
+
 
 def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_config=True):
     """Creates a YaRSS2 config with a reference to a proper deluge config"""
@@ -50,9 +53,12 @@ def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_c
         config_dir = get_tmp_dir()
     deluge_config = deluge.config.Config(config_filename,
                                          yarss2.yarss_config.default_prefs(), config_dir=config_dir)
-    core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS, config_dir=config_dir)
-    config = yarss2.yarss_config.YARSSConfig(log, config=deluge_config, core_config=core_config, verify_config=verify_config)
+    core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS,
+                                       config_dir=config_dir)
+    config = yarss2.yarss_config.YARSSConfig(LOG, config=deluge_config, core_config=core_config,
+                                             verify_config=verify_config)
     return config
+
 
 def get_tmp_dir():
     config_directory = tempfile.mkdtemp()
@@ -67,8 +73,10 @@ test_data_dir = "data"
 testdata_rssfeed_filename = "%s/freebsd_rss.xml" % test_data_dir
 testdata_rss_itmes_json_filename = "%s/freebsd_rss_items_dump.json" % test_data_dir
 
+
 def load_json_testdata():
     return json_load(testdata_rss_itmes_json_filename, dict_int_keys=True)
+
 
 def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
@@ -88,6 +96,7 @@ def json_load(filename, dict_int_keys=False):
             del d[key]
     return d
 
+
 def json_dump(obj, filename):
     filename = yarss2.util.common.get_resource(filename, path="tests")
     f = open(filename, "wb")
@@ -95,20 +104,20 @@ def json_dump(obj, filename):
     f.flush()
     f.close()
 
-class DatetimeEncoder(json.JSONEncoder):
-     def default(self, obj):
-         if isinstance(obj, datetime.datetime):
-             return obj.isoformat()
-         return json.JSONEncoder.default(self, obj)
 
+class DatetimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        return json.JSONEncoder.default(self, obj)
 
 
 ####################################
-## Helper methods for test data
+# Helper methods for test data
 ####################################
 
 def get_test_config_dict():
-    config =  yarss2.yarss_config.default_prefs()
+    config = yarss2.yarss_config.default_prefs()
     file_url = yarss2.util.common.get_resource(testdata_rssfeed_filename, path="tests")
     rssfeeds = get_default_rssfeeds(3)
     subscriptions = get_default_subscriptions(5)

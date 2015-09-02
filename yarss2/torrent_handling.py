@@ -9,24 +9,23 @@
 
 import os
 
-from deluge.core.torrent import TorrentOptions
+import deluge.component as component
 from deluge._libtorrent import lt
 from deluge.common import utf8_encoded
-import deluge.component as component
+from deluge.core.torrent import TorrentOptions
 
-from yarss2.util import common, http
 from yarss2.lib import requests
+from yarss2.util import common, http, torrentinfo
 from yarss2.util.common import GeneralSubsConf, TorrentDownload
 from yarss2.util.yarss_email import send_torrent_email
-from yarss2.util import torrentinfo
-import yarss2.util.logger as log
+
 
 class TorrentHandler(object):
 
     def __init__(self, logger):
         self.log = logger
 
-    def listem_on_torrent_finished(self, enable=True):
+    def listen_on_torrent_finished(self, enable=True):
         component.get("EventManager").register_event_handler("TorrentFinishedEvent", self.on_torrent_finished_event)
 
     def download_torrent_file(self, torrent_url, cookies_dict):
@@ -43,7 +42,7 @@ class TorrentHandler(object):
             return download
         # Get the info to see if any exceptions are raised
         try:
-            torrent_info = lt.torrent_info(lt.bdecode(download.filedump))
+            lt.torrent_info(lt.bdecode(download.filedump))
         except Exception, e:
             error_msg = "Unable to decode torrent file! (%s) URL: '%s'" % (str(e), torrent_url)
             download.set_error(error_msg)
@@ -68,7 +67,7 @@ class TorrentHandler(object):
                 return download
             # Get the torrent data from the torrent file
             try:
-                info = torrentinfo.TorrentInfo(filedump=download.filedump)
+                torrentinfo.TorrentInfo(filedump=download.filedump)
             except Exception, e:
                 download.set_error("Unable to open torrent file: %s. Error: %s" % (url, str(e)))
                 self.log.warn(download.error_msg)
@@ -99,10 +98,12 @@ class TorrentHandler(object):
                 options["add_paused"] = GeneralSubsConf().get_boolean(subscription_data["add_torrents_in_paused_state"])
             if subscription_data["auto_managed"] != GeneralSubsConf.DEFAULT:
                 options["auto_managed"] = GeneralSubsConf().get_boolean(subscription_data["auto_managed"])
-            if subscription_data.has_key("sequential_download") and subscription_data["auto_managed"] != GeneralSubsConf.DEFAULT:
+            if "sequential_download" in subscription_data and\
+               subscription_data["auto_managed"] != GeneralSubsConf.DEFAULT:
                 options["sequential_download"] = GeneralSubsConf().get_boolean(subscription_data["sequential_download"])
             if subscription_data["prioritize_first_last_pieces"] != GeneralSubsConf.DEFAULT:
-                options["prioritize_first_last_pieces"] = GeneralSubsConf().get_boolean(subscription_data["prioritize_first_last_pieces"])
+                options["prioritize_first_last_pieces"] = GeneralSubsConf().get_boolean(
+                    subscription_data["prioritize_first_last_pieces"])
 
             # -2 means to use the deluge default config value, so in that case just skip
             if subscription_data["max_download_speed"] != -2:
@@ -116,7 +117,8 @@ class TorrentHandler(object):
 
         if download.is_magnet:
             self.log.info("Adding magnet: '%s'" % torrent_url)
-            download.torrent_id = component.get("TorrentManager").add(options=options, magnet=utf8_encoded(download.url))
+            download.torrent_id = component.get("TorrentManager").add(options=options,
+                                                                      magnet=utf8_encoded(download.url))
         else:
             # Error occured
             if not download.success:
@@ -124,15 +126,14 @@ class TorrentHandler(object):
             self.log.info("Adding torrent: '%s' using cookies: %s" % (torrent_url, str(site_cookies_dict)))
             # Get the torrent data from the torrent file
             try:
-                info = torrentinfo.TorrentInfo(filedump=download.filedump)
+                torrentinfo.TorrentInfo(filedump=download.filedump)
             except Exception, e:
                 download.set_error("Unable to open torrent file: %s. Error: %s" % (torrent_url, str(e)))
                 self.log.warn(download.error_msg)
-            basename = os.path.basename(torrent_url)
             download.torrent_id = component.get("TorrentManager").add(filedump=download.filedump,
                                                                       filename=os.path.basename(torrent_url),
                                                                       options=options)
-            download.success = download.torrent_id != None
+            download.success = download.torrent_id is not None
             if download.success is False and download.error_msg is None:
                 download.set_error("Failed to add torrent to Deluge. Is torrent already added?")
                 self.log.warn(download.error_msg)
@@ -143,12 +144,14 @@ class TorrentHandler(object):
         for torrent_match in torrent_list:
             torrent_download = self.add_torrent(torrent_match)
             if not torrent_download.success:
-                self.log.warn("Failed to add torrent '%s' from url '%s'" % (torrent_match["title"], torrent_match["link"]))
+                self.log.warn("Failed to add torrent '%s' from url '%s'" %
+                              (torrent_match["title"], torrent_match["link"]))
             else:
                 self.log.info("Succesfully added torrent '%s'." % torrent_match["title"])
                 # Update subscription with date
                 torrent_time = torrent_match["updated_datetime"]
-                last_subscription_update = common.isodate_to_datetime(torrent_match["subscription_data"]["last_match"])
+                last_subscription_update = common.isodate_to_datetime(
+                    torrent_match["subscription_data"]["last_match"])
                 # Update subscription time if this is newer
                 # The order of the torrents are in ordered from newest to oldest
                 if torrent_time and last_subscription_update < torrent_time:
@@ -162,7 +165,7 @@ class TorrentHandler(object):
                     # Must be enabled in the subscription
                     if not torrent_match["subscription_data"]["email_notifications"][key]["on_torrent_added"]:
                         continue
-                    if not torrent_names.has_key(key):
+                    if key not in torrent_names:
                         torrent_names[key] = (torrent_match["subscription_data"], [])
                     # Add the torrent file to the list of files for this notification.
                     torrent_names[key][1].append(torrent_match["title"])
@@ -175,11 +178,10 @@ class TorrentHandler(object):
                 continue
             # Send email in
             send_torrent_email(config["email_configurations"],
-                                    config["email_messages"][email_key],
-                                    subscription_data = torrent_names[key][0],
-                                    torrent_name_list = torrent_names[key][1],
-                                    defered=True)
+                               config["email_messages"][email_key],
+                               subscription_data=torrent_names[key][0],
+                               torrent_name_list=torrent_names[key][1],
+                               defered=True)
 
     def on_torrent_finished_event(self, torrent_id):
         print "torrent_finished_event:", torrent_id
-

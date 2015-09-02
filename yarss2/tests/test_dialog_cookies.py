@@ -14,6 +14,7 @@ import yarss2.yarss_config
 from yarss2.util.logger import Logger
 from yarss2.gtkui.dialog_cookie import DialogCookie
 
+
 class DummyClass(object):
 
     def __init__(self):
@@ -25,15 +26,17 @@ class DummyClass(object):
     def save_cookie(self, cookie_data):
         self.cookie_data = cookie_data
 
+
 class DialogCookiesTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         self.log = Logger()
         self.test_cookie = yarss2.yarss_config.get_fresh_cookie_config()
 
     def test_create(self):
         """Just test that the code runs"""
         dialog = DialogCookie(None, self.test_cookie)
+        self.assertTrue(dialog is not None)
 
     def test_on_button_save_clicked(self):
         """Just test that the code runs"""

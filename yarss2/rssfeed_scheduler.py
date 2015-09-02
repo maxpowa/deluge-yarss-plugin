@@ -9,16 +9,16 @@
 
 import traceback
 
+import deluge.component as component
 import twisted.internet.defer as defer
-from twisted.internet.task import LoopingCall
 from twisted.internet import threads
+from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
-import deluge.component as component
-
-from yarss2.yarss_config import YARSSConfigChangedEvent
-from yarss2.torrent_handling import TorrentHandler
 from yarss2.rssfeed_handling import RSSFeedHandler
+from yarss2.torrent_handling import TorrentHandler
+from yarss2.yarss_config import YARSSConfigChangedEvent
+
 
 class RSSFeedScheduler(object):
     """Handles scheduling the RSS Feed fetches."""
@@ -30,7 +30,8 @@ class RSSFeedScheduler(object):
         self.log = logger
         self.rssfeedhandler = RSSFeedHandler(logger)
         self.torrent_handler = TorrentHandler(logger)
-        self.add_torrent_func = self.torrent_handler.add_torrents # To make it possible to disable adding torrents in testing
+        # To make it possible to disable adding torrents in testing
+        self.add_torrent_func = self.torrent_handler.add_torrents
 
     def enable_timers(self):
         """Creates the LoopingCall timers, one for each RSS Feed"""
@@ -38,7 +39,7 @@ class RSSFeedScheduler(object):
         for key in config["rssfeeds"]:
             self.set_timer(config["rssfeeds"][key]["key"], config["rssfeeds"][key]['update_interval'])
             self.log.info("Scheduled RSS Feed '%s' with interval %s" %
-                     (config["rssfeeds"][key]["name"], config["rssfeeds"][key]["update_interval"]))
+                          (config["rssfeeds"][key]["name"], config["rssfeeds"][key]["update_interval"]))
 
     def disable_timers(self):
         for key in self.rssfeed_timers.keys():
@@ -53,7 +54,7 @@ class RSSFeedScheduler(object):
             self.log.error("Failed to convert interval '%s' to int!" % str(interval))
             return False
         # Already exists, so reschedule
-        if self.rssfeed_timers.has_key(key):
+        if key in self.rssfeed_timers:
             try:
                 self.rssfeed_timers[key]["timer"].stop()
             except AssertionError, e:
@@ -65,12 +66,12 @@ class RSSFeedScheduler(object):
             # Second argument, the rssfeedkey is passed as argument to the callback method
             timer = LoopingCall(self.queue_rssfeed_update, key)
             self.rssfeed_timers[key] = {"timer": timer, "update_interval": interval}
-        self.rssfeed_timers[key]["timer"].start(interval * 60, now=False) # Multiply to get seconds
+        self.rssfeed_timers[key]["timer"].start(interval * 60, now=False)  # Multiply to get seconds
         return True
 
     def delete_timer(self, key):
         """Delete timer with the specified key."""
-        if not self.rssfeed_timers.has_key(key):
+        if key not in self.rssfeed_timers:
             self.log.warn("Cannot delete timer. No timer with key %s" % key)
             return False
         self.rssfeed_timers[key]["timer"].stop()
@@ -100,21 +101,21 @@ class RSSFeedScheduler(object):
         elif rssfeed_key:
             if self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["active"] is False:
                 return
-            #self.log.info("Running RSS Feed '%s'" % (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"]))
+
         fetch_result = self.rssfeedhandler.fetch_feed_torrents(self.yarss_config.get_config(), rssfeed_key,
-                                                                       subscription_key=subscription_key)
+                                                               subscription_key=subscription_key)
         matching_torrents = fetch_result["matching_torrents"]
         # Fetching the torrent files. Do this slow task in non-main thread.
         for torrent in matching_torrents:
             torrent["torrent_download"] = self.torrent_handler.get_torrent(torrent)
 
         # Update TTL value?
-        if fetch_result.has_key("ttl"):
+        if "ttl" in fetch_result:
             # Subscription is run directly. Get RSS Feed key
             if not rssfeed_key:
                 rssfeed_key = self.yarss_config.get_config()["subscriptions"][subscription_key]["rssfeed_key"]
             self.log.info("Rescheduling RSS Feed '%s' with interval '%s' according to TTL." %
-                     (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"], fetch_result["ttl"]))
+                          (self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["name"], fetch_result["ttl"]))
             self.set_timer(rssfeed_key, fetch_result["ttl"])
             # Set new interval in config
             self.yarss_config.get_config()["rssfeeds"][rssfeed_key]["update_interval"] = fetch_result["ttl"]
@@ -149,8 +150,8 @@ class RSSFeedScheduler(object):
 class RSSFeedRunQueue(object):
     """Runs functions in separate threads. If a job is already running,
     jobs pushed are queued until the running job has finished"""
-    def __init__(self, concurrentMax=1):
-        self.concurrentMax = concurrentMax
+    def __init__(self, concurrent_max=1):
+        self.concurrentMax = concurrent_max
         self._running = 0
         self._queued = []
 

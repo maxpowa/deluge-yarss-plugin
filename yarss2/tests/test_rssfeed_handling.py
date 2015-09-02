@@ -7,14 +7,9 @@
 # See LICENSE for more details.
 #
 
-import datetime
-import threading
-
 from twisted.trial import unittest
 
-from deluge.config import Config
-import deluge.configmanager
-from deluge.log import LOG as log
+from deluge.log import LOG
 
 import yarss2.util.common
 import yarss2.yarss_config
@@ -22,10 +17,11 @@ from yarss2.rssfeed_handling import RSSFeedHandler
 
 import common
 
+
 class RSSFeedHandlingTestCase(unittest.TestCase):
 
-    def setUp(self):
-        self.log = log
+    def setUp(self):  # NOQA
+        self.log = LOG
         self.rssfeedhandler = RSSFeedHandler(self.log)
 
     def test_get_rssfeed_parsed(self):
@@ -36,13 +32,14 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies)
 
         # When needing to dump the result in json format
-        #common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
+        # common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
 
-        self.assertTrue(parsed_feed.has_key("items"))
+        self.assertTrue("items" in parsed_feed)
         items = parsed_feed["items"]
         stored_items = common.load_json_testdata()
         self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
-        self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")), ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
+        self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")),
+                          ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
 
     def test_get_link(self):
         file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
@@ -97,23 +94,24 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
     def test_update_rssfeeds_dict_matching(self):
         options, rssfeed_parsed = self.get_default_rssfeeds_dict()
         options["regex_include"] = "FreeBSD"
-        matching, msg  = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
+        matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()))
 
         # Also make sure the items in 'matching' correspond to the matching items in rssfeed_parsed
         count = 0
         for key in rssfeed_parsed.keys():
             if rssfeed_parsed[key]["matches"]:
-                self.assertTrue(matching.has_key(key), "The matches dict does not contain the matching key '%s'" % key)
+                self.assertTrue(key in matching, "The matches dict does not contain the matching key '%s'" % key)
                 count += 1
         self.assertEquals(count, len(matching.keys()),
-                          "The number of items in matches dict (%d) does not match the number of matching items (%d)" % (count, len(matching.keys())))
+                          "The number of items in matches dict (%d) does not"
+                          " match the number of matching items (%d)" % (count, len(matching.keys())))
 
+        # Try again with regex_include_ignorecase=False
         options["regex_include_ignorecase"] = False
         matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()) - 1)
 
-        #options["regex_include_ignorecase"] = True
         options["regex_exclude"] = "i386"
         matching, msg = self.rssfeedhandler.update_rssfeeds_dict_matching(rssfeed_parsed, options)
         self.assertEquals(len(matching.keys()), len(rssfeed_parsed.keys()) - 2)
@@ -160,68 +158,67 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
         for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
-            if item.has_key('published_parsed'):
+            if 'published_parsed' in item:
                 published_parsed = item['published_parsed']
                 import time
                 test_val = time.struct_time((2014, 4, 10, 3, 44, 14, 3, 100, 0))
                 self.assertEquals(test_val, published_parsed)
                 break
 
-    #def test_download_link_with_equal_sign(self):
-    #    file_url = yarss2.util.common.get_resource("rss_with_equal_sign_in_link.rss", path="tests/data/")
-    #    from yarss2.lib.feedparser import feedparser
-    #    from yarss2.torrent_handling import TorrentHandler, TorrentDownload
-    #    rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
-    #    parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=None)
-    #    print "parsed_feed:", parsed_feed["items"]
+    # def test_download_link_with_equal_sign(self):
+    #     file_url = yarss2.util.common.get_resource("rss_with_equal_sign_in_link.rss", path="tests/data/")
+    #     from yarss2.lib.feedparser import feedparser
+    #     from yarss2.torrent_handling import TorrentHandler, TorrentDownload
+    #     rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
+    #     parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=None)
+    #     print "parsed_feed:", parsed_feed["items"]
 
-    #def test_label(self):
-    #    #from deluge.ui.client import sclient
-    #    #sclient.set_core_uri()
-    #    #print sclient.get_enabled_plugins()
-    #    import deluge.component as component
-    #    from deluge.core.pluginmanager import PluginManager
-    #    from deluge.ui.client import client
-    #    plugins = PluginManager(self)
-    #    # Enable plugins
-    #    plugins.start()
+    # def test_label(self):
+    #     #from deluge.ui.client import sclient
+    #     #sclient.set_core_uri()
+    #     #print sclient.get_enabled_plugins()
+    #     import deluge.component as component
+    #     from deluge.core.pluginmanager import PluginManager
+    #     from deluge.ui.client import client
+    #     plugins = PluginManager(self)
+    #     # Enable plugins
+    #     plugins.start()
     #
-    #    print "Enabled   plugins:", plugins.get_enabled_plugins()
-    #    print "Available plugins:", plugins.get_available_plugins()
-    #    if "Label" in plugins.get_available_plugins():
-    #        print "Label plugin found"
+    #     print "Enabled   plugins:", plugins.get_enabled_plugins()
+    #     print "Available plugins:", plugins.get_available_plugins()
+    #     if "Label" in plugins.get_available_plugins():
+    #         print "Label plugin found"
     #
-    #    plugins.enable_plugin("Label")
+    #     plugins.enable_plugin("Label")
     #
-    #    print "info:", plugins.get_plugin_info("Label")
-    #    print "Enabled   plugins:", plugins.get_enabled_plugins()
-    #    #client.label.enable()
-    #    #print "label:", client.label.get_labels()
+    #     print "info:", plugins.get_plugin_info("Label")
+    #     print "Enabled   plugins:", plugins.get_enabled_plugins()
+    #     #client.label.enable()
+    #     #print "label:", client.label.get_labels()
 
 
-#Name:  FreeBSD-9.0-RELEASE-amd64-all
-#Name:  FreeBSD-9.0-RELEASE-i386-all
-#Name:  FreeBSD-9.0-RELEASE-ia64-all
-#Name:  FreeBSD-9.0-RELEASE-powerpc-all
-#Name:  FreeBSD-9.0-RELEASE-powerpc64-all
-#Name:  FreeBSD-9.0-RELEASE-sparc64-all
-#Name:  FreeBSD-9.0-RELEASE-amd64-bootonly
-#Name:  FreeBSD-9.0-RELEASE-amd64-disc1
-#Name:  FreeBSD-9.0-RELEASE-amd64-dvd1
-#Name:  FreeBSD-9.0-RELEASE-amd64-memstick
-#Name:  FreeBSD-9.0-RELEASE-i386-bootonly
-#Name:  FreeBSD-9.0-RELEASE-i386-disc1
-#Name:  FreeBSD-9.0-RELEASE-i386-dvd1
-#Name:  FreeBSD-9.0-RELEASE-i386-memstick
-#Name:  FreeBSD-9.0-RELEASE-ia64-bootonly
-#Name:  FreeBSD-9.0-RELEASE-ia64-memstick
-#Name:  FreeBSD-9.0-RELEASE-ia64-release
-#Name:  FreeBSD-9.0-RELEASE-powerpc-bootonly
-#Name:  FreeBSD-9.0-RELEASE-powerpc-memstick
-#Name:  FreeBSD-9.0-RELEASE-powerpc-release
-#Name:  FreeBSD-9.0-RELEASE-powerpc64-bootonly
-#Name:  FreeBSD-9.0-RELEASE-powerpc64-memstick
-#Name:  FreeBSD-9.0-RELEASE-powerpc64-release
-#Name:  FreeBSD-9.0-RELEASE-sparc64-bootonly
-#Name:  FreeBSD-9.0-RELEASE-sparc64-disc1
-
+# Name:  FreeBSD-9.0-RELEASE-amd64-all
+# Name:  FreeBSD-9.0-RELEASE-i386-all
+# Name:  FreeBSD-9.0-RELEASE-ia64-all
+# Name:  FreeBSD-9.0-RELEASE-powerpc-all
+# Name:  FreeBSD-9.0-RELEASE-powerpc64-all
+# Name:  FreeBSD-9.0-RELEASE-sparc64-all
+# Name:  FreeBSD-9.0-RELEASE-amd64-bootonly
+# Name:  FreeBSD-9.0-RELEASE-amd64-disc1
+# Name:  FreeBSD-9.0-RELEASE-amd64-dvd1
+# Name:  FreeBSD-9.0-RELEASE-amd64-memstick
+# Name:  FreeBSD-9.0-RELEASE-i386-bootonly
+# Name:  FreeBSD-9.0-RELEASE-i386-disc1
+# Name:  FreeBSD-9.0-RELEASE-i386-dvd1
+# Name:  FreeBSD-9.0-RELEASE-i386-memstick
+# Name:  FreeBSD-9.0-RELEASE-ia64-bootonly
+# Name:  FreeBSD-9.0-RELEASE-ia64-memstick
+# Name:  FreeBSD-9.0-RELEASE-ia64-release
+# Name:  FreeBSD-9.0-RELEASE-powerpc-bootonly
+# Name:  FreeBSD-9.0-RELEASE-powerpc-memstick
+# Name:  FreeBSD-9.0-RELEASE-powerpc-release
+# Name:  FreeBSD-9.0-RELEASE-powerpc64-bootonly
+# Name:  FreeBSD-9.0-RELEASE-powerpc64-memstick
+# Name:  FreeBSD-9.0-RELEASE-powerpc64-release
+# Name:  FreeBSD-9.0-RELEASE-sparc64-bootonly
+# Name:  FreeBSD-9.0-RELEASE-sparc64-disc1

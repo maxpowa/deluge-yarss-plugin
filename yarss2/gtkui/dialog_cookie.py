@@ -8,22 +8,23 @@
 #
 
 import gtk
-from deluge.log import LOG as log
+import gtk.glade
 import deluge.component as component
 
 from yarss2.util.common import get_resource
 
+
 class DialogCookie():
 
-    def __init__(self, gtkUI, cookie_data):
-        self.gtkUI = gtkUI
+    def __init__(self, gtkui, cookie_data):
+        self.gtkUI = gtkui
         self.cookie_data = cookie_data
         self.glade = gtk.glade.XML(get_resource("dialog_cookie.glade"))
         self.glade.signal_autoconnect({
-                "on_button_add_cookie_data_clicked": self.on_button_add_cookie_data_clicked,
-                "on_button_remove_cookie_data_clicked": self.on_button_remove_cookie_data_clicked,
-                "on_button_save_clicked": self.on_button_save_clicked,
-                "on_button_cancel_clicked": self.on_button_cancel_clicked
+            "on_button_add_cookie_data_clicked": self.on_button_add_cookie_data_clicked,
+            "on_button_remove_cookie_data_clicked": self.on_button_remove_cookie_data_clicked,
+            "on_button_save_clicked": self.on_button_save_clicked,
+            "on_button_cancel_clicked": self.on_button_cancel_clicked
         })
         self.treeview = self.setup_cookie_list()
 
@@ -53,7 +54,6 @@ class DialogCookie():
         site = self.glade.get_widget("text_site").get_text().strip()
         if site != "":
             self.cookie_data["site"] = site
-            #self.cookie_data["value"] = self.values
             self.gtkUI.save_cookie(self.cookie_data)
             self.dialog.destroy()
 
@@ -63,7 +63,6 @@ class DialogCookie():
         if not ti:
             return
         v0 = tm.get_value(ti, 0)
-        #v1 = tm.get_value(ti, 1)
         del self.cookie_data["value"][v0]
         self.update_cookie_values_list()
 
@@ -72,7 +71,7 @@ class DialogCookie():
         value = self.glade.get_widget("text_value").get_text().strip()
 
         if len(key) > 0 and len(value):
-            if self.cookie_data["value"].has_key(key):
+            if key in self.cookie_data["value"]:
                 return
             self.cookie_data["value"][key] = value
             self.update_cookie_values_list()
@@ -82,16 +81,16 @@ class DialogCookie():
     def setup_cookie_list(self):
         # name and key
         self.list_store = gtk.ListStore(str, str)
-        treeView = gtk.TreeView(self.list_store)
+        treeview = gtk.TreeView(self.list_store)
 
-        rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Key/Name", rendererText, text=0)
-        treeView.append_column(column)
+        renderertext = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Key/Name", renderertext, text=0)
+        treeview.append_column(column)
 
-        rendererText = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Value", rendererText, text=1)
-        treeView.append_column(column)
-        return treeView
+        renderertext = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Value", renderertext, text=1)
+        treeview.append_column(column)
+        return treeview
 
-    def on_button_cancel_clicked(self, Event=None):
+    def on_button_cancel_clicked(self, event=None):
         self.dialog.destroy()

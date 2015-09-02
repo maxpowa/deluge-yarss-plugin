@@ -12,7 +12,7 @@ import os.path
 
 from twisted.trial import unittest
 
-from deluge.log import LOG as log
+from deluge.log import LOG
 
 import yarss2.torrent_handling
 from yarss2.torrent_handling import TorrentHandler, TorrentDownload
@@ -21,6 +21,7 @@ import yarss2.util.common
 import common
 
 test_component = None
+
 
 class TestComponent(object):
     def __init__(self, add_retval=True):
@@ -56,9 +57,11 @@ class TestComponent(object):
         self.downloads.append(download)
         return download
 
+
 # When replacing component with test_component in modules,
 # This is called e.g. when this is executed: component.get("TorrentManager")
 # we ignore the key, and return the test component
+
 def get(key):
     return test_component
 
@@ -67,23 +70,25 @@ import test_torrent_handling
 # the TestComponent, and not the deluge TorrentManager.
 yarss2.torrent_handling.component = test_torrent_handling
 
+
 def get_file(url, cookies={}, verify=True):
     class Request(object):
         pass
     r = Request
     try:
         r.content = read_file(url)
-    except Exception, e:
+    except Exception:
         pass
     return r
 
 from yarss2.lib import requests
 requests.get = get_file
 
+
 class TorrentHandlingTestCase(unittest.TestCase):
 
-    def setUp(self):
-        self.log = log
+    def setUp(self):  # NOQA
+        self.log = LOG
         self.config = common.get_test_config()
         # get_test_config will load a new core.conf with the default values.
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
@@ -179,6 +184,7 @@ class TorrentHandlingTestCase(unittest.TestCase):
         matching_torrents = match_result["matching_torrents"]
 
         saved_subscriptions = []
+
         def save_subscription_func(subscription_data):
             saved_subscriptions.append(subscription_data)
 
@@ -187,11 +193,12 @@ class TorrentHandlingTestCase(unittest.TestCase):
         handler.use_filedump = None
 
 ####################################
-## Helper methods for test data
+# Helper methods for test data
 ####################################
 
+
 def get_test_config_dict():
-    config =  yarss2.yarss_config.default_prefs()
+    config = yarss2.yarss_config.default_prefs()
     file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
     rssfeeds = common.get_default_rssfeeds(3)
     subscriptions = common.get_default_subscriptions(5)

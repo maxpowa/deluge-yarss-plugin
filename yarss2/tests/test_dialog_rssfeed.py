@@ -15,6 +15,7 @@ import yarss2.yarss_config
 from yarss2.util.logger import Logger
 from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
 
+
 class DummyClass(object):
 
     def __init__(self):
@@ -25,22 +26,20 @@ class DummyClass(object):
 
     def save_rssfeed(self, rssfeed):
         pass
-        #if self.rssfeed:
-        #    dicts_equals(dict1, dict2)
+
 
 class DialogRSSFeedTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         self.log = Logger()
         self.test_rssfeed = yarss2.yarss_config.get_fresh_rssfeed_config()
 
     def test_create(self):
         """Just test that the code runs"""
-        dialog = DialogRSSFeed(None, self.test_rssfeed)
+        DialogRSSFeed(None, self.test_rssfeed)
 
     def test_on_button_save_clicked(self):
         """Just test that the code runs"""
-        #yarss2.yarss_config.get_fresh_rssfeed_config(key="0")
         dummy = DummyClass()
         rssfeed = yarss2.yarss_config.get_fresh_rssfeed_config()
         rssfeed["name"] = "Test"

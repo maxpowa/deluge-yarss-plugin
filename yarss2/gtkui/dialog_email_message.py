@@ -11,17 +11,18 @@ import gtk
 import deluge.component as component
 from yarss2.util.common import get_resource
 
+
 class DialogEmailMessage():
 
-    def __init__(self, gtkUI, message_data={}):
-        self.gtkUI = gtkUI
+    def __init__(self, gtkui, message_data={}):
+        self.gtkUI = gtkui
         self.message_data = message_data
 
     def show(self):
         self.glade = gtk.glade.XML(get_resource("dialog_email_message.glade"))
         self.glade.signal_autoconnect({
-                "on_button_save_clicked": self.on_button_save_clicked,
-                "on_button_cancel_clicked": self.on_button_cancel_clicked
+            "on_button_save_clicked": self.on_button_save_clicked,
+            "on_button_cancel_clicked": self.on_button_cancel_clicked
         })
         # Add data
         if self.message_data is not None:
@@ -50,7 +51,7 @@ class DialogEmailMessage():
 
         if name == "" or address == "" or subject == "" or message == "":
             md = gtk.MessageDialog(self.dialog, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
-                               gtk.BUTTONS_CLOSE, "All fields are mandatory!")
+                                   gtk.BUTTONS_CLOSE, "All fields are mandatory!")
             md.run()
             md.destroy()
             return
@@ -64,5 +65,5 @@ class DialogEmailMessage():
         self.gtkUI.save_email_message(self.message_data)
         self.dialog.destroy()
 
-    def on_button_cancel_clicked(self, Event=None):
+    def on_button_cancel_clicked(self, event=None):
         self.dialog.destroy()

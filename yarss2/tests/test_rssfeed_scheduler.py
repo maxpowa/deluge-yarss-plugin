@@ -9,11 +9,10 @@
 
 import threading
 
-import twisted.internet.defer as defer
+from twisted.internet.defer import Deferred, DeferredList
 from twisted.trial import unittest
-from twisted.internet import task
 
-from deluge.log import LOG as log
+from deluge.log import LOG
 
 import yarss2.util.common
 import yarss2.yarss_config
@@ -22,11 +21,10 @@ from yarss2.rssfeed_scheduler import RSSFeedScheduler, RSSFeedRunQueue
 from test_torrent_handling import TestComponent
 import common
 
-from termcolor import colored as c
 
 class RSSFeedSchedulerTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         self.rssfeeds = common.get_default_rssfeeds(5)
         self.rssfeeds["0"]["update_interval"] = 1
         self.rssfeeds["1"]["update_interval"] = 3
@@ -35,14 +33,15 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         self.rssfeeds["4"]["update_interval"] = 120
 
         self.config = common.get_test_config()
-        self.config.set_config({"rssfeeds": self.rssfeeds, "email_configurations": {"send_email_on_torrent_events": False} })
+        self.config.set_config({"rssfeeds": self.rssfeeds,
+                                "email_configurations": {"send_email_on_torrent_events": False}})
 
-        self.scheduler = RSSFeedScheduler(self.config, log)
+        self.scheduler = RSSFeedScheduler(self.config, LOG)
         test_component = TestComponent()
         self.scheduler.torrent_handler.download_torrent_file = test_component.download_torrent_file
         self.scheduler.enable_timers()
 
-    def tearDown(self):
+    def tearDown(self):  # NOQA
         # Must stop loopingcalls or test fails
         self.scheduler.disable_timers()
 
@@ -55,7 +54,8 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
             # Does the timer have the correct interval?
             interval = self.scheduler.rssfeed_timers[key]["timer"].interval
             self.assertEquals(self.rssfeeds[key]["update_interval"] * 60, interval)
-            self.assertEquals(self.rssfeeds[key]["update_interval"], self.scheduler.rssfeed_timers[key]["update_interval"])
+            self.assertEquals(self.rssfeeds[key]["update_interval"],
+                              self.scheduler.rssfeed_timers[key]["update_interval"])
 
     def test_disable_timers(self):
         self.scheduler.disable_timers()
@@ -71,7 +71,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         self.assertFalse(self.scheduler.delete_timer("-1"))
 
         self.assertEquals(len(self.scheduler.rssfeed_timers.keys()), 4)
-        self.assertFalse(self.scheduler.rssfeed_timers.has_key("0"))
+        self.assertFalse("0" in self.scheduler.rssfeed_timers)
 
     def test_reschedule_timer(self):
         # Change interval to 60 minutes
@@ -95,7 +95,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
 
     def test_rssfeed_update_handler(self):
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
-        self.config.set_config({"subscriptions": {"0": subscription} })
+        self.config.set_config({"subscriptions": {"0": subscription}})
 
         # Check that last_update changes
         old_last_update = self.rssfeeds["0"]["last_update"]
@@ -114,16 +114,13 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
 
     def test_rssfeed_update_handler_exception(self):
         subscription = yarss2.yarss_config.get_fresh_subscription_config(rssfeed_key="0", key="0")
-        self.config.set_config({"subscriptions": {"0": subscription} })
+        self.config.set_config({"subscriptions": {"0": subscription}})
 
-        # Check that last_update changes
-        old_last_update = self.rssfeeds["0"]["last_update"]
-
-        # Run the rssfeed with invalid key
-        ret = self.scheduler.rssfeed_update_handler_safe("0")
         self.scheduler.rssfeed_update_handler_safe("0")
-        self.assertFalse(self.scheduler.rssfeed_update_handler_safe(1))
+        # Run the rssfeed with invalid key
         self.assertRaises(KeyError, self.scheduler.rssfeed_update_handler, 1)
+        # Safe function should not raise exception
+        self.assertFalse(self.scheduler.rssfeed_update_handler_safe(1))
 
     def test_ttl_value_updated(self):
         config = common.get_test_config_dict()
@@ -164,7 +161,8 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         main_thread = threading.current_thread()
 
         def add_torrents_cb(*arg):
-            self.assertEquals(main_thread, threading.current_thread(), "add_torrents must be called from the main thread!")
+            self.assertEquals(main_thread, threading.current_thread(),
+                              "add_torrents must be called from the main thread!")
             add_torrents_count.append(0)
         self.scheduler.add_torrent_func = add_torrents_cb
 
@@ -175,9 +173,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
 
         def verify_callback_count(args):
             self.assertEquals(len(add_torrents_count), 3)
-
-        d_last.addCallback(verify_callback_count)
-        return d_last
+        return DeferredList([d_first, d_last]).addBoth(verify_callback_count)
 
 
 class RSSFeedRunQueueTestCase(unittest.TestCase):
@@ -188,6 +184,7 @@ class RSSFeedRunQueueTestCase(unittest.TestCase):
         """
         main_thread = threading.current_thread()
         runtime_dict = {}
+
         def test_run(id):
             # Save the start and end time of the job
             runtime_dict[id] = {"start": yarss2.util.common.get_current_date()}
@@ -215,7 +212,7 @@ class RSSFeedRunQueueTestCase(unittest.TestCase):
                 runtime_dict[str(id)]
                 self.assertTrue(tmp_date < runtime_dict[str(id)]["start"])
                 tmp_date = runtime_dict[str(id)]["end"]
-        d_verify = defer.Deferred()
+        d_verify = Deferred()
         d_verify.addCallback(verify_times)
         # Add verify_times to the last added deferred
         d.chainDeferred(d_verify)
@@ -225,7 +222,7 @@ class RSSFeedRunQueueTestCase(unittest.TestCase):
             for i in range(len(ids)):
                 self.assertEquals(ids[i], result_callback_ids[i])
 
-        d_verify_callback = defer.Deferred()
+        d_verify_callback = Deferred()
         d_verify_callback.addCallback(verify_callback_results)
         # Add verify_callback_results to the deferred chain
         d_verify.chainDeferred(d_verify_callback)

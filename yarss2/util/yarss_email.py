@@ -8,11 +8,11 @@
 #
 
 import re
+import smtplib
 
 from twisted.internet import threads
 
 import yarss2.util.logger
-import yarss2.util.common as log
 
 # Mime (might) not be included with Deluge on Windows.
 try:
@@ -22,16 +22,16 @@ except ImportError, e:
     from yarss2.lib.mime.multipart import MIMEMultipart
     from yarss2.lib.mime.text import MIMEText
 
-import smtplib
 
 log = yarss2.util.logger.Logger()
+
 
 def send_email(email_conf, server_conf):
     """sends email notification of finished torrent"""
     # Send multipart message with text and html
-    if email_conf.has_key("message"):
+    if "message" in email_conf:
         # Send Multipart email
-        if email_conf.has_key("message_html"):
+        if "message_html" in email_conf:
             mime_message = MIMEMultipart("alternative")
             msg_plain = MIMEText(email_conf["message"].encode('utf-8'), "plain", _charset='utf-8')
             msg_html = MIMEText(email_conf["message_html"].encode('utf-8'), "html", _charset='utf-8')
@@ -40,7 +40,7 @@ def send_email(email_conf, server_conf):
         else:
             # Send plain message
             mime_message = MIMEText(email_conf["message"].encode('utf-8'), "plain", _charset='utf-8')
-    elif email_conf.has_key("message_html"):
+    elif "message_html" in email_conf:
         # Send html message
         mime_message = MIMEText(email_conf["message"].encode('utf-8'), "html", _charset='utf-8')
     else:
@@ -58,29 +58,29 @@ def send_email(email_conf, server_conf):
         except:
             pass
     try:
-        mailServer = smtplib.SMTP(server_conf["smtp_server"], port)
+        mail_server = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
         log.error("There was an error sending the notification email: %s" % str(e))
         return False
 
-    log.info("Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" % \
-                 (mime_message["To"], mime_message["From"], mime_message["Subject"]))
+    log.info("Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" %
+             (mime_message["To"], mime_message["From"], mime_message["Subject"]))
     log.info("Server: %s, port: %s, authentication: %s" % (server_conf["smtp_server"],
                                                            server_conf["smtp_port"],
                                                            server_conf["smtp_authentication"]))
     if server_conf["smtp_authentication"]:
-        mailServer.ehlo()
-        mailServer.starttls()
-        mailServer.ehlo()
+        mail_server.ehlo()
+        mail_server.starttls()
+        mail_server.ehlo()
         try:
-            mailServer.login(server_conf["smtp_username"], server_conf["smtp_password"])
+            mail_server.login(server_conf["smtp_username"], server_conf["smtp_password"])
         except smtplib.SMTPHeloError:
             log.warn("The server didn't reply properly to the helo greeting")
         except smtplib.SMTPAuthenticationError:
             log.warn("The server didn't accept the username/password combination")
     try:
-        mailServer.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
-        mailServer.quit()
+        mail_server.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
+        mail_server.quit()
     except Exception, e:
         log.error("Sending email notification failed: %s", str(e))
         return False

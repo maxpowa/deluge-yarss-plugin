@@ -7,14 +7,13 @@
 # See LICENSE for more details.
 #
 
-from OpenSSL.SSL import Error as SSLError
-
 import deluge.component as component
-from deluge.event import DelugeEvent
-from deluge.log import LOG as log
+from deluge.log import LOG as log  # NOQA
+from OpenSSL.SSL import Error as SSLError
 
 from yarss2.util import common
 from yarss2.util.gtkui_log import GtkUILogMessageEvent
+
 
 class Logger(object):
 
@@ -27,7 +26,7 @@ class Logger(object):
         # On gtkui client
         if self.gtkui_logger:
             self.gtkui_logger.gtkui_log_message(message)
-        else: # On deluge daemon
+        else:  # On deluge daemon
             self.gtkui_log_message_event(message)
 
     def debug(self, message, gtkui=True):
@@ -55,5 +54,5 @@ class Logger(object):
             component.get("EventManager").emit(GtkUILogMessageEvent(message))
         except KeyError:
             pass
-        except SSLError, e:
+        except SSLError:
             log.info("Caught OpenSSL.SSL.Error in gtkui_log_message_event")

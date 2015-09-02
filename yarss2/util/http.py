@@ -7,9 +7,10 @@
 # See LICENSE for more details.
 #
 
-import urlparse
 import urllib
+import urlparse
 from HTMLParser import HTMLParser
+
 
 def get_matching_cookies_dict(cookies, url):
     """Takes a dictionary of cookie key/values, and
@@ -27,6 +28,7 @@ def get_matching_cookies_dict(cookies, url):
                 matching_cookies[k2] = cookies[key]["value"][k2]
     return matching_cookies
 
+
 def get_cookie_header(cookies, url=None):
     """Takes a dictionary of cookie key/values,
     and returns the cookies matching url encoded
@@ -37,6 +39,7 @@ def get_cookie_header(cookies, url=None):
         return {}
     return {"Cookie": encode_cookie_values(cookies)}
 
+
 def encode_cookie_values(cookies_dict):
     """Takes a dictionary of key/value for a Cookie,
     and returns the cookie as used in a HTTP Header"""
@@ -44,6 +47,7 @@ def encode_cookie_values(cookies_dict):
     for key in cookies_dict.keys():
         cookie_value += ("; %s=%s" % (key, cookies_dict[key]))
     return cookie_value[2:]
+
 
 def url_fix(s, charset='utf-8'):
     """Taken from werkzeug.utils. Liecense: BSD"""
@@ -66,10 +70,11 @@ def url_fix(s, charset='utf-8'):
     qs = urllib.quote_plus(qs, ':&=')
     return urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
 
+
 def clean_html_body(html_page):
     from bs4 import BeautifulSoup, Comment
     soup = BeautifulSoup(html_page)
-    comments = soup.findAll(text=lambda text:isinstance(html_page, Comment))
+    comments = soup.findAll(text=lambda text: isinstance(html_page, Comment))
     [comment.extract() for comment in comments]
 
     # Removing head
@@ -88,6 +93,7 @@ def clean_html_body(html_page):
     # Allow max two consecutive \n
     safe_html = re.sub(r'\n(\n)+', r'\n\n', safe_html)
     return safe_html
+
 
 class HTMLStripper(HTMLParser):
     def __init__(self):

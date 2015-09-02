@@ -8,7 +8,6 @@
 #
 
 from twisted.trial import unittest
-from twisted.python import log
 
 from deluge.log import LOG
 
@@ -25,9 +24,10 @@ import twisted.internet.defer as defer
 
 common.disable_new_release_check()
 
+
 class CoreTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         defer.setDebugging(True)
         self.config = common.get_test_config()
         # get_test_config will load a new core.conf with the default values.
@@ -38,13 +38,13 @@ class CoreTestCase(unittest.TestCase):
         self.torrent_handler.download_torrent_file = test_component.download_torrent_file
 
         # Might be necessary for changes in master branch
-        #yarss2.core.component = test_component
+        # yarss2.core.component = test_component
 
         self.core = Core("test")
         self.core.enable(config=self.config)
         self.core.torrent_handler = self.torrent_handler
 
-    def tearDown(self):
+    def tearDown(self):  # NOQA
         # Must stop loopingcalls or test fails
         self.core.disable()
 
@@ -80,6 +80,7 @@ class CoreTestCase(unittest.TestCase):
         self.core.yarss_config = self.config
 
         self.add_torrents_called = False
+
         def add_torrents_pass(*arg):
             self.add_torrents_called = True
 

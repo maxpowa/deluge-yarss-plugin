@@ -11,40 +11,16 @@ from twisted.trial import unittest
 
 import shutil
 
-import deluge.log
-
 import yarss2.yarss_config
 import common
 import yarss2.util.common
 from yarss2.util.common import GeneralSubsConf
 
+
 class ConfigTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         self.config = common.get_test_config(verify_config=False)
-
-    def test_verify_config(self):
-        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
-        # Remove some keys from default subscription
-        del default_subscription["regex_include"]
-        del default_subscription["email_notifications"]
-        # Remove key from email configuration.
-        default = yarss2.yarss_config.get_fresh_email_config()
-        del default["default_email_to_address"]
-
-        # Main difference between these is that config["subscriptions"] contains a dictionary
-        # that contins subscription dictionaries.
-        # config["email_configurations"] is a dictionary containing key/value pairs directly.
-
-        self.config.config["subscriptions"]["0"] = default_subscription
-        self.config.config["email_configurations"] = default
-
-        self.config._verify_config()
-
-        self.assertTrue(self.config.config["subscriptions"]["0"].has_key("regex_include") and \
-            type(self.config.config["subscriptions"]["0"]) is dict)
-
-        self.assertTrue(self.config.config["email_configurations"].has_key("default_email_to_address"))
 
     def test_insert_missing_dict_values(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
@@ -99,18 +75,18 @@ class ConfigTestCase(unittest.TestCase):
         subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=subscription_key)
 
         # Change type of the value for some keys
-        #subscription_changed["name"] = u"Non default"
-        subscription_changed["regex_include"] = None              # Should be unicode
-        subscription_changed["email_notifications"] = []          # Should be dict
-        subscription_changed["regex_include_ignorecase"] = ""     # Should be boolean
-        subscription_changed["rssfeed_key"] = unicode(rssfeed_key) # Should be str
-        subscription_changed["key"] = None                        # Should be str
+        subscription_changed["regex_include"] = None                # Should be unicode
+        subscription_changed["email_notifications"] = []            # Should be dict
+        subscription_changed["regex_include_ignorecase"] = ""       # Should be boolean
+        subscription_changed["rssfeed_key"] = unicode(rssfeed_key)  # Should be str
+        subscription_changed["key"] = None                          # Should be str
 
         changed = self.config._verify_types(subscription_key, subscription_changed, default_subscription)
         self.assertTrue(changed)
         self.assertEquals(subscription_changed["regex_include"], default_subscription["regex_include"])
         self.assertEquals(subscription_changed["email_notifications"], default_subscription["email_notifications"])
-        self.assertEquals(subscription_changed["regex_include_ignorecase"], default_subscription["regex_include_ignorecase"])
+        self.assertEquals(subscription_changed["regex_include_ignorecase"],
+                          default_subscription["regex_include_ignorecase"])
         self.assertEquals(subscription_changed["key"], subscription_key)
 
     def test_verify_types_values_deleted(self):
@@ -183,7 +159,7 @@ class ConfigTestCase(unittest.TestCase):
         changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
         self.assertTrue(changed, "_verify_types did not change the config")
         # rssfeed_key should be the DUMMY_RSSFEED_KEY
-        self.assertTrue(self.config.config["rssfeeds"].has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
+        self.assertTrue(yarss2.yarss_config.DUMMY_RSSFEED_KEY in self.config.config["rssfeeds"])
 
         # rssfeed_key has invalid type
         subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=config_key)
@@ -192,7 +168,7 @@ class ConfigTestCase(unittest.TestCase):
         changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
         self.assertTrue(changed)
         # rssfeed_key should be the DUMMY_RSSFEED_KEY
-        self.assertTrue(self.config.config["rssfeeds"].has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
+        self.assertTrue(yarss2.yarss_config.DUMMY_RSSFEED_KEY in self.config.config["rssfeeds"])
 
         # rssfeed_key doesn't exist
         subscription_changed = yarss2.yarss_config.get_fresh_subscription_config(key=config_key)
@@ -201,7 +177,7 @@ class ConfigTestCase(unittest.TestCase):
         changed = self.config._verify_types(config_key, subscription_changed, default_subscription)
         self.assertTrue(changed)
         # rssfeed_key should be the DUMMY_RSSFEED_KEY
-        self.assertTrue(self.config.config["rssfeeds"].has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
+        self.assertTrue(yarss2.yarss_config.DUMMY_RSSFEED_KEY in self.config.config["rssfeeds"])
 
     def test_verify_config(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
@@ -209,14 +185,18 @@ class ConfigTestCase(unittest.TestCase):
         test_subscriptions = common.get_default_subscriptions(3)
         test_subscriptions["0"]["rssfeed_key"] = "0"
         test_subscriptions["1"]["rssfeed_key"] = "0"
-        test_subscriptions["0"]["name"] = True # Wrong type
+        test_subscriptions["0"]["name"] = True  # Wrong type
 
         del test_subscriptions["0"]["regex_include"]
         del test_subscriptions["1"]["key"]
         del test_subscriptions["2"]["rssfeed_key"]
 
+        email_conf = yarss2.yarss_config.get_fresh_email_config()
+        del email_conf["default_email_to_address"]
+
         self.config.config["rssfeeds"] = test_feeds
         self.config.config["subscriptions"] = test_subscriptions
+        self.config.config["email_configurations"] = email_conf
         self.config._verify_config()
 
         # Should have the key reinserted
@@ -224,14 +204,15 @@ class ConfigTestCase(unittest.TestCase):
         # Name should be default value
         self.assertEquals(test_subscriptions["0"]["name"], default_subscription["name"])
         # regex_include should be reinserted with the default value
-        self.assertTrue(test_subscriptions["0"].has_key("regex_include"))
+        self.assertTrue("regex_include" in test_subscriptions["0"])
         # The rssfeed_key should be the dummy
         self.assertEquals(test_subscriptions["2"]["rssfeed_key"], yarss2.yarss_config.DUMMY_RSSFEED_KEY)
         # The dummy should now exist in rssfeeds dict
-        self.assertTrue(test_feeds.has_key(yarss2.yarss_config.DUMMY_RSSFEED_KEY))
+        self.assertTrue(yarss2.yarss_config.DUMMY_RSSFEED_KEY in test_feeds)
+        self.assertTrue("default_email_to_address" in self.config.config["email_configurations"])
 
     def test_update_config_to_version4(self):
-        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        # default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Create 2 feeds
         test_feeds = common.get_default_rssfeeds(2)
         # Create 3 subscriptions
@@ -250,12 +231,12 @@ class ConfigTestCase(unittest.TestCase):
         self.config._verify_config()
 
         # Test that last_update was replaced with last_match
-        self.assertTrue(test_subscriptions["0"].has_key("last_match"))
-        self.assertFalse(test_subscriptions["0"].has_key("last_update"))
+        self.assertTrue("last_match" in test_subscriptions["0"])
+        self.assertFalse("last_update" in test_subscriptions["0"])
         self.assertEquals(test_subscriptions["0"]["last_match"], last_match_value)
 
     def test_update_config_to_version5(self):
-        default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
+        # default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Create 2 feeds
         test_feeds = common.get_default_rssfeeds(2)
         # Create 3 subscriptions
@@ -283,9 +264,9 @@ class ConfigTestCase(unittest.TestCase):
         # Test changes for "change_value_from_list_to_dict"
         values = self.config.config["cookies"]["0"]["value"]
         self.assertTrue(type(values) is dict)
-        self.assertTrue(values.has_key("uid"))
+        self.assertTrue("uid" in values)
         self.assertEquals(values["uid"], "175728")
-        self.assertTrue(values.has_key("pass"))
+        self.assertTrue("pass" in values)
         self.assertEquals(values["pass"], "3421d1a00b48397a874454626decec04")
 
     def test_update_config_file_to_version2(self):
@@ -302,8 +283,8 @@ class ConfigTestCase(unittest.TestCase):
         # 2 - Added field 'custom_text_lines'
         subscriptions = self.config.config["subscriptions"]
         for key in subscriptions:
-            self.assertFalse(subscriptions[key].has_key("search"), "Field 'search still exists'")
-            self.assertTrue(subscriptions[key].has_key("custom_text_lines"), "Field 'custom_text_lines' does not exist!")
+            self.assertFalse("search" in subscriptions[key], "Field 'search still exists'")
+            self.assertTrue("custom_text_lines" in subscriptions[key], "Field 'custom_text_lines' does not exist!")
 
     def test_update_config_file_to_version3(self):
         config_file = "yarss2_v2.conf"
@@ -317,10 +298,11 @@ class ConfigTestCase(unittest.TestCase):
 
         # Added field 'download_location'
         for key in self.config.config["subscriptions"]:
-            self.assertTrue(self.config.config["subscriptions"][key].has_key("download_location"), "Field 'download_location' does not exist!")
+            self.assertTrue("download_location" in self.config.config["subscriptions"][key],
+                            "Field 'download_location' does not exist!")
 
         for key in self.config.config["rssfeeds"]:
-            self.assertTrue(self.config.config["rssfeeds"][key].has_key("obey_ttl"), "Field 'obey_ttl' does not exist!")
+            self.assertTrue("obey_ttl" in self.config.config["rssfeeds"][key], "Field 'obey_ttl' does not exist!")
 
         for key in self.config.config["email_configurations"].keys():
             self.assertTrue(not type(self.config.config["email_configurations"][key]) is str, "Field in str!")
@@ -340,8 +322,8 @@ class ConfigTestCase(unittest.TestCase):
 
         for i, key in enumerate(subscription_keys):
             # Test changes for "replace_last_update_with_last_match"
-            self.assertTrue(self.config.config["subscriptions"][key].has_key("last_match"))
-            self.assertFalse(self.config.config["subscriptions"][key].has_key("last_update"))
+            self.assertTrue("last_match" in self.config.config["subscriptions"][key])
+            self.assertFalse("last_update" in self.config.config["subscriptions"][key])
             self.assertEquals(self.config.config["subscriptions"][key]["last_match"], last_update_values[i])
 
     def test_update_config_file_to_version5(self):
@@ -355,8 +337,10 @@ class ConfigTestCase(unittest.TestCase):
         self.config.config.run_converter((4, 4), 5, self.config.update_config_to_version5)
 
         # Test changes for "add_torrents_in_paused_state_to_GeneralSubsConf"
-        self.assertEquals(self.config.config["subscriptions"]["0"]["add_torrents_in_paused_state"], GeneralSubsConf.DISABLED)
-        self.assertEquals(self.config.config["subscriptions"]["1"]["add_torrents_in_paused_state"], GeneralSubsConf.ENABLED)
+        self.assertEquals(self.config.config["subscriptions"]["0"]["add_torrents_in_paused_state"],
+                          GeneralSubsConf.DISABLED)
+        self.assertEquals(self.config.config["subscriptions"]["1"]["add_torrents_in_paused_state"],
+                          GeneralSubsConf.ENABLED)
 
         for key in self.config.config["subscriptions"].keys():
             # last_update replaced with last_match
@@ -446,4 +430,3 @@ class ConfigTestCase(unittest.TestCase):
 
         # Verify that the 1.2 beta config equals the config updated from earlier versions
         self.assertTrue(yarss2.util.common.dicts_equals(config_dict_v5, config_dict))
-

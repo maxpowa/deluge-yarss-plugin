@@ -11,7 +11,8 @@ from deluge.event import DelugeEvent
 
 from yarss2.util.common import get_current_date_in_isoformat
 
-class GTKUI_logger(object):
+
+class GTKUILogger(object):
     """This class handles messages going to the GTKUI log message pane"""
 
     def __init__(self, textview):
@@ -22,9 +23,10 @@ class GTKUI_logger(object):
             buf = self.textview.get_buffer()
             time = get_current_date_in_isoformat()
             msg_to_append = "(%s): %s" % (time, message)
-            buf.insert(buf.get_end_iter(),  msg_to_append + "\n")
-        import gobject # Do not import on top as only the client needs to have this package
+            buf.insert(buf.get_end_iter(), msg_to_append + "\n")
+        import gobject  # Do not import on top as only the client needs to have this package
         gobject.idle_add(add_msg)
+
 
 class GtkUILogMessageEvent(DelugeEvent):
     """

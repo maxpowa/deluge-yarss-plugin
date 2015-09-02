@@ -7,15 +7,16 @@
 # See LICENSE for more details.
 #
 
-from deluge.plugins.pluginbase import CorePluginBase
 from deluge.core.rpcserver import export
+from deluge.plugins.pluginbase import CorePluginBase
 
-from yarss2.yarss_config import YARSSConfig
-from yarss2.torrent_handling import TorrentHandler
-from yarss2.rssfeed_scheduler import RSSFeedScheduler
-import yarss2.util.logger
 import yarss2.util.common
+import yarss2.util.logger
+from yarss2.rssfeed_scheduler import RSSFeedScheduler
+from yarss2.torrent_handling import TorrentHandler
 from yarss2.util.http import get_matching_cookies_dict
+from yarss2.yarss_config import YARSSConfig
+
 
 class Core(CorePluginBase):
 
@@ -72,7 +73,7 @@ class Core(CorePluginBase):
                 self.log.warn("save_subscription called with delete=True, but rssfeed_data is not None!")
             else:
                 self.log.info("Deleting Subscription '%s'" %
-                         self.yarss_config.get_config()["subscriptions"][dict_key]["name"])
+                              self.yarss_config.get_config()["subscriptions"][dict_key]["name"])
         try:
             return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key,
                                                          data_dict=subscription_data, delete=delete)
@@ -91,17 +92,17 @@ class Core(CorePluginBase):
                     self.log.warn("save_rssfeed called with delete=True, but rssfeed_data is not None!")
                 else:
                     self.log.info("Stopping and deleting RSS Feed '%s'" %
-                             self.yarss_config.get_config()["rssfeeds"][dict_key]["name"])
+                                  self.yarss_config.get_config()["rssfeeds"][dict_key]["name"])
 
             config = self.yarss_config.generic_save_config("rssfeeds", dict_key=dict_key,
-                                                         data_dict=rssfeed_data, delete=delete)
+                                                           data_dict=rssfeed_data, delete=delete)
             if delete is True:
                 self.rssfeed_scheduler.delete_timer(dict_key)
             # Successfully saved rssfeed, check if timer was changed
             elif config:
                 if self.rssfeed_scheduler.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
                     self.log.info("Scheduled RSS Feed '%s' with interval %s" %
-                             (rssfeed_data["name"], rssfeed_data["update_interval"]))
+                                  (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config
         except ValueError as (v):
             self.log.error("Failed to save rssfeed:" + str(v))
@@ -138,8 +139,8 @@ class Core(CorePluginBase):
         return torrent_download.to_dict()
 
     @export
-    def get_path_completion(self, value):
+    def get_completion_paths(self, value):
         """
         Returns the available path completions for the input value.
         """
-        return yarss2.util.common.get_path_completion(value)
+        return yarss2.util.common.get_completion_paths(value)

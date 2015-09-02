@@ -10,7 +10,7 @@
 # See LICENSE for more details.
 #
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
@@ -39,7 +39,7 @@ setup(
     license=__license__,
     long_description=__long_description__ if __long_description__ else __description__,
     packages=packages,
-    package_data = __pkg_data__,
+    package_data=__pkg_data__,
     entry_points="""
     [deluge.plugin.core]
     %s = %s:CorePlugin
@@ -47,5 +47,5 @@ setup(
     %s = %s:GtkUIPlugin
     [yarss2.libpaths]
     include = yarss2.include
-    """ % ((__plugin_name__, __plugin_name__.lower())*2)
+    """ % ((__plugin_name__, __plugin_name__.lower()) * 2)
 )

@@ -13,9 +13,10 @@ import yarss2.yarss_config
 from yarss2.lib.feedparser import feedparser
 from yarss2.util import common
 
+
 class HTTPTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):  # NOQA
         pass
 
     def test_encode_cookie_values(self):
@@ -30,15 +31,15 @@ class HTTPTestCase(unittest.TestCase):
     def test_get_cookie_header(self):
         url = "http://basename.com/øashdnf/klasflas/dfnmalskdfn/malskdfnmasloal"
         cookies = {}
-        cookies["0"] = {"active": True,  "site": "basename.com",
+        cookies["0"] = {"active": True, "site": "basename.com",
                         "value": {"key1": "value1", "key2": "value2"}}
-        cookies["1"] = {"active": True,  "site": "non-matching-base-name.com",
+        cookies["1"] = {"active": True, "site": "non-matching-base-name.com",
                         "value": {"key3": "value3", "key4": "value4"}}
         cookies["2"] = {"active": False, "site": "basename.com",
                         "value": {"key5": "value5", "key6": "value6"}}
         expected_cookie = "key2=value2; key1=value1"
         header = http.get_cookie_header(cookies, url)
-        self.assertTrue(header.has_key("Cookie"))
+        self.assertTrue("Cookie" in header)
         self.assertEquals(sorted(header["Cookie"].split("; ")), sorted(expected_cookie.split("; ")))
 
     def test_get_matching_cookies_dict(self):
@@ -52,11 +53,11 @@ class HTTPTestCase(unittest.TestCase):
         cookies["1"]["value"]["key3"] = "value3"
 
         matching_cookies = http.get_matching_cookies_dict(cookies, "http://basename.com/blabla")
-        self.assertTrue(matching_cookies.has_key("key1"))
+        self.assertTrue("key1" in matching_cookies)
         self.assertEquals(matching_cookies["key1"], cookies["0"]["value"]["key1"])
-        self.assertTrue(matching_cookies.has_key("key2"))
+        self.assertTrue("key2" in matching_cookies)
         self.assertEquals(matching_cookies["key2"], cookies["0"]["value"]["key2"])
-        self.assertFalse(matching_cookies.has_key("key3"))
+        self.assertFalse("key3" in matching_cookies)
 
     def test_url_fix(self):
         url = u"http://de.wikipedia.org/wiki/Elf (Begriffsklärung)"
@@ -70,7 +71,6 @@ class HTTPTestCase(unittest.TestCase):
         """
         file_path = common.get_resource("rss_with_ampersand_link.rss", path="tests")
         # This is the link in rss_with_ampersand_link.rss
-        url = "http://hostname.com/Fetch?hash=2f21d4e59&amp;digest=865178f9bc"
         expected = "http://hostname.com/Fetch?hash=2f21d4e59&digest=865178f9bc"
         # Disable XML Parser
         feedparser._XML_AVAILABLE = 0
@@ -104,5 +104,4 @@ class HTTPTestCase(unittest.TestCase):
    </p>
   </body>
  </html>"""
-        cleaned = http.clean_html_body(web_page)
-
+        http.clean_html_body(web_page)
