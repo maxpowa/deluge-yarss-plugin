@@ -9,22 +9,25 @@
 #
 
 import os
-import gettext
-import datetime
 
 import gobject
 import gtk
 from gtk import gdk
 # Earlier Windows builds of Deluge did not have keysyms included
 # We import this from include/keysyms
-import keysyms
+try:
+    from gtk import keysyms
+except:
+    import keysyms
 
-def get_resource(r):
-    return r
+from yarss2.util.common import get_completion_paths
+
 try:
     from yarss2.util.common import get_resource
 except:
-    pass
+    def get_resource(r):
+        return r
+
 
 def is_ascii_value(keyval, ascii_key):
     try:
@@ -222,7 +225,7 @@ class ValueList(object):
             # Double clicked a row, set this as the entry value
             # and close the popup
             if (double_click and event.type == gtk.gdk._2BUTTON_PRESS or
-                (not double_click and event.type == gtk.gdk.BUTTON_PRESS)):
+               (not double_click and event.type == gtk.gdk.BUTTON_PRESS)):
                 path = self.get_selection_path()
                 if path:
                     self.set_entry_value(path, popdown=True)
@@ -1500,8 +1503,8 @@ gobject.type_register(PathChooserComboBox)
 
 if __name__ == "__main__":
     import sys
-    #import pygtk
-    #pygtk.require('2.0')
+    # import pygtk
+    # pygtk.require('2.0')
     w = gtk.Window()
     w.set_position(gtk.WIN_POS_CENTER)
     w.set_size_request(600, -1)
@@ -1549,7 +1552,6 @@ if __name__ == "__main__":
              ]
 
     entry1.add_values(paths)
-    #entry1.set_text("/media/Series/5")
     entry1.set_text("/home/bro/", default_text=True)
     entry2.set_text("/home/bro/programmer/deluge/deluge-yarss-plugin/build/lib/yarss2/include/bs4/tests/",
                     cursor_end=False)
