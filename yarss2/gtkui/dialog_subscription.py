@@ -738,7 +738,7 @@ class DialogSubscription():
                 rssfeed_key = self.subscription_data["rssfeed_key"]
         # Load rssfeeds into the combobox
         count = 0
-        for key in self.rssfeeds:
+        for key in sorted(self.rssfeeds):
             self.rssfeeds_store.append([self.rssfeeds[key]["key"],
                                         self.rssfeeds[key]["name"],
                                         "(%s)" % self.rssfeeds[key]["site"]])

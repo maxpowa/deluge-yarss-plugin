@@ -93,8 +93,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_dialog.setup()
 
         def pass_func(*arg):
-            print "PASS FUNC"
-            return defer.Deferred()
+            return defer.succeed(None)
 
         class DialogWrapper(object):
             def __init__(self, dialog):
@@ -106,11 +105,11 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
 
         # Override the default selection callback
-        subscription_dialog.perform_rssfeed_selection = pass_func
+        subscription_dialog.method_perform_rssfeed_selection = pass_func
 
         # Sets the index 0 of rssfeed combox activated.
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(1)
+        rssfeeds_combobox.set_active(0)
 
         deferred = subscription_dialog.perform_rssfeed_selection()
         deferred.addCallback(callback_func, subscription_dialog)
