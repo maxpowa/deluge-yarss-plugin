@@ -38,6 +38,10 @@ yarss2$ trial tests
 
 ## Changelog ##
 
+v1.3.4 - to be released
+
+* Updated feedparser to 5.2.0
+
 v1.3.3 - 2014-07-25
 
 * Updated feedparser to 5.1.3
