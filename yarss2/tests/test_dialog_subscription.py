@@ -30,8 +30,15 @@ import deluge.ui.client
 from yarss2.gtkui.dialog_subscription import DialogSubscription
 from yarss2.util.logger import Logger
 
-
 import deluge.configmanager
+
+
+class TestGTKUIBase(object):
+    def __init__(self):
+        self.labels = []
+
+    def get_labels(self):
+        return self.labels
 
 
 class DialogSubscriptionTestCase(unittest.TestCase):
@@ -82,7 +89,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         if not subscription_config:
             subscription_config = yarss_config.get_fresh_subscription_config()
-        subscription_dialog = DialogSubscription(None,  # GTKUI
+        subscription_dialog = DialogSubscription(TestGTKUIBase(),  # GTKUI
                                                  self.log,  # logger
                                                  subscription_config,
                                                  config["rssfeeds"],
@@ -213,15 +220,20 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_title = "Test subscription"
         regex_include = "Regex"
         config = self.get_test_config()
+        testcase = self
 
-        class TestGTKUI(unittest.TestCase):
+        class TestGTKUI(TestGTKUIBase):
+            def __init__(self):
+                TestGTKUIBase.__init__(self)
+                self.labels = ["Test_label"]
+
             def save_subscription(self, subscription_data):
-                self.assertEquals(subscription_data["name"], subscription_title)
-                self.assertEquals(subscription_data["regex_include"], regex_include)
-                self.assertEquals(subscription_data["add_torrents_in_paused_state"], "True")
-                self.assertEquals(subscription_data["auto_managed"], "False")
-                self.assertEquals(subscription_data["sequential_download"], "Default")
-                self.assertEquals(subscription_data["prioritize_first_last_pieces"], "Default")
+                testcase.assertEquals(subscription_data["name"], subscription_title)
+                testcase.assertEquals(subscription_data["regex_include"], regex_include)
+                testcase.assertEquals(subscription_data["add_torrents_in_paused_state"], "True")
+                testcase.assertEquals(subscription_data["auto_managed"], "False")
+                testcase.assertEquals(subscription_data["sequential_download"], "Default")
+                testcase.assertEquals(subscription_data["prioritize_first_last_pieces"], "Default")
 
         subscription_config = yarss_config.get_fresh_subscription_config()
         subscription_dialog = DialogSubscription(TestGTKUI(),  # GTKUI
@@ -246,5 +258,35 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         # Sets the index 0 of rssfeed combox activated.
         rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(1)
+        rssfeeds_combobox.set_active(0)
+        subscription_dialog.save_subscription_data()
+
+    def test_save_subscription_with_label(self):
+        subscription_title = "Test subscription"
+        config = self.get_test_config()
+        testcase = self
+
+        class TestGTKUI(unittest.TestCase, TestGTKUIBase):
+            def __init__(self):
+                TestGTKUIBase.__init__(self)
+                self.labels = ["Test_label"]
+
+            def save_subscription(self, subscription_data):
+                testcase.assertEquals(subscription_data["label"], self.labels[0])
+
+        subscription_config = yarss_config.get_fresh_subscription_config()
+        subscription_dialog = DialogSubscription(TestGTKUI(),  # GTKUI
+                                                 self.log,  # logger
+                                                 subscription_config,
+                                                 config["rssfeeds"],
+                                                 [],  # self.get_move_completed_list(),
+                                                 [],  # self.get_download_location_list(),
+                                                 {},  # self.email_messages,
+                                                 {})  # self.cookies)
+        subscription_dialog.setup()
+        subscription_dialog.glade.get_widget("txt_name").set_text(subscription_title)
+
+        # Sets the index 0 of rssfeed combox activated.
+        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox.set_active(0)
         subscription_dialog.save_subscription_data()

@@ -480,6 +480,7 @@ def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", r
     config_dict["auto_managed"] = GeneralSubsConf.DEFAULT
     config_dict["sequential_download"] = GeneralSubsConf.DEFAULT
     config_dict["prioritize_first_last_pieces"] = GeneralSubsConf.DEFAULT
+    config_dict["label"] = None
 
     if key is not None:
         config_dict["key"] = key

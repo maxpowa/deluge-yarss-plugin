@@ -57,10 +57,13 @@ class TestComponent(object):
         self.downloads.append(download)
         return download
 
+    def get_enabled_plugins(self):
+        return []
 
 # When replacing component with test_component in modules,
 # This is called e.g. when this is executed: component.get("TorrentManager")
 # we ignore the key, and return the test component
+
 
 def get(key):
     return test_component

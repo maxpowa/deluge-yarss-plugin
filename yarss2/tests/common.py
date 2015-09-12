@@ -50,7 +50,7 @@ def get_default_rssfeeds(count):
 def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_config=True):
     """Creates a YaRSS2 config with a reference to a proper deluge config"""
     if config_dir is None:
-        config_dir = get_tmp_dir()
+        config_dir = set_tmp_config_dir()
     deluge_config = deluge.config.Config(config_filename,
                                          yarss2.yarss_config.default_prefs(), config_dir=config_dir)
     core_config = deluge.config.Config("core.conf", defaults=deluge.core.preferencesmanager.DEFAULT_PREFS,
@@ -60,7 +60,7 @@ def get_test_config(config_filename="yarss_test.conf", config_dir=None, verify_c
     return config
 
 
-def get_tmp_dir():
+def set_tmp_config_dir():
     config_directory = tempfile.mkdtemp()
     deluge.configmanager.set_config_dir(config_directory)
     return config_directory

@@ -47,6 +47,7 @@ class DialogSubscription():
         self.log = logger
         self.rssfeedhandler = RSSFeedHandler(self.log)
         self.new_subscription = "key" not in subscription_data
+        self.labels = None
 
     def setup(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
@@ -61,7 +62,7 @@ class DialogSubscription():
             "on_button_fetch_clicked": self.on_rssfeed_selected,
             "on_button_last_matched_reset_clicked": self.on_button_last_matched_reset_clicked,
             "on_button_last_matched_now_clicked": self.on_button_last_matched_now_clicked,
-            "on_general_checkBox_toggled": self.on_general_checkbox_toggled,
+            "on_general_checkbox_toggled": self.on_general_checkbox_toggled,
             "on_key_pressed": self.on_key_pressed,
         })
 
@@ -75,6 +76,7 @@ class DialogSubscription():
         self.setup_messages_combobox()
         self.setup_messages_list()
         self.treeview = self.create_matching_tree()
+        self.setup_labels()
         self.set_custom_text_tooltip()
         self.load_subscription_data()
 
@@ -86,6 +88,24 @@ class DialogSubscription():
 ########################################
 # GUI creation
 ########################################
+
+    def setup_labels(self):
+        combobox_labels = self.glade.get_widget("combobox_labels")
+        label_labels = self.glade.get_widget("labels_label")
+        self.labels = self.gtkUI.get_labels()
+        # Disable labels in GUI
+        if self.labels is None:
+            label_labels.set_sensitive(False)
+            combobox_labels.set_sensitive(False)
+            tooltips = gtk.Tooltips()
+            tooltips.set_tip(combobox_labels, 'Label plugin is not enabled')
+        else:
+            label_labels.set_sensitive(True)
+            renderer_label = gtk.CellRendererText()
+            combobox_labels.pack_end(renderer_label, False)
+            combobox_labels.add_attribute(renderer_label, "text", 0)
+            self.labels_liststore = gtk.ListStore(str)
+            combobox_labels.set_model(self.labels_liststore)
 
     def setup_move_completed_combobox(self):
         move_completed_box = self.glade.get_widget("move_completed_box")
@@ -309,7 +329,6 @@ class DialogSubscription():
     def get_selected_combobox_key(self, combobox):
         """Get the key of the currently selected item in the combobox"""
         # Get selected item
-        # active = combobox.get_active()
         model = combobox.get_model()
         iterator = combobox.get_active_iter()
         if iterator is None or model.get_value(iterator, 0) == -1:
@@ -619,6 +638,12 @@ class DialogSubscription():
         textbuffer = self.glade.get_widget("textview_custom_text").get_buffer()
         custom_text_lines = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter())
 
+        combobox_labels = self.glade.get_widget("combobox_labels")
+        label = None
+        active_label = combobox_labels.get_active_iter()
+        if active_label is not None:
+            label = combobox_labels.get_model().get_value(active_label, 0)
+
         rss_key = self.get_selected_combobox_key(self.glade.get_widget("combobox_rssfeeds"))
 
         # RSS feed is mandatory
@@ -646,6 +671,7 @@ class DialogSubscription():
         self.subscription_data["auto_managed"] = auto_managed
         self.subscription_data["sequential_download"] = sequential_download
         self.subscription_data["prioritize_first_last_pieces"] = prioritize_first_last
+        self.subscription_data["label"] = label
 
         # Get notifications from notifications list
         self.subscription_data["email_notifications"] = self.get_current_notifications()
@@ -674,6 +700,7 @@ class DialogSubscription():
         self.load_notifications_list_data()
         self.load_path_choosers_data()
         self.load_last_matched_timestamp()
+        self.load_labels()
 
     def load_basic_fields_data(self):
         if self.subscription_data is None:
@@ -788,3 +815,15 @@ class DialogSubscription():
 
     def load_last_matched_timestamp(self):
         self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])
+
+    def load_labels(self):
+        if self.labels is None:
+            return
+        current = self.subscription_data["label"]
+        active_index = 0
+        for i, label in enumerate(self.labels):
+            if label == current:
+                active_index = i
+            self.labels_liststore.append([label])
+        combobox_labels = self.glade.get_widget("combobox_labels")
+        combobox_labels.set_active(active_index)

@@ -42,6 +42,9 @@ class GtkUI(GtkPluginBase):
         self.on_show_prefs()  # Necessary for the first time when the plugin is installed
         client.register_event_handler("YARSSConfigChangedEvent", self.cb_on_config_changed_event)
         client.register_event_handler("GtkUILogMessageEvent", self.cb_on_log_message_arrived_event)
+        client.register_event_handler("PluginEnabledEvent", self.plugins_enabled_changed)
+        client.register_event_handler("PluginDisabledEvent", self.plugins_enabled_changed)
+        self.plugins_enabled_changed("Label")
 
     def disable(self):
         component.get("Preferences").remove_page("YaRSS2")
@@ -83,6 +86,8 @@ class GtkUI(GtkPluginBase):
         self.selected_path_rssfeeds = None
         self.selected_path_email_message = None
         self.selected_path_cookies = None
+
+        self.labels = None
 
         # key, enabled, name, site, download_location
         self.subscriptions_store = gtk.ListStore(str, bool, str, str, str, str, str)
@@ -328,6 +333,31 @@ class GtkUI(GtkPluginBase):
             return tree_paths[0]
         return None
 
+    def get_labels(self):
+        return self.labels
+
+    def plugins_enabled_changed(self, name):
+        if name == "Label":
+            d = client.core.get_enabled_plugins()
+            d.addCallback(self.on_get_enabled_plugins)
+            return d
+
+    def on_get_enabled_plugins(self, result):
+        print "on_get_enabled_plugins:", result
+
+        def on_labels(labels):
+            print "gtkui.on_labels:", labels
+            self.log.debug("Got Labels: %s", labels)
+            self.labels = [""]
+            for label in labels:
+                self.labels.append(label)
+            print "Returning:", self.labels
+            return self.labels
+        if 'Label' in result:
+            return client.label.get_labels().addCallback(on_labels)
+        else:
+            self.labels = None
+        return None
 
 #########################
 # Create Subscription list

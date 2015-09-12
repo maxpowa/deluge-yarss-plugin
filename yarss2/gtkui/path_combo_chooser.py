@@ -22,11 +22,11 @@ except:
 
 from yarss2.util.common import get_completion_paths
 
-try:
-    from yarss2.util.common import get_resource
-except:
-    def get_resource(r):
-        return r
+
+def _get_resource(r):
+    return r
+
+get_resource = _get_resource
 
 
 def is_ascii_value(keyval, ascii_key):
@@ -215,7 +215,6 @@ class ValueList(object):
 
     def on_treeview_mouse_button_press_event(self, treeview, event, double_click=False):
         """
-        Shows popup on selected row when right clicking
         When left clicking twice, the row value is set for the text entry
         and the popup is closed.
 
@@ -224,8 +223,8 @@ class ValueList(object):
         if event.button != 3:
             # Double clicked a row, set this as the entry value
             # and close the popup
-            if (double_click and event.type == gtk.gdk._2BUTTON_PRESS or
-               (not double_click and event.type == gtk.gdk.BUTTON_PRESS)):
+            if (double_click and event.type == gtk.gdk._2BUTTON_PRESS) or\
+               (not double_click and event.type == gtk.gdk.BUTTON_PRESS):
                 path = self.get_selection_path()
                 if path:
                     self.set_entry_value(path, popdown=True)
@@ -1111,7 +1110,7 @@ class PathChooserComboBox(gtk.HBox, StoredValuesPopup, gobject.GObject):
         folder_name = ""
         if self.show_folder_name_on_button or not self.path_entry_visible:
             folder_name = path_without_trailing_path_sep(text)
-            if folder_name is not "/" and os.path.basename(folder_name):
+            if folder_name != "/" and os.path.basename(folder_name):
                 folder_name = os.path.basename(folder_name)
         self.folder_name_label.set_text(folder_name)
         # Only trigger event if text has changed
@@ -1517,7 +1516,7 @@ if __name__ == "__main__":
         return "%s/glade/%s" % (os.path.abspath(os.path.dirname(sys.argv[0])), filename)
 
     # Override get_resource which fetches from deluge install
-    # get_resource = get_resource2
+    get_resource = get_resource2
 
     entry1 = PathChooserComboBox(max_visible_rows=15)
     entry2 = PathChooserComboBox()
@@ -1525,31 +1524,18 @@ if __name__ == "__main__":
     box1.add(entry1)
     box1.add(entry2)
 
-    paths = ["/media/Movies-HD",
-             "/storage/media/media/media/Series/Grounded for life/Season 2/",
-             "/media/torrent/in",
-             "/media/Live-show/Misc",
-             "/media/Live-show/Consert",
-             "/media/Series/1/",
-             "/media/Series/2",
-             "/media/Series/3",
-             "/media/Series/4",
-             "/media/Series/5",
-             "/media/Series/6",
-             "/media/Series/7",
-             "/media/Series/8",
-             "/media/Series/9",
-             "/media/Series/10",
-             "/media/Series/11",
-             "/media/Series/12",
-             "/media/Series/13",
-             "/media/Series/14",
-             "/media/Series/15",
-             "/media/Series/16",
-             "/media/Series/17",
-             "/media/Series/18",
-             "/media/Series/19"
-             ]
+    paths = [
+        "/home/bro/Downloads",
+        "/media/Movies-HD",
+        "/media/torrent/in",
+        "/media/Live-show/Misc",
+        "/media/Live-show/Consert",
+        "/media/Series/1/",
+        "/media/Series/2",
+        "/media/Series/17",
+        "/media/Series/18",
+        "/media/Series/19"
+    ]
 
     entry1.add_values(paths)
     entry1.set_text("/home/bro/", default_text=True)

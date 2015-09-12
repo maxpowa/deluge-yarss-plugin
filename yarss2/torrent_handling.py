@@ -40,8 +40,8 @@ class TorrentHandler(object):
             self.log.error(error_msg)
             download.set_error(error_msg)
             return download
-        # Get the info to see if any exceptions are raised
         try:
+            # Get the info to see if any exceptions are raised
             lt.torrent_info(lt.bdecode(download.filedump))
         except Exception, e:
             error_msg = "Unable to decode torrent file! (%s) URL: '%s'" % (str(e), torrent_url)
@@ -137,6 +137,10 @@ class TorrentHandler(object):
             if download.success is False and download.error_msg is None:
                 download.set_error("Failed to add torrent to Deluge. Is torrent already added?")
                 self.log.warn(download.error_msg)
+            else:
+                if "Label" in component.get("Core").get_enabled_plugins() and\
+                   subscription_data["label"] is not None:
+                    component.get("CorePlugin.Label").set_torrent(download.torrent_id, subscription_data["label"])
         return download
 
     def add_torrents(self, save_subscription_func, torrent_list, config):

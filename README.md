@@ -41,6 +41,7 @@ yarss2$ trial tests
 v1.3.4 - to be released
 
 * Updated feedparser to 5.2.0
+* Implemented support for setting label when Label plugin is enabled
 
 v1.3.3 - 2014-07-25
 

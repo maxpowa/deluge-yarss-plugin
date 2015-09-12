@@ -10,6 +10,11 @@
 
 import deluge.component as component
 from deluge.ui.client import client
+
+from yarss2.util.common import get_resource
+import yarss2.gtkui.path_combo_chooser
+yarss2.gtkui.path_combo_chooser.get_resource = get_resource
+
 from yarss2.gtkui.path_combo_chooser import PathChooserComboBox
 import yarss2.util.logger
 

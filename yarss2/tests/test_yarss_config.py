@@ -272,7 +272,7 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version2(self):
         config_file = "yarss2_v1.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
         self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
@@ -289,7 +289,7 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version3(self):
         config_file = "yarss2_v2.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
         self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
@@ -310,7 +310,7 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version4(self):
         config_file = "yarss2_v3.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
         self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
@@ -329,7 +329,7 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version5(self):
         config_file = "yarss2_v4.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
         self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
@@ -362,7 +362,7 @@ class ConfigTestCase(unittest.TestCase):
             self.assertEquals(type(cookie["value"]), dict)
 
     def test_update_config_file_from_1_0(self):
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         # Copy the yarss2_v1.conf file to test dir to avoid changes to the file.
         config_file = "yarss2_v1.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
@@ -405,7 +405,7 @@ class ConfigTestCase(unittest.TestCase):
         self.assertEquals(self.config.config._Config__version["file"], 5)
 
     def test_update_config_file_from_1_2_beta(self):
-        tmp_dir = common.get_tmp_dir()
+        tmp_dir = common.set_tmp_config_dir()
         config_file = "yarss2_v1.2.beta.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
         shutil.copy(filename, tmp_dir)
