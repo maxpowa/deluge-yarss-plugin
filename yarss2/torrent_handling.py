@@ -28,12 +28,18 @@ class TorrentHandler(object):
     def listen_on_torrent_finished(self, enable=True):
         component.get("EventManager").register_event_handler("TorrentFinishedEvent", self.on_torrent_finished_event)
 
-    def download_torrent_file(self, torrent_url, cookies_dict):
+    def download_torrent_file(self, torrent_url, cookies=None, headers=None):
         download = TorrentDownload()
         download.url = torrent_url
-        download.cookies_dict = cookies_dict
+        download.cookies = cookies
+        args = {"verify": False}
+        if cookies is not None:
+            args["cookies"] = cookies
+        if headers is not None:
+            args["headers"] = headers
+        download.headers = headers
         try:
-            r = requests.get(torrent_url, cookies=cookies_dict, verify=False)
+            r = requests.get(torrent_url, **args)
             download.filedump = r.content
         except Exception, e:
             error_msg = "Failed to download torrent url: '%s'. Exception: %s" % (torrent_url, str(e))
@@ -51,8 +57,12 @@ class TorrentHandler(object):
 
     def get_torrent(self, torrent_info):
         url = torrent_info["link"]
-        site_cookies_dict = torrent_info["site_cookies_dict"]
+        site_cookies_dict = torrent_info.get("site_cookies_dict", None)
         download = None
+        headers = None
+        user_agent = torrent_info.get("user_agent", None)
+        if user_agent:
+            headers = {"User-Agent": user_agent}
 
         if url.startswith("magnet:"):
             self.log.info("Fetching magnet: '%s'" % url, gtkui=False)
@@ -60,8 +70,9 @@ class TorrentHandler(object):
         else:
             # Fix unicode URLs
             url = http.url_fix(url)
-            self.log.info("Downloading torrent: '%s' using cookies: %s" % (url, str(site_cookies_dict)), gtkui=False)
-            download = self.download_torrent_file(url, site_cookies_dict)
+            self.log.info("Downloading torrent: '%s' using cookies: '%s', user-agent: '%s'" %
+                          (url, str(site_cookies_dict), str(headers)), gtkui=False)
+            download = self.download_torrent_file(url, cookies=site_cookies_dict, headers=headers)
             # Error occured
             if not download.success:
                 return download
@@ -73,12 +84,12 @@ class TorrentHandler(object):
                 self.log.warn(download.error_msg)
         return download
 
-    def add_torrent(self, torrent_info=None):
+    def add_torrent(self, torrent_info):
         # Initialize options with default configurations
         options = TorrentOptions()
 
         torrent_url = torrent_info["link"]
-        site_cookies_dict = torrent_info["site_cookies_dict"],
+        site_cookies_dict = torrent_info["site_cookies_dict"]
         subscription_data = None
         if "subscription_data" in torrent_info:
             subscription_data = torrent_info["subscription_data"]

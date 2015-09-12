@@ -44,10 +44,11 @@ class TestComponent(object):
         self.added.append(download)
         return download
 
-    def download_torrent_file(self, torrent_url, cookies_dict):
+    def download_torrent_file(self, torrent_url, cookies=None, headers=None):
         download = TorrentDownload()
         download.torrent_url = torrent_url
-        download.cookies_dict = cookies_dict
+        download.cookies = cookies
+        download.headers = headers
         download.torrent_url = torrent_url
         download.success = self.download_success
         if self.use_filedump:
@@ -74,7 +75,8 @@ import test_torrent_handling
 yarss2.torrent_handling.component = test_torrent_handling
 
 
-def get_file(url, cookies={}, verify=True):
+def get_file(url, cookies={}, headers={}, verify=True):
+
     class Request(object):
         pass
     r = Request
@@ -124,16 +126,16 @@ class TorrentHandlingTestCase(unittest.TestCase):
     def test_add_torrent_ret_false(self):
         handler = TorrentHandler(self.log)
         torrent_url = "http://url.com/file.torrent"
-        cookies_dict = {}
+        cookies = {}
         global test_component
         test_component.download_success = False
         handler.download_torrent_file = test_component.download_torrent_file
-        torrent_info = {"link": torrent_url, "site_cookies_dict": cookies_dict}
+        torrent_info = {"link": torrent_url, "site_cookies_dict": cookies}
         torrent_download = handler.add_torrent(torrent_info)
         self.assertFalse(torrent_download.success)
         # Set by download_torrent_file
         self.assertEquals(torrent_download.torrent_url, torrent_url)
-        self.assertEquals(torrent_download.cookies_dict, cookies_dict)
+        self.assertEquals(torrent_download.cookies, cookies)
         test_component.download_success = True
 
     def test_add_torrent_with_subscription_data(self):
@@ -157,6 +159,25 @@ class TorrentHandlingTestCase(unittest.TestCase):
         self.assertEquals(added.options["download_location"], subscription_data["download_location"])
         # When using DEFAULT, the default value for add_paused on TorrentSettings is False
         self.assertEquals(added.options["add_paused"], False)
+
+    def test_get_torrent(self):
+        handler = TorrentHandler(self.log)
+        handler.download_torrent_file = test_component.download_torrent_file
+        filename = yarss2.util.common.get_resource("FreeBSD-9.0-RELEASE-amd64-dvd1.torrent", path="tests/data/")
+        test_component.use_filedump = read_file(filename)
+        torrent_info = {"link": "http://url.com/file.torrent",
+                        "site_cookies_dict": {"cookiekey": "cookievalue"},
+                        "user_agent": "test"}
+        download = handler.get_torrent(torrent_info)
+        self.assertEquals(download.headers, {'User-Agent': 'test'})
+        self.assertEquals(download.cookies, {'cookiekey': 'cookievalue'})
+        self.assertFalse(download.is_magnet)
+
+    def test_get_torrent_magnet(self):
+        handler = TorrentHandler(self.log)
+        torrent_info = {"link": "magnet:hash"}
+        download = handler.get_torrent(torrent_info)
+        self.assertTrue(download.is_magnet)
 
     def get_test_rssfeeds_match_dict(self):
         match_option_dict = {}

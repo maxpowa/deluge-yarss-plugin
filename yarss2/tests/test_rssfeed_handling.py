@@ -26,9 +26,10 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def test_get_rssfeed_parsed(self):
         file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
-        rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments"}
+        rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments",
+                        "user_agent": None}
         site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
-
+        default_user_agent = self.rssfeedhandler.user_agent
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies)
 
         # When needing to dump the result in json format
@@ -40,6 +41,24 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
         self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")),
                           ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
+        self.assertEquals(parsed_feed["user_agent"], default_user_agent)
+
+    def test_get_rssfeed_parsed_custom_user_agent(self):
+        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
+        custom_user_agent = "TEST AGENT"
+        rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments",
+                        "user_agent": custom_user_agent}
+        site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies)
+
+        # When needing to dump the result in json format
+        # common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
+
+        self.assertTrue("items" in parsed_feed)
+        items = parsed_feed["items"]
+        stored_items = common.load_json_testdata()
+        self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
+        self.assertEquals(parsed_feed["user_agent"], custom_user_agent)
 
     def test_get_link(self):
         file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
@@ -146,8 +165,8 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 break
 
     def test_fetch_feed_torrents(self):
-        config = common.get_test_config_dict()                                # 0 is the rssfeed key
-        matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")
+        config = common.get_test_config_dict()
+        matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")  # 0 is the rssfeed key
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 

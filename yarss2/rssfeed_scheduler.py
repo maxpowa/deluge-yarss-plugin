@@ -31,7 +31,7 @@ class RSSFeedScheduler(object):
         self.rssfeedhandler = RSSFeedHandler(logger)
         self.torrent_handler = TorrentHandler(logger)
         # To make it possible to disable adding torrents in testing
-        self.add_torrent_func = self.torrent_handler.add_torrents
+        self.add_torrents_func = self.torrent_handler.add_torrents
 
     def enable_timers(self):
         """Creates the LoopingCall timers, one for each RSS Feed"""
@@ -129,17 +129,19 @@ class RSSFeedScheduler(object):
         def save_subscription_func(subscription_data):
             self.yarss_config.generic_save_config("subscriptions", data_dict=subscription_data)
 
-        return (self.add_torrent_func, save_subscription_func,
+        return (self.add_torrents_func, save_subscription_func,
                 fetch_result["matching_torrents"], self.yarss_config.get_config())
 
     def add_torrents_callback(self, args):
-        """This i called with the results from rssfeed_update_handler
-        add_torrent_func must be called on the main thread
+        """
+        Called with the results from rssfeed_update_handler
+        add_torrents_func must be called on the main thread
+
         """
         if args is None:
             return
-        add_torrent_func, save_subscription_func, matching_torrents, config = args
-        add_torrent_func(save_subscription_func, matching_torrents, config)
+        add_torrents_func, save_subscription_func, matching_torrents, config = args
+        add_torrents_func(save_subscription_func, matching_torrents, config)
 
     def queue_rssfeed_update(self, *args, **kwargs):
         d = self.run_queue.push(self.rssfeed_update_handler_safe, *args, **kwargs)

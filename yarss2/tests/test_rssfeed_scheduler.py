@@ -137,7 +137,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
 
         def add_torrents_pass(*arg):
             pass
-        self.scheduler.add_torrent_func = add_torrents_pass
+        self.scheduler.add_torrents_func = add_torrents_pass
 
         # Run the rssfeed with key 0
         self.scheduler.rssfeed_update_handler("0")
@@ -150,8 +150,8 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         self.scheduler.disable_timers()
 
     def test_rssfeed_update_queue(self):
-        """Tests that the add_torrent_func is called the correct number of times,
-        and that add_torrent_func is running in the main thread.
+        """Tests that the add_torrents_func is called the correct number of times,
+        and that add_torrents_func is running in the main thread.
         """
         # Don't use the loopingcall, so disable just to avoid any trouble
         self.scheduler.disable_timers()
@@ -164,7 +164,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
             self.assertEquals(main_thread, threading.current_thread(),
                               "add_torrents must be called from the main thread!")
             add_torrents_count.append(0)
-        self.scheduler.add_torrent_func = add_torrents_cb
+        self.scheduler.add_torrents_func = add_torrents_cb
 
         d_first = self.scheduler.queue_rssfeed_update(rssfeed_key="0")
         self.scheduler.queue_rssfeed_update(subscription_key="1")

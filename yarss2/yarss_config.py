@@ -441,7 +441,8 @@ def get_fresh_email_config():
 
 
 def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_update=u"",
-                             update_interval=DEFAULT_UPDATE_INTERVAL, obey_ttl=False, key=None):
+                             update_interval=DEFAULT_UPDATE_INTERVAL, obey_ttl=False,
+                             user_agent="", key=None):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["name"] = name
@@ -451,6 +452,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
     config_dict["last_update"] = last_update
     config_dict["update_interval"] = update_interval
     config_dict["obey_ttl"] = obey_ttl
+    config_dict["user_agent"] = user_agent
     if key:
         config_dict["key"] = key
     return config_dict

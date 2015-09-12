@@ -84,7 +84,7 @@ class CoreTestCase(unittest.TestCase):
         def add_torrents_pass(*arg):
             self.add_torrents_called = True
 
-        self.core.rssfeed_scheduler.add_torrent_func = add_torrents_pass
+        self.core.rssfeed_scheduler.add_torrents_func = add_torrents_pass
         d = self.core.initiate_rssfeed_update(None, subscription_key="0")
 
         def callback_check(args):

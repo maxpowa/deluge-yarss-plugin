@@ -343,15 +343,12 @@ class GtkUI(GtkPluginBase):
             return d
 
     def on_get_enabled_plugins(self, result):
-        print "on_get_enabled_plugins:", result
 
         def on_labels(labels):
-            print "gtkui.on_labels:", labels
             self.log.debug("Got Labels: %s", labels)
             self.labels = [""]
             for label in labels:
                 self.labels.append(label)
-            print "Returning:", self.labels
             return self.labels
         if 'Label' in result:
             return client.label.get_labels().addCallback(on_labels)

@@ -18,7 +18,7 @@ class RSSFeedHandler(object):
 
     def __init__(self, log):
         self.log = log
-        self.agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
+        self.user_agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
 
     def get_link(self, item):
         link = None
@@ -72,6 +72,8 @@ class RSSFeedHandler(object):
         return_dict = {}
         rssfeeds_dict = {}
         cookie_header = {}
+        user_agent = self.user_agent if not rssfeed_data["user_agent"] else rssfeed_data["user_agent"]
+        return_dict["user_agent"] = user_agent
 
         if site_cookies_dict:
             cookie_header = http.get_cookie_header(site_cookies_dict)
@@ -82,7 +84,7 @@ class RSSFeedHandler(object):
         # Will abort after 10 seconds if server doesn't answer
         try:
             parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header,
-                                           agent=self.agent, timeout=10)
+                                           agent=user_agent, timeout=10)
         except Exception, e:
             self.log.warn("Exception occured in feedparser: " + str(e))
             self.log.warn("Feedparser was called with url: '%s' and header: '%s'" %
@@ -312,4 +314,5 @@ class RSSFeedHandler(object):
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],
                                                     "site_cookies_dict": fetch_data["site_cookies_dict"],
+                                                    "user_agent": rssfeed_data["user_agent"],
                                                     "subscription_data": subscription_data})
