@@ -144,6 +144,7 @@ class YARSSConfig(object):
         self.config.run_converter((2, 2), 3, self.update_config_to_version3)
         self.config.run_converter((3, 3), 4, self.update_config_to_version4)
         self.config.run_converter((4, 4), 5, self.update_config_to_version5)
+        self.config.run_converter((5, 5), 6, self.update_config_to_version6)
 
         default_config = get_fresh_subscription_config(key="")
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
@@ -415,6 +416,27 @@ class YARSSConfig(object):
         self.run_for_each_dict_element(config["cookies"], update_cookie)
         return config
 
+    def update_config_to_version6(self, config):
+        """Updates the config values to config file version 6, (YaRSS2 v1.3.4)"""
+        self.log.info("Updating config file to version 6")
+        default_subscription_config = get_fresh_subscription_config(key="")
+
+        def update_subscription(subscription):
+            # Adding new fields
+            subscription["ignore_timestamp"] = default_subscription_config["ignore_timestamp"]
+            subscription["label"] = default_subscription_config["label"]
+
+        self.run_for_each_dict_element(config["subscriptions"], update_subscription)
+
+        default_rssfeed_config = get_fresh_rssfeed_config()
+
+        def update_rssfeed(rssfeed):
+            # Adding new fields
+            rssfeed["user_agent"] = default_rssfeed_config["user_agent"]
+
+        self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
+        return config
+
     def run_for_each_dict_element(self, conf_dict, update_func):
         for key in conf_dict.keys():
             update_func(conf_dict[key])
@@ -459,7 +481,8 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
 
 
 def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", regex_exclude=u"",
-                                  active=True, move_completed=u"", download_location=u"", last_match=u"", key=None):
+                                  active=True, move_completed=u"", download_location=u"", last_match=u"",
+                                  ignore_timestamp=False, key=None):
     """Create a new config """
     config_dict = {}
     config_dict["rssfeed_key"] = rssfeed_key
@@ -470,6 +493,7 @@ def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", r
     config_dict["name"] = name
     config_dict["active"] = active
     config_dict["last_match"] = last_match
+    config_dict["ignore_timestamp"] = False
     config_dict["move_completed"] = move_completed
     config_dict["download_location"] = download_location
     config_dict["custom_text_lines"] = u""

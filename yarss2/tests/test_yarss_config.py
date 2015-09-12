@@ -286,6 +286,8 @@ class ConfigTestCase(unittest.TestCase):
             self.assertFalse("search" in subscriptions[key], "Field 'search still exists'")
             self.assertTrue("custom_text_lines" in subscriptions[key], "Field 'custom_text_lines' does not exist!")
 
+        self.assertEquals(self.config.config._Config__version["file"], 2)
+
     def test_update_config_file_to_version3(self):
         config_file = "yarss2_v2.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
@@ -307,6 +309,8 @@ class ConfigTestCase(unittest.TestCase):
         for key in self.config.config["email_configurations"].keys():
             self.assertTrue(not type(self.config.config["email_configurations"][key]) is str, "Field in str!")
 
+        self.assertEquals(self.config.config._Config__version["file"], 3)
+
     def test_update_config_file_to_version4(self):
         config_file = "yarss2_v3.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
@@ -325,6 +329,8 @@ class ConfigTestCase(unittest.TestCase):
             self.assertTrue("last_match" in self.config.config["subscriptions"][key])
             self.assertFalse("last_update" in self.config.config["subscriptions"][key])
             self.assertEquals(self.config.config["subscriptions"][key]["last_match"], last_update_values[i])
+
+        self.assertEquals(self.config.config._Config__version["file"], 4)
 
     def test_update_config_file_to_version5(self):
         config_file = "yarss2_v4.conf"
@@ -360,6 +366,32 @@ class ConfigTestCase(unittest.TestCase):
         # Test changes for "change_value_from_list_to_dict"
         for cookie in self.config.config["cookies"].values():
             self.assertEquals(type(cookie["value"]), dict)
+
+        self.assertEquals(self.config.config._Config__version["file"], 5)
+
+    def test_update_config_file_to_version6(self):
+        config_file = "yarss2_v5.conf"
+        filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
+        tmp_dir = common.set_tmp_config_dir()
+        shutil.copy(filename, tmp_dir)
+        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+
+        # Call the function that makes the changes
+        self.config.config.run_converter((5, 5), 6, self.config.update_config_to_version6)
+
+        for key in self.config.config["subscriptions"].keys():
+            self.assertTrue("ignore_timestamp" in self.config.config["subscriptions"][key])
+            self.assertFalse(self.config.config["subscriptions"][key]["ignore_timestamp"])
+
+            self.assertTrue("label" in self.config.config["subscriptions"][key])
+            self.assertEquals(self.config.config["subscriptions"][key]["label"], None)
+
+        # Test changes for "change_value_from_list_to_dict"
+        for rssfeed in self.config.config["rssfeeds"].values():
+            self.assertTrue("user_agent" in rssfeed)
+            self.assertEquals(rssfeed["user_agent"], "")
+
+        self.assertEquals(self.config.config._Config__version["file"], 6)
 
     def test_update_config_file_from_1_0(self):
         tmp_dir = common.set_tmp_config_dir()
@@ -402,7 +434,6 @@ class ConfigTestCase(unittest.TestCase):
             self.assertEquals(type(cookie["value"]), dict)
 
         self.assertEquals(self.config.config._Config__version["format"], 1)
-        self.assertEquals(self.config.config._Config__version["file"], 5)
 
     def test_update_config_file_from_1_2_beta(self):
         tmp_dir = common.set_tmp_config_dir()

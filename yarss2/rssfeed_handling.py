@@ -307,9 +307,13 @@ class RSSFeedHandler(object):
             # Discard match only if timestamp is available,
             # and the timestamp is older or equal to the last matching timestamp
             if matches[key]["updated_datetime"] and last_match_dt >= matches[key]["updated_datetime"]:
-                self.log.info("Not adding because of old timestamp: '%s'" % matches[key]["title"])
-                del matches[key]
-                continue
+                if subscription_data["ignore_timestamp"] is True:
+                    self.log.info("Old timestamp: '%s', but ignore option is enabled so add torrent anyways."
+                                  % matches[key]["title"])
+                else:
+                    self.log.info("Not adding because of old timestamp: '%s'" % matches[key]["title"])
+                    del matches[key]
+                    continue
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],

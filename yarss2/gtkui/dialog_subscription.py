@@ -613,6 +613,7 @@ class DialogSubscription():
         if active_string is not None:
             download_location = active_string.strip()
         last_match = self.glade.get_widget("txt_last_matched").get_text()
+        ignore_timestamp = self.glade.get_widget("checkbutton_ignore_timestamp").get_active()
 
         max_download_speed = self.glade.get_widget("spinbutton_max_download_speed").get_value()
         max_upload_speed = self.glade.get_widget("spinbutton_max_upload_speed").get_value()
@@ -661,6 +662,7 @@ class DialogSubscription():
         self.subscription_data["custom_text_lines"] = custom_text_lines
         self.subscription_data["rssfeed_key"] = rss_key
         self.subscription_data["last_match"] = last_match
+        self.subscription_data["ignore_timestamp"] = ignore_timestamp
 
         self.subscription_data["max_download_speed"] = int(max_download_speed)
         self.subscription_data["max_upload_speed"] = int(max_upload_speed)
@@ -699,7 +701,7 @@ class DialogSubscription():
         self.load_rssfeed_combobox_data()
         self.load_notifications_list_data()
         self.load_path_choosers_data()
-        self.load_last_matched_timestamp()
+        self.load_timestamp()
         self.load_labels()
 
     def load_basic_fields_data(self):
@@ -813,8 +815,9 @@ class DialogSubscription():
 
         client.core.get_config_values(self.core_keys).addCallback(_on_config_values)
 
-    def load_last_matched_timestamp(self):
+    def load_timestamp(self):
         self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])
+        self.glade.get_widget("checkbutton_ignore_timestamp").set_active(self.subscription_data["ignore_timestamp"])
 
     def load_labels(self):
         if self.labels is None:
