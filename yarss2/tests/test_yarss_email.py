@@ -230,7 +230,7 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         def callback(args):
             self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
         # Send email in
-        d = send_torrent_email(self.email_config, self.email, defered=True)
+        d = send_torrent_email(self.email_config, self.email, deferred=True)
         d.addCallback(callback)
         return d
 
@@ -240,7 +240,7 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         def callback(args):
             self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
         # Send email in
-        d = send_torrent_email(self.email_config, self.email, defered=True,
+        d = send_torrent_email(self.email_config, self.email, deferred=True,
                                callback_func=callback)
         return d
 
@@ -263,10 +263,10 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         has_sent = send_torrent_email(self.email_config, self.email,
                                       torrent_name_list=torrent_names,
                                       subscription_data=subscription,
-                                      defered=False, callback_func=callback,
+                                      deferred=False, callback_func=callback,
                                       email_data=email_data)
         self.assertTrue(has_sent)
         # Send email in
         d = send_torrent_email(self.email_config, self.email, torrent_name_list=torrent_names,
-                               defered=True, callback_func=callback, email_data=email_data)
+                               deferred=True, callback_func=callback, email_data=email_data)
         return d

@@ -194,7 +194,7 @@ class TorrentHandler(object):
                                config["email_messages"][email_key],
                                subscription_data=torrent_names[key][0],
                                torrent_name_list=torrent_names[key][1],
-                               defered=True)
+                               deferred=True)
 
     def on_torrent_finished_event(self, torrent_id):
         # print "torrent_finished_event:", torrent_id

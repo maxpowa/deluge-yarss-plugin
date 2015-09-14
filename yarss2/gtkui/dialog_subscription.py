@@ -358,9 +358,9 @@ class DialogSubscription(object):
 
     def perform_rssfeed_selection(self):
         rssfeed_key = self.get_selected_combobox_key(self.glade.get_widget("combobox_rssfeeds"))
-        defered = threads.deferToThread(self.get_and_update_rssfeed_results, rssfeed_key)
-        defered.addCallback(self.update_matching_view_with_rssfeed_results)
-        return defered
+        deferred = threads.deferToThread(self.get_and_update_rssfeed_results, rssfeed_key)
+        deferred.addCallback(self.update_matching_view_with_rssfeed_results)
+        return deferred
 
     def on_txt_regex_changed(self, text_field):
         """ Callback for when Enter is pressed in either of the regex fields """

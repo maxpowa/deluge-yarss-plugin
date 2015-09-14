@@ -15,6 +15,7 @@ import yarss2.util.logger
 from yarss2.rssfeed_scheduler import RSSFeedScheduler
 from yarss2.torrent_handling import TorrentHandler
 from yarss2.util.http import get_matching_cookies_dict
+from yarss2.util.yarss_email import send_torrent_email
 from yarss2.yarss_config import YARSSConfig, get_user_agent
 
 
@@ -130,6 +131,20 @@ class Core(CorePluginBase):
                                                          data_dict=message_data, delete=delete)
         except ValueError as (v):
             self.log.error("Failed to save email message:" + str(v))
+
+    @export
+    def send_test_email(self, email_key):
+        """
+        Send a test email
+        """
+        self.email_config = self.yarss_config.get_config().get('email_configurations', {})
+        self.email_messages = self.yarss_config.get_config().get('email_messages', {})
+        torrents = ["Torrent title"]
+        return send_torrent_email(self.email_config,
+                                  self.email_messages[email_key],
+                                  subscription_data={"name": "Test subscription"},
+                                  torrent_name_list=torrents,
+                                  deferred=True)
 
     @export
     def add_torrent(self, torrent_info):

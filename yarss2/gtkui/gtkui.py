@@ -25,7 +25,6 @@ import deluge.component as component
 
 from yarss2.util.logger import Logger
 from yarss2.util.gtkui_log import GTKUILogger
-from yarss2.util.yarss_email import send_torrent_email
 from yarss2.util.common import get_resource, get_value_in_selected_row
 from yarss2.util.http import encode_cookie_values
 from yarss2 import yarss_config
@@ -600,19 +599,13 @@ class GtkUI(GtkPluginBase):
 
     def on_button_send_email_clicked(self, menuitem):
         key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
-        # Send email
-        torrents = ["Torrent title"]
-        send_torrent_email(self.email_config,
-                           self.email_messages[key],
-                           subscription_data={"name": "Test subscription"},
-                           torrent_name_list=torrents,
-                           defered=True, callback_func=self.test_email_callback)
-
-    def test_email_callback(self, return_value):
-        if return_value:
-            self.log.warn("Test email successfully sent!")
-        else:
-            self.log.warn("Failed to send test email!")
+        def test_email_callback(return_value):
+            if return_value:
+                self.log.warn("Test email successfully sent!")
+            else:
+                self.log.warn("Failed to send test email!")
+        # Send email from daemon
+        client.yarss2.send_test_email(key).addCallback(test_email_callback)
 
     def on_notification_list_button_press_event(self, treeview, event):
         """Shows popup on selected row"""

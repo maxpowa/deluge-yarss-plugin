@@ -60,7 +60,7 @@ def send_email(email_conf, server_conf):
     try:
         mail_server = smtplib.SMTP(server_conf["smtp_server"], port)
     except Exception, e:
-        log.error("There was an error sending the notification email: %s" % str(e))
+        log.error("There was an error sending the notification email: %s" % e)
         return False
 
     log.info("Sending email message:\nTo: %s\nFrom: %s\nSubject: %s\n" %
@@ -82,7 +82,7 @@ def send_email(email_conf, server_conf):
         mail_server.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
         mail_server.quit()
     except Exception, e:
-        log.error("Sending email notification failed: %s", str(e))
+        log.error("Sending email notification failed: %s" % e)
         return False
     else:
         log.info("Sending email notification of finished torrent was successful")
@@ -90,7 +90,7 @@ def send_email(email_conf, server_conf):
 
 
 def send_torrent_email(email_configurations, email_msg, subscription_data=None,
-                       torrent_name_list=None, defered=False, callback_func=None, email_data={}):
+                       torrent_name_list=None, deferred=False, callback_func=None, email_data={}):
     """Send email with optional list of torrents
     Arguments:
     email_configurations - the main email configuration of YARSS2
@@ -119,7 +119,7 @@ def send_torrent_email(email_configurations, email_msg, subscription_data=None,
         email_data["message_html"] = msg_html
 
     # Send email with twisted to avoid waiting
-    if defered:
+    if deferred:
         d = threads.deferToThread(send_email, email_data, email_configurations)
         if callback_func is not None:
             d.addCallback(callback_func)

@@ -11,7 +11,6 @@ import pytest
 from twisted.trial import unittest
 import twisted.internet.defer as defer
 
-from yarss2 import yarss_config
 from yarss2.util.logger import Logger
 from yarss2.gtkui.gtkui import GtkUI
 import yarss2.gtkui.gtkui
@@ -40,6 +39,10 @@ def get(string):
 class GtkUITestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
+        defer.setDebugging(True)
+        tests_common.set_tmp_config_dir()
+        client.start_classic_mode()
+
         self.log = Logger()
         self.gtkui = GtkUI("YaRSS2")
         self.gtkui.create_ui()
@@ -51,18 +54,6 @@ class GtkUITestCase(unittest.TestCase):
         def on_shutdown(result):
             component._ComponentRegistry.components = {}
         return component.shutdown().addCallback(on_shutdown)
-
-    def test_on_button_send_email_clicked(self):
-        email_messages = {}
-        email_messages["0"] = yarss_config.get_fresh_message_config()
-        email_messages["0"]["name"] = "Name"
-        email_messages["0"]["subject"] = "Subject"
-        self.gtkui.email_messages = email_messages
-        self.gtkui.email_config = yarss_config.get_fresh_email_config()
-        self.gtkui.update_email_messages_list(self.gtkui.email_messages_store)
-        # Set selected
-        self.gtkui.email_messages_treeview.set_cursor(0)
-        self.gtkui.on_button_send_email_clicked(None)
 
 
 @pytest.mark.label
