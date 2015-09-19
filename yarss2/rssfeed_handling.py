@@ -12,13 +12,13 @@ import re
 
 from yarss2.lib.feedparser import feedparser
 from yarss2.util import common, http
-
+from yarss2.yarss_config import get_default_user_agent
 
 class RSSFeedHandler(object):
 
     def __init__(self, log):
         self.log = log
-        self.user_agent = "Deluge v%s YaRSS2 v%s" % (common.get_deluge_version(), common.get_version())
+        self.user_agent = get_default_user_agent()
 
     def get_link(self, item):
         link = None
@@ -43,7 +43,6 @@ class RSSFeedHandler(object):
                 size_bytes = float(size) * 1024 * 1024 * 1024
             elif unit == "MB":
                 size_bytes = float(size) * 1024 * 1024
-
         return size_bytes, size_str
 
     def get_size(self, item):
@@ -61,7 +60,6 @@ class RSSFeedHandler(object):
             size_bytes, size_str = self._parse_size(val)
             if size_str and size_bytes:
                 size.append((size_bytes, size_str))
-
         return size
 
     def get_rssfeed_parsed(self, rssfeed_data, site_cookies_dict=None):

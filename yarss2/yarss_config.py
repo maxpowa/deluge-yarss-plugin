@@ -8,6 +8,7 @@
 #
 
 import copy
+import platform
 
 import deluge.component as component
 import deluge.configmanager
@@ -29,6 +30,11 @@ __DEFAULT_PREFS = {
     "email_messages": {}
 }
 
+def get_default_user_agent():
+    return "Deluge v%s YaRSS2 v%s %s/%s" % (common.get_deluge_version(),
+                                            common.get_version(),
+                                            platform.system(),
+                                            platform.release())
 
 def default_prefs():
     return copy.deepcopy(__DEFAULT_PREFS)
@@ -464,7 +470,7 @@ def get_fresh_email_config():
 
 def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_update=u"",
                              update_interval=DEFAULT_UPDATE_INTERVAL, obey_ttl=False,
-                             user_agent="", key=None):
+                             user_agent=u"", key=None):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["name"] = name
