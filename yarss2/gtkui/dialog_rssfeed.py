@@ -16,7 +16,7 @@ import deluge.component as component
 
 from yarss2.util.common import get_resource
 import yarss2.yarss_config
-
+from yarss2.util import http
 
 class DialogRSSFeed():
 
@@ -27,9 +27,15 @@ class DialogRSSFeed():
         self.glade = gtk.glade.XML(get_resource("dialog_rssfeed.glade"))
         self.glade.signal_autoconnect({
             "on_button_cancel_clicked": self.on_button_cancel_clicked,
-            "on_button_save_clicked": self.on_button_save_clicked
+            "on_button_save_clicked": self.on_button_save_clicked,
+            "on_dialog_rssfeed_response": self.on_response,
         })
         self.populate_data_fields()
+
+    def on_response(self, widget, arg):
+        # Escape key or close button (X in corner)
+        if arg == -4:
+            self.dialog.destroy()
 
     def show(self):
         self.dialog = self.glade.get_widget("dialog_rssfeed")
@@ -45,6 +51,10 @@ class DialogRSSFeed():
             self.glade.get_widget("spinbutton_updatetime").set_value(self.rssfeed["update_interval"])
             self.glade.get_widget("checkbox_obey_ttl").set_active(self.rssfeed["obey_ttl"])
 
+            cookies = http.get_matching_cookies_dict(self.gtkUI.cookies, self.rssfeed["site"])
+            cookies_hdr = http.get_cookie_header(cookies)
+            self.glade.get_widget("txt_cookies").set_text(cookies_hdr.get("Cookie", ""))
+
             # Disable the fields field
             if "key" in self.rssfeed and self.rssfeed["key"] == yarss2.yarss_config.DUMMY_RSSFEED_KEY:
                 self.glade.get_widget("txt_name").set_property("editable", False)
@@ -56,26 +66,30 @@ class DialogRSSFeed():
                 self.glade.get_widget("checkbox_obey_ttl").set_sensitive(False)
                 self.glade.get_widget("button_save").set_sensitive(False)
 
-    def on_button_save_clicked(self, event=None, a=None, col=None):
-        name = self.glade.get_widget("txt_name").get_text()
+    def get_data_fields(self, cookies=False):
+        rssfeed_data = {}
         url = self.glade.get_widget("txt_url").get_text()
-        update_interval = self.glade.get_widget("spinbutton_updatetime").get_value()
-        obey_ttl = self.glade.get_widget("checkbox_obey_ttl").get_active()
+        # Handle spaces in url
+        rssfeed_data["url"] = re.sub('\s', '%20', url.strip())
+        rssfeed_data["site"] = urlparse(url).netloc
+        rssfeed_data["name"] = self.glade.get_widget("txt_name").get_text()
+        rssfeed_data["update_interval"] = int(self.glade.get_widget("spinbutton_updatetime").get_value())
+        rssfeed_data["obey_ttl"] = self.glade.get_widget("checkbox_obey_ttl").get_active()
+        if cookies:
+            rssfeed_data["cookies"] = self.glade.get_widget("txt_cookies").get_text()
+        return rssfeed_data
 
+    def on_button_save_clicked(self, event=None, a=None, col=None):
+        rssfeed_data = self.get_data_fields()
         allowed_types = ('http', 'https', 'ftp', 'file', 'feed')
-        if not urlparse(url)[0] in allowed_types:
+        if not urlparse(rssfeed_data["url"])[0] in allowed_types:
             md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO,
-                                   gtk.BUTTONS_CLOSE, "The address must begin with one of: %s" %
+                                   gtk.BUTTONS_CLOSE, "The RSS Feed URL must begin with one of: %s" %
                                    (", ".join(t for t in allowed_types)))
             md.run()
             md.destroy()
             return
-        self.rssfeed["name"] = name
-        # Handle spaces in url
-        self.rssfeed["url"] = re.sub('\s', '%20', url.strip())
-        self.rssfeed["update_interval"] = int(update_interval)
-        self.rssfeed["site"] = urlparse(url).netloc
-        self.rssfeed["obey_ttl"] = obey_ttl
+        self.rssfeed.update(rssfeed_data)
         self.gtkUI.save_rssfeed(self.rssfeed)
         self.dialog.destroy()
 

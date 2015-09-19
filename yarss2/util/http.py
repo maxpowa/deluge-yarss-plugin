@@ -44,7 +44,7 @@ def encode_cookie_values(cookies_dict):
     """Takes a dictionary of key/value for a Cookie,
     and returns the cookie as used in a HTTP Header"""
     cookie_value = ""
-    for key in cookies_dict.keys():
+    for key in sorted(cookies_dict):
         cookie_value += ("; %s=%s" % (key, cookies_dict[key]))
     return cookie_value[2:]
 

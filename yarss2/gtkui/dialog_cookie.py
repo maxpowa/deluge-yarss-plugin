@@ -24,7 +24,8 @@ class DialogCookie():
             "on_button_add_cookie_data_clicked": self.on_button_add_cookie_data_clicked,
             "on_button_remove_cookie_data_clicked": self.on_button_remove_cookie_data_clicked,
             "on_button_save_clicked": self.on_button_save_clicked,
-            "on_button_cancel_clicked": self.on_button_cancel_clicked
+            "on_button_cancel_clicked": self.on_button_cancel_clicked,
+            "on_dialog_cookies_response": self.on_response,
         })
         self.treeview = self.setup_cookie_list()
 
@@ -33,6 +34,11 @@ class DialogCookie():
 
         # Update cookie data list
         self.update_cookie_values_list()
+
+    def on_response(self, widget, arg):
+        # Escape key or close button (X in corner)
+        if arg == -4:
+            self.dialog.destroy()
 
     def show(self):
         cookie_list = self.glade.get_widget("viewport_list_cookie_values")

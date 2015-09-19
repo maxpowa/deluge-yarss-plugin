@@ -14,12 +14,13 @@ from urlparse import urlparse
 import yarss2.yarss_config
 from yarss2.util.logger import Logger
 from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
-
+from yarss2.util import http
 
 class DummyClass(object):
 
     def __init__(self):
         self.rssfeed = None
+        self.cookies = None
 
     def destroy(self):
         pass
@@ -45,7 +46,7 @@ class DialogRSSFeedTestCase(unittest.TestCase):
         rssfeed["name"] = "Test"
         rssfeed["url"] = "http://test"
         rssfeed["update_interval"] = int(10)
-        rssfeed["site"] = urlparse("http:/test.site.com/blabla/blalba.php").netloc
+        rssfeed["site"] = urlparse("http://test.site.com/blabla/blalba.php").netloc
         rssfeed["obey_ttl"] = False
 
         rssfeed_copy = copy.copy(rssfeed)
@@ -58,3 +59,30 @@ class DialogRSSFeedTestCase(unittest.TestCase):
         dialog.on_button_save_clicked()
 
         # Should test the values that are saved
+
+    def test_populate_data_fields(self):
+        dummy = DummyClass()
+        rssfeed = yarss2.yarss_config.get_fresh_rssfeed_config()
+        domain = "testdomain.com"
+        url = "http://%s/blabla/blalba.php" % domain
+        rssfeed["name"] = "Test"
+        rssfeed["url"] = url
+        rssfeed["update_interval"] = int(10)
+        rssfeed["site"] = urlparse(url).netloc
+        rssfeed["obey_ttl"] = False
+
+        cookies = {'uid': '92323', 'passkey': 'aksdf9798d767sadf8678as6df9df'}
+        dummy.rssfeed = rssfeed
+        dummy.cookies = {'0': {'active': True, 'key': '0', 'site': domain,
+                               'value': cookies
+                           }}
+        dialog = DialogRSSFeed(dummy, rssfeed)
+        dialog.dialog = dummy
+        data = dialog.get_data_fields(cookies=True)
+        self.assertEquals(data["name"], rssfeed["name"])
+        self.assertEquals(data["url"], rssfeed["url"])
+        self.assertEquals(data["obey_ttl"], rssfeed["obey_ttl"])
+        self.assertEquals(data["update_interval"], rssfeed["update_interval"])
+        self.assertEquals(data["site"], rssfeed["site"])
+        cookies_hdr = http.get_cookie_header(cookies)
+        self.assertEquals(data["cookies"], cookies_hdr.get("Cookie", ""))

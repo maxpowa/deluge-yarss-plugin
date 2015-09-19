@@ -5,8 +5,11 @@
   <widget class="GtkDialog" id="dialog_rssfeed">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
+    <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">normal</property>
+    <signal name="destroy" handler="on_dialog_rssfeed_destroy"/>
+    <signal name="response" handler="on_dialog_rssfeed_response"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
         <property name="visible">True</property>
@@ -23,7 +26,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_cancel_clicked"/>
               </widget>
@@ -39,7 +41,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_save_clicked"/>
               </widget>
@@ -75,7 +76,7 @@
                   <widget class="GtkTable" id="table1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="n_rows">4</property>
+                    <property name="n_rows">5</property>
                     <property name="n_columns">2</property>
                     <property name="column_spacing">5</property>
                     <property name="row_spacing">5</property>
@@ -200,7 +201,6 @@
                         <property name="has_tooltip">True</property>
                         <property name="tooltip" translatable="yes">Some RSS Feeds provide a TTL value to suggest the update time to be used. 
 Check this to have 'update time' set to the TTL found in the RSS Feed.</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                       </widget>
                       <packing>
@@ -208,6 +208,38 @@ Check this to have 'update time' set to the TTL found in the RSS Feed.</property
                         <property name="right_attach">2</property>
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cookies</property>
+                      </widget>
+                      <packing>
+                        <property name="top_attach">4</property>
+                        <property name="bottom_attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkEntry" id="txt_cookies">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="has_tooltip">True</property>
+                        <property name="tooltip" translatable="yes">Create or edit cookies in the settings panel</property>
+                        <property name="editable">False</property>
+                        <property name="invisible_char">•</property>
+                        <property name="shadow_type">none</property>
+                        <property name="primary_icon_activatable">False</property>
+                        <property name="secondary_icon_activatable">False</property>
+                        <property name="primary_icon_sensitive">True</property>
+                        <property name="secondary_icon_sensitive">True</property>
+                      </widget>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="right_attach">2</property>
+                        <property name="top_attach">4</property>
+                        <property name="bottom_attach">5</property>
                       </packing>
                     </child>
                   </widget>
