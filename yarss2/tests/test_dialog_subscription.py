@@ -13,8 +13,6 @@ import re
 
 from twisted.internet import defer
 
-
-import deluge.configmanager
 import deluge.component as component
 import deluge.common
 json = deluge.common.json
@@ -29,8 +27,7 @@ import deluge.ui.client
 
 from yarss2.gtkui.dialog_subscription import DialogSubscription
 from yarss2.util.logger import Logger
-
-import deluge.configmanager
+from yarss2.tests import common as tests_common
 
 
 class TestGTKUIBase(object):
@@ -38,13 +35,14 @@ class TestGTKUIBase(object):
         self.labels = []
 
     def get_labels(self):
-        return self.labels
+        return defer.succeed(self.labels)
 
 
 class DialogSubscriptionTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
         self.log = Logger()
+        tests_common.set_tmp_config_dir()
         self.client = deluge.ui.client.client
         self.client.start_classic_mode()
 

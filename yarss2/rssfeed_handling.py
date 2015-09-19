@@ -14,6 +14,7 @@ from yarss2.lib.feedparser import feedparser
 from yarss2.util import common, http
 from yarss2.yarss_config import get_default_user_agent
 
+
 class RSSFeedHandler(object):
 
     def __init__(self, log):
@@ -77,7 +78,8 @@ class RSSFeedHandler(object):
             cookie_header = http.get_cookie_header(site_cookies_dict)
             return_dict["cookie_header"] = cookie_header
 
-        self.log.info("Fetching RSS Feed: '%s' with Cookie: '%s'." % (rssfeed_data["name"], cookie_header))
+        self.log.info("Fetching RSS Feed: '%s' with Cookie: '%s' and User-agent: '%s'." %
+                      (rssfeed_data["name"], http.get_cookie_header(cookie_header), user_agent))
 
         # Will abort after 10 seconds if server doesn't answer
         try:
@@ -85,8 +87,8 @@ class RSSFeedHandler(object):
                                            agent=user_agent, timeout=10)
         except Exception, e:
             self.log.warn("Exception occured in feedparser: " + str(e))
-            self.log.warn("Feedparser was called with url: '%s' and header: '%s'" %
-                          (rssfeed_data["url"], cookie_header))
+            self.log.warn("Feedparser was called with url: '%s' using cookies: '%s' and User-agent: '%s'" %
+                          (rssfeed_data["url"], http.get_cookie_header(cookie_header), user_agent))
             self.log.warn("Stacktrace:\n" + common.get_exception_string())
             return None
         return_dict["raw_result"] = parsed_feed

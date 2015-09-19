@@ -29,6 +29,8 @@ def disable_new_release_check():
     import deluge.core.preferencesmanager
     deluge.core.preferencesmanager.DEFAULT_PREFS["new_release_check"] = False
 
+disable_new_release_check()
+
 
 def get_default_subscriptions(count):
     subscriptions = {}

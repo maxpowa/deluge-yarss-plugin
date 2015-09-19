@@ -23,7 +23,7 @@ from yarss2.rssfeed_handling import RSSFeedHandler
 from yarss2.gtkui.path_chooser import PathChooser
 
 
-class DialogSubscription():
+class DialogSubscription(object):
 
     def __init__(self, gtkui,
                  logger,
@@ -92,20 +92,23 @@ class DialogSubscription():
     def setup_labels(self):
         combobox_labels = self.glade.get_widget("combobox_labels")
         label_labels = self.glade.get_widget("labels_label")
-        self.labels = self.gtkUI.get_labels()
-        # Disable labels in GUI
-        if self.labels is None:
-            label_labels.set_sensitive(False)
-            combobox_labels.set_sensitive(False)
-            tooltips = gtk.Tooltips()
-            tooltips.set_tip(combobox_labels, 'Label plugin is not enabled')
-        else:
-            label_labels.set_sensitive(True)
-            renderer_label = gtk.CellRendererText()
-            combobox_labels.pack_end(renderer_label, False)
-            combobox_labels.add_attribute(renderer_label, "text", 0)
-            self.labels_liststore = gtk.ListStore(str)
-            combobox_labels.set_model(self.labels_liststore)
+
+        def on_labels(labels):
+            self.labels = labels
+            # Disable labels in GUI
+            if self.labels is None:
+                label_labels.set_sensitive(False)
+                combobox_labels.set_sensitive(False)
+                tooltips = gtk.Tooltips()
+                tooltips.set_tip(combobox_labels, 'Label plugin is not enabled')
+            else:
+                label_labels.set_sensitive(True)
+                renderer_label = gtk.CellRendererText()
+                combobox_labels.pack_end(renderer_label, False)
+                combobox_labels.add_attribute(renderer_label, "text", 0)
+                self.labels_liststore = gtk.ListStore(str)
+                combobox_labels.set_model(self.labels_liststore)
+        self.get_labels_d = self.gtkUI.get_labels().addCallback(on_labels)
 
     def setup_move_completed_combobox(self):
         move_completed_box = self.glade.get_widget("move_completed_box")
@@ -702,7 +705,7 @@ class DialogSubscription():
         self.load_notifications_list_data()
         self.load_path_choosers_data()
         self.load_timestamp()
-        self.load_labels()
+        self.get_labels_d.addCallback(self.load_labels)
 
     def load_basic_fields_data(self):
         if self.subscription_data is None:
@@ -819,7 +822,7 @@ class DialogSubscription():
         self.glade.get_widget("txt_last_matched").set_text(self.subscription_data["last_match"])
         self.glade.get_widget("checkbutton_ignore_timestamp").set_active(self.subscription_data["ignore_timestamp"])
 
-    def load_labels(self):
+    def load_labels(self, labels):
         if self.labels is None:
             return
         current = self.subscription_data["label"]

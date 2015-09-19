@@ -89,7 +89,6 @@ class TorrentHandler(object):
         options = TorrentOptions()
 
         torrent_url = torrent_info["link"]
-        site_cookies_dict = torrent_info["site_cookies_dict"]
         subscription_data = None
         if "subscription_data" in torrent_info:
             subscription_data = torrent_info["subscription_data"]
@@ -133,8 +132,9 @@ class TorrentHandler(object):
         else:
             # Error occured
             if not download.success:
+                self.log.warn("Failed to add '%s'." % (torrent_url))
                 return download
-            self.log.info("Adding torrent: '%s' using cookies: %s" % (torrent_url, str(site_cookies_dict)))
+            self.log.info("Adding torrent: '%s'." % (torrent_url))
             # Get the torrent data from the torrent file
             try:
                 torrentinfo.TorrentInfo(filedump=download.filedump)
@@ -146,7 +146,7 @@ class TorrentHandler(object):
                                                                       options=options)
             download.success = download.torrent_id is not None
             if download.success is False and download.error_msg is None:
-                download.set_error("Failed to add torrent to Deluge. Is torrent already added?")
+                download.set_error("Failed to add torrent to Deluge. Is the torrent already added?")
                 self.log.warn(download.error_msg)
             else:
                 if "Label" in component.get("Core").get_enabled_plugins() and\

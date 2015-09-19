@@ -17,6 +17,8 @@
 
 import gtk
 
+from twisted.internet import defer
+
 from deluge.ui.client import client
 from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
@@ -87,7 +89,7 @@ class GtkUI(GtkPluginBase):
         self.selected_path_email_message = None
         self.selected_path_cookies = None
 
-        self.labels = None
+        self.label_enabled = False
 
         # key, enabled, name, site, download_location
         self.subscriptions_store = gtk.ListStore(str, bool, str, str, str, str, str)
@@ -334,27 +336,31 @@ class GtkUI(GtkPluginBase):
         return None
 
     def get_labels(self):
-        return self.labels
+        if self.label_enabled is False:
+            return defer.succeed(None)
+
+        def on_labels(labels):
+            self.log.debug("Got Labels: %s", labels)
+            labels = list(labels)
+            labels.insert(0, "")
+            return defer.succeed(labels)
+        d = client.label.get_labels()
+        d.addCallback(on_labels)
+        return d
 
     def plugins_enabled_changed(self, name):
         if name == "Label":
             d = client.core.get_enabled_plugins()
             d.addCallback(self.on_get_enabled_plugins)
             return d
+        return defer.succeed(None)
 
     def on_get_enabled_plugins(self, result):
-
-        def on_labels(labels):
-            self.log.debug("Got Labels: %s", labels)
-            self.labels = [""]
-            for label in labels:
-                self.labels.append(label)
-            return self.labels
-        if 'Label' in result:
-            return client.label.get_labels().addCallback(on_labels)
-        else:
-            self.labels = None
-        return None
+        if "Label" in result:
+            self.label_enabled = True
+            return self.get_labels()
+        self.label_enabled = False
+        return defer.succeed(None)
 
 #########################
 # Create Subscription list

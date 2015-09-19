@@ -30,11 +30,13 @@ __DEFAULT_PREFS = {
     "email_messages": {}
 }
 
+
 def get_default_user_agent():
     return "Deluge v%s YaRSS2 v%s %s/%s" % (common.get_deluge_version(),
                                             common.get_version(),
                                             platform.system(),
                                             platform.release())
+
 
 def default_prefs():
     return copy.deepcopy(__DEFAULT_PREFS)

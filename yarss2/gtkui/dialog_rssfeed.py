@@ -18,7 +18,8 @@ from yarss2.util.common import get_resource
 import yarss2.yarss_config
 from yarss2.util import http
 
-class DialogRSSFeed():
+
+class DialogRSSFeed(object):
 
     def __init__(self, gtkui, rssfeed):
         self.gtkUI = gtkui

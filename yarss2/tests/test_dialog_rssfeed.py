@@ -16,6 +16,7 @@ from yarss2.util.logger import Logger
 from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
 from yarss2.util import http
 
+
 class DummyClass(object):
 
     def __init__(self):
@@ -37,7 +38,8 @@ class DialogRSSFeedTestCase(unittest.TestCase):
 
     def test_create(self):
         """Just test that the code runs"""
-        DialogRSSFeed(None, self.test_rssfeed)
+        dummy = DummyClass()
+        DialogRSSFeed(dummy, self.test_rssfeed)
 
     def test_on_button_save_clicked(self):
         """Just test that the code runs"""
@@ -73,9 +75,7 @@ class DialogRSSFeedTestCase(unittest.TestCase):
 
         cookies = {'uid': '92323', 'passkey': 'aksdf9798d767sadf8678as6df9df'}
         dummy.rssfeed = rssfeed
-        dummy.cookies = {'0': {'active': True, 'key': '0', 'site': domain,
-                               'value': cookies
-                           }}
+        dummy.cookies = {'0': {'active': True, 'key': '0', 'site': domain, 'value': cookies}}
         dialog = DialogRSSFeed(dummy, rssfeed)
         dialog.dialog = dummy
         data = dialog.get_data_fields(cookies=True)

@@ -21,8 +21,6 @@ from deluge.ui.client import client
 
 import deluge.component as component
 
-tests_common.disable_new_release_check()
-
 yarss2.gtkui.gtkui.component = test_gtkui
 
 
