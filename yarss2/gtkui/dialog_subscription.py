@@ -21,6 +21,7 @@ from yarss2.util.common import get_resource, get_value_in_selected_row, string_t
 from yarss2.util import http
 from yarss2.rssfeed_handling import RSSFeedHandler
 from yarss2.gtkui.path_chooser import PathChooser
+from yarss2.yarss_config import get_user_agent
 
 
 class DialogSubscription(object):
@@ -149,8 +150,8 @@ class DialogSubscription(object):
         messages_combobox.set_model(self.messages_combo_store)
 
     def create_matching_tree(self):
-        # Matches, Title, Published, torrent link, CustomAttribute for PangoCellrenderer
-        self.matching_store = gtk.ListStore(bool, str, str, str, CustomAttribute)
+        # Matches, Title, Published, link, CustomAttribute for PangoCellrenderer, torrent link, magnet link
+        self.matching_store = gtk.ListStore(bool, str, str, str, CustomAttribute, str, str)
 
         self.matching_treeview = gtk.TreeView(self.matching_store)
         self.matching_treeview.set_rules_hint(True)
@@ -266,6 +267,8 @@ class DialogSubscription(object):
             textview = self.glade.get_widget("textview_messages")
             textbuffer = textview.get_buffer()
 
+            if torrent_download.filedump is None:
+                return
             readable_body = http.clean_html_body(torrent_download.filedump)
             textbuffer.set_text(readable_body)
 
@@ -430,12 +433,15 @@ class DialogSubscription(object):
                 custom_attributes = CustomAttribute(attributes_dict=attr)
             updated = rssfeeds_dict[key]['updated']
             store.append([rssfeeds_dict[key]['matches'], rssfeeds_dict[key]['title'],
-                          updated if updated else "Not available", rssfeeds_dict[key]['link'], custom_attributes])
+                          updated if updated else "Not available", rssfeeds_dict[key]['link'],
+                          custom_attributes, rssfeeds_dict[key]["torrent"], rssfeeds_dict[key]["magnet"]])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
         site_cookies = http.get_matching_cookies_dict(self.cookies, self.rssfeeds[rssfeed_key]["site"])
+        user_agent = get_user_agent(rssfeed_data=self.rssfeeds[rssfeed_key])
         rssfeeds_parsed = self.rssfeedhandler.get_rssfeed_parsed(self.rssfeeds[rssfeed_key],
-                                                                 site_cookies_dict=site_cookies)
+                                                                 site_cookies_dict=site_cookies,
+                                                                 user_agent=user_agent)
         return rssfeeds_parsed
 
     def update_matching_view_with_rssfeed_results(self, rssfeeds_parsed):

@@ -183,6 +183,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             item["updated"] = store.get_value(it, 2)
             item["updated_datetime"] = yarss2.util.common.isodate_to_datetime(store.get_value(it, 2))
             item["link"] = store.get_value(it, 3)
+            item["torrent"] = store.get_value(it, 5)
+            item["magnet"] = store.get_value(it, 6)
             result[str(counter)] = item
             counter += 1
             it = store.iter_next(it)

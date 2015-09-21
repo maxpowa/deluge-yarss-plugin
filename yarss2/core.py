@@ -15,7 +15,7 @@ import yarss2.util.logger
 from yarss2.rssfeed_scheduler import RSSFeedScheduler
 from yarss2.torrent_handling import TorrentHandler
 from yarss2.util.http import get_matching_cookies_dict
-from yarss2.yarss_config import YARSSConfig
+from yarss2.yarss_config import YARSSConfig, get_user_agent
 
 
 class Core(CorePluginBase):
@@ -135,6 +135,9 @@ class Core(CorePluginBase):
     def add_torrent(self, torrent_info):
         site_cookies_dict = get_matching_cookies_dict(self.yarss_config.get_config()["cookies"], torrent_info["link"])
         torrent_info["site_cookies_dict"] = site_cookies_dict
+        if "rssfeed_key" in torrent_info:
+            rssfeed_data = self.yarss_config.get_config()["rssfeeds"][torrent_info["rssfeed_key"]]
+            torrent_info["user_agent"] = get_user_agent(rssfeed_data=rssfeed_data)
         torrent_download = self.torrent_handler.add_torrent(torrent_info)
         return torrent_download.to_dict()
 

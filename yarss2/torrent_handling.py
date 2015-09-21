@@ -59,10 +59,11 @@ class TorrentHandler(object):
         url = torrent_info["link"]
         site_cookies_dict = torrent_info.get("site_cookies_dict", None)
         download = None
-        headers = None
+        headers = {}
         user_agent = torrent_info.get("user_agent", None)
+
         if user_agent:
-            headers = {"User-Agent": user_agent}
+            headers["User-Agent"] = user_agent
 
         if url.startswith("magnet:"):
             self.log.info("Fetching magnet: '%s'" % url, gtkui=False)
@@ -70,8 +71,8 @@ class TorrentHandler(object):
         else:
             # Fix unicode URLs
             url = http.url_fix(url)
-            self.log.info("Downloading torrent: '%s' using cookies: '%s', user-agent: '%s'" %
-                          (url, str(site_cookies_dict), str(headers)), gtkui=False)
+            self.log.info("Downloading torrent: '%s' using cookies: '%s', headers: '%s'" %
+                          (url, str(site_cookies_dict), str(headers)), gtkui=True)
             download = self.download_torrent_file(url, cookies=site_cookies_dict, headers=headers)
             # Error occured
             if not download.success:
@@ -199,4 +200,5 @@ class TorrentHandler(object):
                                defered=True)
 
     def on_torrent_finished_event(self, torrent_id):
-        print "torrent_finished_event:", torrent_id
+        # print "torrent_finished_event:", torrent_id
+        pass

@@ -12,14 +12,13 @@ import re
 
 from yarss2.lib.feedparser import feedparser
 from yarss2.util import common, http
-from yarss2.yarss_config import get_default_user_agent
+from yarss2.yarss_config import get_user_agent
 
 
 class RSSFeedHandler(object):
 
     def __init__(self, log):
         self.log = log
-        self.user_agent = get_default_user_agent()
 
     def get_link(self, item):
         link = None
@@ -63,7 +62,7 @@ class RSSFeedHandler(object):
                 size.append((size_bytes, size_str))
         return size
 
-    def get_rssfeed_parsed(self, rssfeed_data, site_cookies_dict=None):
+    def get_rssfeed_parsed(self, rssfeed_data, site_cookies_dict=None, user_agent=None):
         """
         rssfeed_data: A dictionary containing rss feed data as stored in the YaRSS2 config.
         site_cookies_dict: A dictionary of cookie values to be used for this rssfeed.
@@ -71,7 +70,6 @@ class RSSFeedHandler(object):
         return_dict = {}
         rssfeeds_dict = {}
         cookie_header = {}
-        user_agent = self.user_agent if not rssfeed_data["user_agent"] else rssfeed_data["user_agent"]
         return_dict["user_agent"] = user_agent
 
         if site_cookies_dict:
@@ -84,7 +82,8 @@ class RSSFeedHandler(object):
         # Will abort after 10 seconds if server doesn't answer
         try:
             parsed_feed = feedparser.parse(rssfeed_data["url"], request_headers=cookie_header,
-                                           agent=user_agent, timeout=10)
+                                           agent=user_agent,
+                                           timeout=10)
         except Exception, e:
             self.log.warn("Exception occured in feedparser: " + str(e))
             self.log.warn("Feedparser was called with url: '%s' using cookies: '%s' and User-agent: '%s'" %
@@ -102,9 +101,12 @@ class RSSFeedHandler(object):
             return_dict["ttl"] = parsed_feed["feed"]["ttl"]
         key = 0
         no_publish_time = False
+
         for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
             dt = None
+            magnet = None
+            torrent = None
             if 'published_parsed' in item:
                 published = item['published_parsed']
                 dt = datetime.datetime(* published[:6])
@@ -114,21 +116,46 @@ class RSSFeedHandler(object):
 
             # Find the link
             link = self.get_link(item)
-            rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link, published_datetime=dt)
+
+            # link or enclosures url is magnet
+            if link.startswith("magnet:"):
+                magnet = link
+            else:
+                torrent = link
+
+            if "torrent_magneturi" in item:
+                if magnet is not None:
+                    if item["torrent_magneturi"].startswith("magnet:") and item["torrent_magneturi"] != magnet:
+                        self.log.warn("Feed has multiple magnet links...")
+                    else:
+                        magnet = item["torrent_magneturi"]
+                else:
+                    magnet = item["torrent_magneturi"]
+
+            if rssfeed_data["prefer_magnet"] and magnet:
+                link = magnet
+
+            rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link,
+                                                              torrent=torrent, magnet=magnet,
+                                                              published_datetime=dt)
             key += 1
+
         if no_publish_time:
             self.log.warn("Published time is not available!")
         if key > 0:
             return_dict["items"] = rssfeeds_dict
         return return_dict
 
-    def _new_rssfeeds_dict_item(self, title, link=None, published_datetime=None, key=None):
+    def _new_rssfeeds_dict_item(self, title, link=None, torrent=None, magnet=None,
+                                published_datetime=None, key=None):
         d = {}
         d["title"] = title
         d["link"] = link
         d["updated_datetime"] = published_datetime
         d["matches"] = False
         d["updated"] = ""
+        d["magnet"] = magnet
+        d["torrent"] = torrent
         if published_datetime:
             d["updated"] = published_datetime.isoformat()
         if key is not None:
@@ -234,6 +261,8 @@ class RSSFeedHandler(object):
 
         rssfeed_data = config["rssfeeds"][rssfeed_key]
         fetch_data["site_cookies_dict"] = http.get_matching_cookies_dict(config["cookies"], rssfeed_data["site"])
+        fetch_data["user_agent"] = get_user_agent(rssfeed_data=rssfeed_data)
+
         self.log.info("Update handler executed on RSS Feed '%s (%s)' (Update interval %d min)" %
                       (rssfeed_data["name"], rssfeed_data["site"], rssfeed_data["update_interval"]))
 
@@ -282,7 +311,8 @@ class RSSFeedHandler(object):
 
         # Feed has not yet been fetched.
         if fetch_data["rssfeed_items"] is None:
-            rssfeed_parsed = self.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=fetch_data["site_cookies_dict"])
+            rssfeed_parsed = self.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=fetch_data["site_cookies_dict"],
+                                                     user_agent=fetch_data["user_agent"])
             if rssfeed_parsed is None:
                 return
             if "bozo_exception" in rssfeed_parsed:
@@ -318,5 +348,6 @@ class RSSFeedHandler(object):
                                                     "link": matches[key]["link"],
                                                     "updated_datetime": matches[key]["updated_datetime"],
                                                     "site_cookies_dict": fetch_data["site_cookies_dict"],
-                                                    "user_agent": rssfeed_data["user_agent"],
+                                                    "user_agent": fetch_data["user_agent"],
+                                                    "referrer": rssfeed_data["url"],
                                                     "subscription_data": subscription_data})

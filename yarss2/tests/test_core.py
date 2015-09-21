@@ -15,6 +15,7 @@ import yarss2.yarss_config
 import yarss2.util.common
 from yarss2.core import Core
 from yarss2.torrent_handling import TorrentHandler, TorrentDownload
+from yarss2.yarss_config import get_user_agent
 
 from test_torrent_handling import TestComponent
 import test_torrent_handling
@@ -69,6 +70,31 @@ class CoreTestCase(unittest.TestCase):
         self.assertTrue(download.success, "Download failed, but should be True")
         self.assertEquals(torrent_url, test_torrent_handling.test_component.downloads.pop().torrent_url)
         self.assertEquals(test_torrent_handling.test_component.added.pop().filename, torrent_name)
+
+    def test_add_torrent_default_user_agent(self):
+        torrent_name = "FreeBSD-9.0-RELEASE-amd64-dvd1.torrent"
+        torrent_url = yarss2.util.common.get_resource(torrent_name, path="tests/data/")
+        torrent_info = {"link": torrent_url, "rssfeed_key": "0"}
+        config = common.get_test_config_dict()
+        default_user_agent = get_user_agent()
+        self.config.set_config(config)
+        self.core.yarss_config = self.config
+
+        download_dict = self.core.add_torrent(torrent_info)
+        self.assertEquals(download_dict["headers"]["User-Agent"], default_user_agent)
+
+    def test_add_torrent_custom_user_agent(self):
+        torrent_name = "FreeBSD-9.0-RELEASE-amd64-dvd1.torrent"
+        torrent_url = yarss2.util.common.get_resource(torrent_name, path="tests/data/")
+        torrent_info = {"link": torrent_url, "rssfeed_key": "0"}
+        config = common.get_test_config_dict()
+        custom_user_agent = "Custom user agent test"
+        config["rssfeeds"]["0"]["user_agent"] = custom_user_agent
+        self.config.set_config(config)
+        self.core.yarss_config = self.config
+
+        download_dict = self.core.add_torrent(torrent_info)
+        self.assertEquals(download_dict["headers"]["User-Agent"], custom_user_agent)
 
     def test_initiate_rssfeed_update(self):
         config = common.get_test_config_dict()

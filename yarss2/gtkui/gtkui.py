@@ -138,7 +138,8 @@ class GtkUI(GtkPluginBase):
         client.yarss2.save_email_configurations(email_config)
 
     def add_torrent(self, torrent_link, subscription_data, callback):
-        torrent_info = {"link": torrent_link, "subscription_data": subscription_data}
+        torrent_info = {"link": torrent_link, "subscription_data": subscription_data,
+                        "rssfeed_key": subscription_data["rssfeed_key"]}
         return client.yarss2.add_torrent(torrent_info).addCallback(callback)
 
 
@@ -340,7 +341,7 @@ class GtkUI(GtkPluginBase):
             return defer.succeed(None)
 
         def on_labels(labels):
-            self.log.debug("Got Labels: %s", labels)
+            self.log.debug("Got Labels: %s" % str(labels))
             labels = list(labels)
             labels.insert(0, "")
             return defer.succeed(labels)

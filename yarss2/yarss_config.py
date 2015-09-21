@@ -38,6 +38,13 @@ def get_default_user_agent():
                                             platform.release())
 
 
+def get_user_agent(rssfeed_data=None):
+    if rssfeed_data and rssfeed_data["user_agent"]:
+        return rssfeed_data["user_agent"]
+    else:
+        return get_default_user_agent()
+
+
 def default_prefs():
     return copy.deepcopy(__DEFAULT_PREFS)
 
@@ -153,6 +160,7 @@ class YARSSConfig(object):
         self.config.run_converter((3, 3), 4, self.update_config_to_version4)
         self.config.run_converter((4, 4), 5, self.update_config_to_version5)
         self.config.run_converter((5, 5), 6, self.update_config_to_version6)
+        self.config.run_converter((6, 6), 7, self.update_config_to_version7)
 
         default_config = get_fresh_subscription_config(key="")
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
@@ -445,6 +453,18 @@ class YARSSConfig(object):
         self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
         return config
 
+    def update_config_to_version7(self, config):
+        """Updates the config values to config file version 7, (YaRSS2 v1.4)"""
+        self.log.info("Updating config file to version 7")
+        default_rssfeed_config = get_fresh_rssfeed_config()
+
+        def update_rssfeed(rssfeed):
+            # Adding new fields
+            rssfeed["prefer_magnet"] = default_rssfeed_config["prefer_magnet"]
+
+        self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
+        return config
+
     def run_for_each_dict_element(self, conf_dict, update_func):
         for key in conf_dict.keys():
             update_func(conf_dict[key])
@@ -483,6 +503,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
     config_dict["update_interval"] = update_interval
     config_dict["obey_ttl"] = obey_ttl
     config_dict["user_agent"] = user_agent
+    config_dict["prefer_magnet"] = False
     if key:
         config_dict["key"] = key
     return config_dict
