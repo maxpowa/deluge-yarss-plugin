@@ -49,6 +49,7 @@ class DialogSubscription(object):
         self.rssfeedhandler = RSSFeedHandler(self.log)
         self.new_subscription = "key" not in subscription_data
         self.labels = None
+        self.editing = True if len(self.subscription_data.get("rssfeed_key", "")) != 0 else False
 
     def setup(self):
         self.glade = gtk.glade.XML(get_resource("dialog_subscription.glade"))
@@ -70,7 +71,7 @@ class DialogSubscription(object):
         # This is to make testing of the GUI possible (unit tests)
         self.method_perform_rssfeed_selection = self.perform_rssfeed_selection
         self.dialog = self.glade.get_widget("window_subscription")
-        self.dialog.set_title("Edit Subscription" if "key" in self.subscription_data else "Add Subscription")
+        self.dialog.set_title("Edit Subscription" if self.editing else "Add Subscription")
         self.setup_rssfeed_combobox()
         self.setup_move_completed_combobox()
         self.setup_download_location_combobox()
@@ -772,7 +773,7 @@ class DialogSubscription(object):
         active_index = -1
         if self.subscription_data:
             # If editing a subscription, set the rssfeed_key
-            if "rssfeed_key" in self.subscription_data:
+            if self.editing:
                 rssfeed_key = self.subscription_data["rssfeed_key"]
         # Load rssfeeds into the combobox
         count = 0

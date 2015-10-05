@@ -73,9 +73,9 @@ def get_new_dict_key(dictionary, string_key=True):
     string_key: if True, use strings as key, else use int
     """
     key = 0
-    conv = str
+    conv = int
     if string_key:
-        conv = int
+        conv = str
     while conv(key) in dictionary:
         key += 1
     return str(key) if string_key else key
