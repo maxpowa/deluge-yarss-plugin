@@ -38,7 +38,11 @@ yarss2$ trial tests
 
 ## Changelog ##
 
-v1.4.0 - 2015-10-29
+v1.4.1 - 2015-10-06
+
+* Fixed #24: Adding a second feed/subscription deleted previous
+
+v1.4.0 - 2015-09-29
 
 * Implemented support for setting label when Label plugin is enabled
 * Updated feedparser to 5.2.0
