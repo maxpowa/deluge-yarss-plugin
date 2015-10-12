@@ -175,6 +175,12 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 self.assertEquals(test_val, published_parsed)
                 break
 
+    def test_get_rssfeed_parsed_no_items(self):
+        file_url = yarss2.util.common.get_resource("feed_no_items_issue15.rss", path="tests/data/")
+        rssfeed_data = {"name": "Test", "url": file_url}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+        self.assertTrue("items" not in parsed_feed)
+
     # def test_test_feedparser_parse(self):
     #     #file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
     #     from yarss2.lib.feedparser import feedparser

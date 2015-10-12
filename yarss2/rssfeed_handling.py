@@ -107,6 +107,11 @@ class RSSFeedHandler(object):
             dt = None
             magnet = None
             torrent = None
+
+            # Empty item if feed is empty
+            if not item:
+                continue
+
             if 'published_parsed' in item:
                 published = item['published_parsed']
                 dt = datetime.datetime(* published[:6])
@@ -118,7 +123,7 @@ class RSSFeedHandler(object):
             link = self.get_link(item)
 
             # link or enclosures url is magnet
-            if link.startswith("magnet:"):
+            if link is not None and link.startswith("magnet:"):
                 magnet = link
             else:
                 torrent = link
