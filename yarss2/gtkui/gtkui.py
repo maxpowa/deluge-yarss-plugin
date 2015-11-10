@@ -138,8 +138,9 @@ class GtkUI(GtkPluginBase):
         client.yarss2.save_email_configurations(email_config)
 
     def add_torrent(self, torrent_link, subscription_data, callback):
-        torrent_info = {"link": torrent_link, "subscription_data": subscription_data,
-                        "rssfeed_key": subscription_data["rssfeed_key"]}
+        torrent_info = {"link": torrent_link, "subscription_data": subscription_data}
+        if subscription_data is not None:
+            torrent_info["rssfeed_key"] = subscription_data["rssfeed_key"]
         return client.yarss2.add_torrent(torrent_info).addCallback(callback)
 
 

@@ -511,7 +511,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
 
 def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", regex_exclude=u"",
                                   active=True, move_completed=u"", download_location=u"", last_match=u"",
-                                  ignore_timestamp=False, key=None):
+                                  label=u"", ignore_timestamp=False, key=None):
     """Create a new config """
     config_dict = {}
     config_dict["rssfeed_key"] = rssfeed_key
@@ -535,7 +535,7 @@ def get_fresh_subscription_config(name=u"", rssfeed_key="", regex_include=u"", r
     config_dict["auto_managed"] = GeneralSubsConf.DEFAULT
     config_dict["sequential_download"] = GeneralSubsConf.DEFAULT
     config_dict["prioritize_first_last_pieces"] = GeneralSubsConf.DEFAULT
-    config_dict["label"] = None
+    config_dict["label"] = label
 
     if key is not None:
         config_dict["key"] = key

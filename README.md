@@ -38,6 +38,11 @@ yarss2$ trial tests
 
 ## Changelog ##
 
+v1.4.2 - 2015-11-11
+
+* Fixed #26: Labels don't stay after restart
+* Fixed #27: "Add torrent" on right click menu in subscription dialog gives stacktrace
+
 v1.4.1 - 2015-10-06
 
 * Fixed #24: Adding a second feed/subscription deleted previous

@@ -88,18 +88,15 @@ class TorrentHandler(object):
     def add_torrent(self, torrent_info):
         # Initialize options with default configurations
         options = TorrentOptions()
-
         torrent_url = torrent_info["link"]
-        subscription_data = None
-        if "subscription_data" in torrent_info:
-            subscription_data = torrent_info["subscription_data"]
+        subscription_data = torrent_info.get("subscription_data", None)
 
         if "torrent_download" in torrent_info:
             download = torrent_info["torrent_download"]
         else:
             download = self.get_torrent(torrent_info)
 
-        if subscription_data is not None:
+        if subscription_data:
             if len(subscription_data["move_completed"]) > 0:
                 options["move_completed"] = True
                 options["move_completed_path"] = subscription_data["move_completed"]
@@ -151,7 +148,7 @@ class TorrentHandler(object):
                 self.log.warn(download.error_msg)
             else:
                 if "Label" in component.get("Core").get_enabled_plugins() and\
-                   subscription_data["label"] is not None:
+                   subscription_data and subscription_data.get("label", ""):
                     component.get("CorePlugin.Label").set_torrent(download.torrent_id, subscription_data["label"])
         return download
 

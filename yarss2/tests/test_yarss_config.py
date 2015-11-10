@@ -384,7 +384,7 @@ class ConfigTestCase(unittest.TestCase):
             self.assertFalse(self.config.config["subscriptions"][key]["ignore_timestamp"])
 
             self.assertTrue("label" in self.config.config["subscriptions"][key])
-            self.assertEquals(self.config.config["subscriptions"][key]["label"], None)
+            self.assertEquals(self.config.config["subscriptions"][key]["label"], "")
 
         # Test changes for "change_value_from_list_to_dict"
         for rssfeed in self.config.config["rssfeeds"].values():
