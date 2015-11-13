@@ -50,6 +50,7 @@ class DialogRSSFeed(object):
             self.glade.get_widget("txt_name").set_text(self.rssfeed["name"])
             self.glade.get_widget("txt_url").set_text(self.rssfeed["url"])
             self.glade.get_widget("spinbutton_updatetime").set_value(self.rssfeed["update_interval"])
+            self.glade.get_widget("checkbutton_on_startup").set_active(self.rssfeed["update_on_startup"])
             self.glade.get_widget("checkbox_obey_ttl").set_active(self.rssfeed["obey_ttl"])
             self.glade.get_widget("checkbox_prefer_magnet").set_active(self.rssfeed["prefer_magnet"])
 
@@ -64,6 +65,8 @@ class DialogRSSFeed(object):
                 self.glade.get_widget("txt_url").set_property("editable", False)
                 self.glade.get_widget("txt_url").unset_flags(gtk.CAN_FOCUS)
                 self.glade.get_widget("spinbutton_updatetime").set_sensitive(False)
+                self.glade.get_widget("checkbutton_on_startup").set_active(False)
+                self.glade.get_widget("checkbutton_on_startup").set_sensitive(False)
                 self.glade.get_widget("checkbox_obey_ttl").set_active(False)
                 self.glade.get_widget("checkbox_obey_ttl").set_sensitive(False)
                 self.glade.get_widget("checkbox_prefer_magnet").set_active(False)
@@ -78,6 +81,7 @@ class DialogRSSFeed(object):
         rssfeed_data["site"] = urlparse(url).netloc
         rssfeed_data["name"] = self.glade.get_widget("txt_name").get_text()
         rssfeed_data["update_interval"] = int(self.glade.get_widget("spinbutton_updatetime").get_value())
+        rssfeed_data["update_on_startup"] = self.glade.get_widget("checkbutton_on_startup").get_active()
         rssfeed_data["obey_ttl"] = self.glade.get_widget("checkbox_obey_ttl").get_active()
         rssfeed_data["prefer_magnet"] = self.glade.get_widget("checkbox_prefer_magnet").get_active()
         if cookies:

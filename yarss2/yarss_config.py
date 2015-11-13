@@ -161,6 +161,7 @@ class YARSSConfig(object):
         self.config.run_converter((4, 4), 5, self.update_config_to_version5)
         self.config.run_converter((5, 5), 6, self.update_config_to_version6)
         self.config.run_converter((6, 6), 7, self.update_config_to_version7)
+        self.config.run_converter((7, 7), 8, self.update_config_to_version8)
 
         default_config = get_fresh_subscription_config(key="")
         if self._insert_missing_dict_values(self.config["subscriptions"], default_config):
@@ -465,6 +466,18 @@ class YARSSConfig(object):
         self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
         return config
 
+    def update_config_to_version8(self, config):
+        """Updates the config values to config file version (YaRSS2 v1.4.3)"""
+        self.log.info("Updating config file to version 8")
+        default_rssfeed_config = get_fresh_rssfeed_config()
+
+        def update_rssfeed(rssfeed):
+            # Adding new fields
+            rssfeed["update_on_startup"] = default_rssfeed_config["update_on_startup"]
+
+        self.run_for_each_dict_element(config["rssfeeds"], update_rssfeed)
+        return config
+
     def run_for_each_dict_element(self, conf_dict, update_func):
         for key in conf_dict.keys():
             update_func(conf_dict[key])
@@ -491,8 +504,8 @@ def get_fresh_email_config():
 
 
 def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_update=u"",
-                             update_interval=DEFAULT_UPDATE_INTERVAL, obey_ttl=False,
-                             user_agent=u"", key=None):
+                             update_interval=DEFAULT_UPDATE_INTERVAL, update_on_startup=False,
+                             obey_ttl=False, user_agent=u"", key=None):
     """Create a new config (dictionary) for a feed"""
     config_dict = {}
     config_dict["name"] = name
@@ -501,6 +514,7 @@ def get_fresh_rssfeed_config(name=u"", url=u"", site=u"", active=True, last_upda
     config_dict["active"] = active
     config_dict["last_update"] = last_update
     config_dict["update_interval"] = update_interval
+    config_dict["update_on_startup"] = update_on_startup
     config_dict["obey_ttl"] = obey_ttl
     config_dict["user_agent"] = user_agent
     config_dict["prefer_magnet"] = False

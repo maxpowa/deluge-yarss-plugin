@@ -101,7 +101,8 @@ class Core(CorePluginBase):
                 self.rssfeed_scheduler.delete_timer(dict_key)
             # Successfully saved rssfeed, check if timer was changed
             elif config:
-                if self.rssfeed_scheduler.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"]):
+                if self.rssfeed_scheduler.set_timer(rssfeed_data["key"], rssfeed_data["update_interval"],
+                                                    rssfeed_data["update_on_startup"]):
                     self.log.info("Scheduled RSS Feed '%s' with interval %s" %
                                   (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config
