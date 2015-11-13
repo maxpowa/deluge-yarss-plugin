@@ -22,7 +22,8 @@ class DialogEmailMessage():
         self.glade = gtk.glade.XML(get_resource("dialog_email_message.glade"))
         self.glade.signal_autoconnect({
             "on_button_save_clicked": self.on_button_save_clicked,
-            "on_button_cancel_clicked": self.on_button_cancel_clicked
+            "on_button_cancel_clicked": self.on_button_cancel_clicked,
+            "on_dialog_email_message_response": self.on_response,
         })
         # Add data
         if self.message_data is not None:
@@ -38,6 +39,11 @@ class DialogEmailMessage():
         self.glade.get_widget("txt_subject").set_text(data["subject"])
         self.glade.get_widget("checkbutton_active").set_active(data["active"])
         self.glade.get_widget("txt_email_content").get_buffer().set_text(data["message"])
+
+    def on_response(self, widget, arg):
+        # Escape key or close button (X in corner)
+        if arg == -4:
+            self.dialog.destroy()
 
     def on_button_save_clicked(self, button):
         """Saves message to config"""

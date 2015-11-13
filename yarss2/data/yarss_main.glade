@@ -32,6 +32,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_add_subscription_clicked"/>
                       </widget>
                       <packing>
@@ -47,6 +48,7 @@
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_edit_subscription_clicked"/>
                       </widget>
                       <packing>
@@ -62,6 +64,7 @@
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_delete_subscription_clicked"/>
                       </widget>
                       <packing>
@@ -89,7 +92,7 @@
               <widget class="GtkScrolledWindow" id="subscriptions_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hadjustment">0 0 561 56.100000000000001 504.90000000000003 561</property>
+                <property name="hadjustment">0 0 551 55.100000000000001 495.90000000000003 551</property>
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
@@ -143,6 +146,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_add_rssfeed_clicked"/>
                       </widget>
                       <packing>
@@ -158,6 +162,7 @@
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_edit_rssfeed_clicked"/>
                       </widget>
                       <packing>
@@ -173,6 +178,7 @@
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                         <signal name="clicked" handler="on_button_delete_rssfeed_clicked"/>
                       </widget>
                       <packing>
@@ -298,6 +304,7 @@
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
                                     <property name="tooltip" translatable="yes">With this disabled, no emails will be sent by YARSS.</property>
+                                    <property name="use_action_appearance">False</property>
                                     <property name="draw_indicator">True</property>
                                     <signal name="toggled" handler="on_checkbutton_send_email_on_torrent_events_toggled"/>
                                   </widget>
@@ -345,6 +352,7 @@
                                           <widget class="GtkScrolledWindow" id="scrolledwindow3">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="tooltip" translatable="yes">Right click a message to send test email</property>
                                             <property name="hscrollbar_policy">automatic</property>
                                             <property name="vscrollbar_policy">automatic</property>
                                             <child>
@@ -373,6 +381,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
+                                                <property name="use_action_appearance">False</property>
                                                 <signal name="clicked" handler="on_button_add_message_clicked"/>
                                               </widget>
                                               <packing>
@@ -388,6 +397,7 @@
                                                 <property name="sensitive">False</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
+                                                <property name="use_action_appearance">False</property>
                                                 <signal name="clicked" handler="on_button_edit_message_clicked"/>
                                               </widget>
                                               <packing>
@@ -403,6 +413,7 @@
                                                 <property name="sensitive">False</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
+                                                <property name="use_action_appearance">False</property>
                                                 <signal name="clicked" handler="on_button_delete_message_clicked"/>
                                               </widget>
                                               <packing>
@@ -603,6 +614,7 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">True</property>
                                                         <property name="receives_default">False</property>
+                                                        <property name="use_action_appearance">False</property>
                                                         <property name="draw_indicator">True</property>
                                                         <signal name="toggled" handler="on_checkbox_email_authentication_toggled"/>
                                                       </widget>
@@ -983,6 +995,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
+                                <property name="use_action_appearance">False</property>
                                 <signal name="clicked" handler="on_button_add_cookie_clicked"/>
                               </widget>
                               <packing>
@@ -998,6 +1011,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
+                                <property name="use_action_appearance">False</property>
                                 <signal name="clicked" handler="on_button_edit_cookie_clicked"/>
                               </widget>
                               <packing>
@@ -1013,6 +1027,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
+                                <property name="use_action_appearance">False</property>
                                 <signal name="clicked" handler="on_button_delete_cookie_clicked"/>
                               </widget>
                               <packing>

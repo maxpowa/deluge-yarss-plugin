@@ -7,6 +7,7 @@
     <property name="border_width">5</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">normal</property>
+    <signal name="response" handler="on_dialog_email_message_response"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
         <property name="visible">True</property>
@@ -23,6 +24,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_cancel_clicked"/>
               </widget>
@@ -38,6 +40,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_button_save_clicked"/>
               </widget>
@@ -200,6 +203,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
                       </widget>
