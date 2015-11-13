@@ -15,6 +15,29 @@ from yarss2.util import common, http
 from yarss2.yarss_config import get_user_agent
 
 
+def _parse_date_no_timezone(date_string):
+    """parse a date in yyyy/mm/dd hh:mm:ss TTT format"""
+    import time
+    try:
+        import rfc822
+    except ImportError:
+        from email import _parseaddr as rfc822
+
+    # Sun, 11 Oct 2015 16:17:19
+    _date_pattern = re.compile(r'(\w{,3}), (\d{,2}) (\w{,3}) (\d{,4}) (\d{,2}):(\d{2}):(\d{2})$')
+
+    m = _date_pattern.match(date_string)
+    if m is None:
+        return None
+    dow, year, month, day, hour, minute, second = m.groups()
+    date = "%s, %s %s %s %s:%s:%s -0000" % (dow, day, month, year, hour, minute, second)
+    tm = rfc822.parsedate_tz(date)
+    if tm:
+        return time.gmtime(rfc822.mktime_tz(tm))
+
+feedparser.registerDateHandler(_parse_date_no_timezone)
+
+
 class RSSFeedHandler(object):
 
     def __init__(self, log):
@@ -114,7 +137,8 @@ class RSSFeedHandler(object):
 
             if 'published_parsed' in item:
                 published = item['published_parsed']
-                dt = datetime.datetime(* published[:6])
+                if published is not None:
+                    dt = datetime.datetime(* published[:6])
             else:
                 no_publish_time = True
                 return_dict["warning"] = "Published time not available!"
@@ -137,7 +161,7 @@ class RSSFeedHandler(object):
                 else:
                     magnet = item["torrent_magneturi"]
 
-            if rssfeed_data["prefer_magnet"] and magnet:
+            if rssfeed_data.get("prefer_magnet", None) and magnet:
                 link = magnet
 
             rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link,

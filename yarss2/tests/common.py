@@ -71,9 +71,8 @@ import deluge.common
 json = deluge.common.json
 
 # http://torrents.freebsd.org:8080/rss.xml
-test_data_dir = "data"
-testdata_rssfeed_filename = "%s/freebsd_rss.xml" % test_data_dir
-testdata_rss_itmes_json_filename = "%s/freebsd_rss_items_dump.json" % test_data_dir
+testdata_rssfeed_filename = "data/feeds/freebsd_rss.xml"
+testdata_rss_itmes_json_filename = "data/freebsd_rss_items_dump.json"
 
 
 def load_json_testdata():

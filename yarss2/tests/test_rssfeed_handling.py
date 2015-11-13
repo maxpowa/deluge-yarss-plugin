@@ -162,7 +162,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.assertEquals(matche_result["user_agent"], custom_user_agent)
 
     def test_feedparser_dates(self):
-        file_url = yarss2.util.common.get_resource("rss_with_special_dates.rss", path="tests/data/")
+        file_url = yarss2.util.common.get_resource("rss_with_special_dates.rss", path="tests/data/feeds/")
         from yarss2.lib.feedparser import feedparser
         parsed_feed = feedparser.parse(file_url)
 
@@ -176,10 +176,16 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 break
 
     def test_get_rssfeed_parsed_no_items(self):
-        file_url = yarss2.util.common.get_resource("feed_no_items_issue15.rss", path="tests/data/")
+        file_url = yarss2.util.common.get_resource("feed_no_items_issue15.rss", path="tests/data/feeds/")
         rssfeed_data = {"name": "Test", "url": file_url}
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
         self.assertTrue("items" not in parsed_feed)
+
+    def test_get_rssfeed_parsed_datetime_no_timezone(self):
+        file_url = yarss2.util.common.get_resource("rss_datetime_parse_no_timezone.rss", path="tests/data/feeds/")
+        rssfeed_data = {"name": "Test", "url": file_url}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+        self.assertTrue("items" in parsed_feed)
 
     # def test_test_feedparser_parse(self):
     #     #file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")

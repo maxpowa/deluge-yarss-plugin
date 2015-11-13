@@ -16,7 +16,7 @@ install:
   - sudo apt-get install $APTPACKAGES
   - easy_install -U pip
   - pip --version
-  - pip install "tox>=1.8"
+  - pip install "tox==2.1.1"
   - tox --version
   - mkdir install
   - export PYTHONPATH=$PYTHONPATH:$PWD/install
@@ -29,6 +29,7 @@ env:
     - DISPLAY=:99.0
   matrix:
     - TOX_ENV=pydef              APTPACKAGES="$APTPACKAGES"
+    - TOX_ENV=all                APTPACKAGES="$APTPACKAGES"
     - TOX_ENV=trial              APTPACKAGES="$APTPACKAGES"
     - TOX_ENV=flake8
     - TOX_ENV=flake8-complexity

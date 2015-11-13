@@ -7,6 +7,7 @@
 # See LICENSE for more details.
 #
 
+import pytest
 from twisted.trial import unittest
 import twisted.internet.defer as defer
 
@@ -64,6 +65,7 @@ class GtkUITestCase(unittest.TestCase):
         self.gtkui.on_button_send_email_clicked(None)
 
 
+@pytest.mark.label
 class GtkUIWithCoreTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
