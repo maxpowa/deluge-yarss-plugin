@@ -17,7 +17,7 @@ import deluge.component as component
 from deluge.ui.client import client
 
 from yarss2.util.common import get_resource, get_value_in_selected_row, string_to_unicode, \
-    get_current_date, GeneralSubsConf, TorrentDownload
+    get_current_date_in_isoformat, GeneralSubsConf, TorrentDownload
 from yarss2.util import http
 from yarss2.rssfeed_handling import RSSFeedHandler
 from yarss2.gtkui.path_chooser import PathChooser
@@ -592,7 +592,7 @@ class DialogSubscription(object):
         self.glade.get_widget("txt_last_matched").set_text("")
 
     def on_button_last_matched_now_clicked(self, button):
-        self.glade.get_widget("txt_last_matched").set_text(get_current_date().isoformat())
+        self.glade.get_widget("txt_last_matched").set_text(get_current_date_in_isoformat())
 
 # Save / Close
 ###################
