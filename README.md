@@ -38,6 +38,14 @@ yarss2$ trial tests
 
 ## Changelog ##
 
+v1.4.3 - 2015-11-14
+
+* Fix #10: Option to make YaRSS2 fetch subscriptions on startup
+* Fix #13: Moved sending test email from daemon instead of client
+* Fix #14: Problem with the ISO formating of 'Last matched' timestamp
+* Fix #15: python traceback when RSS feed has no items
+* Fix #20: An exception was thrown by the RSS update handler
+
 v1.4.2 - 2015-11-11
 
 * Fixed #26: Labels don't stay after restart
