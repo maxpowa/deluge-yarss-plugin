@@ -72,6 +72,7 @@ class GtkUI(GtkPluginBase):
             "on_button_delete_message_clicked": self.on_button_delete_message_clicked,
 
             "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
+            "on_checkbutton_show_log_messages_gui_toggled": self.on_checkbutton_show_log_messages_gui_toggled,
         })
 
         component.get("Preferences").add_page("YaRSS2", self.glade.get_widget("notebook_main"))
@@ -136,6 +137,9 @@ class GtkUI(GtkPluginBase):
     def save_email_config(self, email_config):
         client.yarss2.save_email_configurations(email_config)
 
+    def save_general_config(self, config):
+        client.yarss2.save_general_config(config)
+
     def add_torrent(self, torrent_link, subscription_data, callback):
         torrent_info = {"link": torrent_link, "subscription_data": subscription_data}
         if subscription_data is not None:
@@ -181,6 +185,7 @@ class GtkUI(GtkPluginBase):
         self.email_config["default_email_subject"] = default_subject
         self.email_config["default_email_message"] = default_message
         self.save_email_config(self.email_config)
+        self.save_general_config(self.general_config)
 
     def on_show_prefs(self):
         """Called when showing preferences window"""
@@ -199,6 +204,12 @@ class GtkUI(GtkPluginBase):
         """Callback function called on GtkUILogMessageEvent events"""
         self.gtkui_log.gtkui_log_message(message)
 
+    def on_checkbutton_show_log_messages_gui_toggled(self, widget):
+        show_log_in_gui = self.glade.get_widget("checkbutton_show_log_messages_gui").get_active()
+        self.general_config["show_log_in_gui"] = show_log_in_gui
+        self.gtkui_log.show_log_in_gui = show_log_in_gui
+        self.save_general_config(self.general_config)
+
     def cb_get_config(self, config):
         """Callback function called after saving data to core"""
         if config is None:
@@ -213,6 +224,7 @@ class GtkUI(GtkPluginBase):
         self.email_messages = config.get('email_messages', {})
         self.email_config = config.get('email_configurations', {})
         self.default_values = config.get('default_values', {})
+        self.general_config = config.get('general', {})
 
         # When connecting to a second host, the glade object returns None for all the fields,
         # so reload the glade file here to avoid this problem.
@@ -267,6 +279,10 @@ class GtkUI(GtkPluginBase):
         # Must be last, since it will cause callback on
         # method on_checkbutton_send_email_on_torrent_events_toggled
         send_email_checkbox.set_active(self.email_config["send_email_on_torrent_events"])
+
+        show_log_in_gui = self.general_config.get('show_log_in_gui', True)
+        self.gtkui_log.show_log_in_gui = show_log_in_gui
+        self.glade.get_widget("checkbutton_show_log_messages_gui").set_active(show_log_in_gui)
 
     def update_subscription_list(self, subscriptions_store):
         subscriptions_store.clear()
@@ -599,6 +615,7 @@ class GtkUI(GtkPluginBase):
 
     def on_button_send_email_clicked(self, menuitem):
         key = get_value_in_selected_row(self.email_messages_treeview, self.email_messages_store)
+
         def test_email_callback(return_value):
             if return_value:
                 self.log.warn("Test email successfully sent!")

@@ -27,7 +27,8 @@ __DEFAULT_PREFS = {
     "rssfeeds": {},
     "subscriptions": {},
     "cookies": {},
-    "email_messages": {}
+    "email_messages": {},
+    "general": {"show_log_in_gui": True},
 }
 
 

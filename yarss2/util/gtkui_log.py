@@ -17,8 +17,12 @@ class GTKUILogger(object):
 
     def __init__(self, textview):
         self.textview = textview
+        self.show_log_in_gui = True
 
     def gtkui_log_message(self, message):
+        if self.show_log_in_gui is False:
+            return
+
         def add_msg():
             buf = self.textview.get_buffer()
             time = get_current_date_in_isoformat()

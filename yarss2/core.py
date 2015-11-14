@@ -57,6 +57,14 @@ class Core(CorePluginBase):
         return self.yarss_config.get_config()
 
     @export
+    def save_general_config(self, conf):
+        conf = {"general": conf}
+        try:
+            self.yarss_config.set_config(conf)
+        except ValueError as (v):
+            self.log.error("Failed to save general configurations:" + str(v))
+
+    @export
     def save_email_configurations(self, email_configurations):
         conf = {"email_configurations": email_configurations}
         try:
