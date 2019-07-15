@@ -1,31 +1,33 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
 from twisted.trial import unittest
 
-from deluge.log import LOG
+import logging
+log = logging.getLogger(__name__)
 
 import yarss2.util.common
-import yarss2.yarss_config
-from yarss2.rssfeed_handling import RSSFeedHandler
+from yarss2.util import common
 
-import common
+#from yarss2.rssfeed_handling import RSSFeedHandler
+from yarss2 import rssfeed_handling
+
+from . import common as test_common
 
 
 class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.log = LOG
-        self.rssfeedhandler = RSSFeedHandler(self.log)
+        self.log = log
+        self.rssfeedhandler = rssfeed_handling.RSSFeedHandler(self.log)
 
     def test_get_rssfeed_parsed(self):
-        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
+        file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
         rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments",
                         "prefer_magnet": False}
         site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
@@ -38,47 +40,123 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
         self.assertTrue("items" in parsed_feed)
         items = parsed_feed["items"]
-        stored_items = common.load_json_testdata()
-        self.assertTrue(yarss2.util.common.dicts_equals(items, stored_items, debug=False))
+        stored_items = test_common.load_json_testdata()
+        from .utils import assert_equal, assert_almost_equal_dict
+
+        assert_equal(items, stored_items)
         self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")),
                           ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
         self.assertEquals(parsed_feed["user_agent"], user_agent)
 
     def test_get_link(self):
-        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
-        from yarss2.lib.feedparser import feedparser
-        parsed_feed = feedparser.parse(file_url)
+        file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
+        #from yarss2.lib.feedparser import feedparser
+        #parsed_feed = feedparser.parse(file_url)
+        parsed_feed = rssfeed_handling.fetch_and_parse_rssfeed(file_url)
+
         item = None
         for e in parsed_feed["items"]:
             item = e
             break
+
         # Item has enclosure, so it should use that link
-        self.assertEquals(self.rssfeedhandler.get_link(item), item.enclosures[0]["href"])
-        del item["links"][:]
+        self.assertEquals(self.rssfeedhandler.get_link(item), item.enclosures[0].url)
+
+        # Remove enclosure
+        if isinstance(item, rssfeed_handling.RssItemWrapper):
+            # atom
+            item.item.enclosures = []
+        else:
+            # Feedparser
+            del item["links"][:]
         # Item no longer has enclosures, so it should return the regular link
         self.assertEquals(self.rssfeedhandler.get_link(item), item["link"])
 
+    def test_rssfeed_handling_fetch_xmlns_ezrss(self):
+        from yarss2 import rssfeed_handling
+        filename = "ettv-rss-3.xml"
+
+        file_path = common.get_resource(filename, path="tests/data/feeds/")
+        parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
+
+        self.assertEquals(3, len(parsed_feeds['items']))
+
+        entry0 = parsed_feeds['items'][0]
+        self.assertEquals('The.Show.WEB.H264-MEMENTO[ettv]', entry0['title'])
+        magnet_link = 'magnet:?xt=urn:btih:CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05&dn=The.Show.WEB.H264-MEMENTO%5Bettv%5D'
+        magnet_uri = magnet_link.replace('&', '&amp;')
+
+        self.assertEquals(magnet_link, entry0['link'])
+        self.assertEquals('573162367', entry0.item.torrent.contentlength)
+        self.assertEquals('CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05', entry0.item.torrent.infohash)
+        self.assertEquals(magnet_uri, entry0.item.torrent.magneturi)
+
+    def test_rssfeed_handling_fetch_xmlns_ezrss_namespace(self):
+        self.maxDiff = None
+        from yarss2 import rssfeed_handling
+        filename = "ezrss-rss-2.xml"
+
+        file_path = common.get_resource(filename, path="tests/data/feeds/")
+        parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
+
+        self.assertEquals(2, len(parsed_feeds['items']))
+
+        entry0 = parsed_feeds['items'][0]
+        self.assertEquals('Lolly Tang 2009 09 26 WEB x264-TBS', entry0['title'])
+        link = 'https://eztv.io/ep/1369854/lolly-tang-2009-09-26-web-x264-tbs/'
+        self.assertEquals(link, entry0['link'])
+
+        magnet_uri = 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969'
+
+        self.assertEquals('288475596', entry0.item.torrent.contentlength)
+        self.assertEquals('4CF874831F61F5DB9C3299E503E28A8103047BA0', entry0.item.torrent.infohash)
+        self.assertEquals(magnet_uri, entry0.item.torrent.magneturi)
+
+    def test_rssfeed_handling_fetch_with_enclosure(self):
+        self.maxDiff = None
+        from yarss2 import rssfeed_handling
+        filename = "t1.rss"
+
+        file_path = common.get_resource(filename, path="tests/data/feeds/")
+        parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
+
+        self.assertEquals(4, len(parsed_feeds['items']))
+
+        items = parsed_feeds['items']
+        item0 = items[0]
+        item2 = items[2]
+
+        link = 'https://site.net/file.torrent'
+
+        self.assertEquals('This is the title', item0['title'])
+        self.assertEquals(link, item0.get_download_link())
+        self.assertEquals([(4541927915.52, '4.23 GB')], item0.get_download_size())
+
+        self.assertEquals('[TORRENT] This is the title', item2['title'])
+        self.assertEquals(link, item2.get_download_link())
+        self.assertEquals([857007476], item2.get_download_size())
+
     def test_get_size(self):
-        file_url = yarss2.util.common.get_resource("t1.rss", path="tests/data/feeds/")
-        from yarss2.lib.feedparser import feedparser
-        parsed_feed = feedparser.parse(file_url)
+        filename_or_url = yarss2.util.common.get_resource("t1.rss", path="tests/data/feeds/")
+        parsed_feed = rssfeed_handling.fetch_and_parse_rssfeed(filename_or_url)
 
         size = self.rssfeedhandler.get_size(parsed_feed["items"][0])
-        self.assertEquals(len(size), 1)
-        self.assertEquals(size[0], (4541927915.52, u'4.23 GB'))
+
+        self.assertEquals(1, len(size))
+        self.assertEquals((4541927915.52, u'4.23 GB'), size[0])
 
         size = self.rssfeedhandler.get_size(parsed_feed["items"][1])
-        self.assertEquals(len(size), 1)
-        self.assertEquals(size[0], (402349096.96, u'383.71 MB'))
+        self.assertEquals(1, len(size))
+        self.assertEquals((402349096.96, u'383.71 MB'), size[0])
 
         size = self.rssfeedhandler.get_size(parsed_feed["items"][2])
-        self.assertEquals(len(size), 1)
-        self.assertEquals(size[0], (857007476))
+        self.assertEquals(1, len(size))
+        self.assertEquals((857007476), size[0])
 
         size = self.rssfeedhandler.get_size(parsed_feed["items"][3])
-        self.assertEquals(len(size), 2)
-        self.assertEquals(size[0], (14353107637))
-        self.assertEquals(size[1], (13529146982.4, u'12.6 GB'))
+        self.assertEquals(2, len(size))
+        self.assertEquals((14353107637), size[0])
+        self.assertEquals((13529146982.4, u'12.6 GB'), size[1])
 
     def get_default_rssfeeds_dict(self):
         match_option_dict = {}
@@ -149,13 +227,13 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 break
 
     def test_fetch_feed_torrents(self):
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")  # 0 is the rssfeed key
         matches = matche_result["matching_torrents"]
         self.assertTrue(len(matches) == 3)
 
     def test_fetch_feed_torrents_custom_user_agent(self):
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         custom_user_agent = "TEST AGENT"
         config["rssfeeds"]["0"]["user_agent"] = custom_user_agent
         matche_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")  # 0 is the rssfeed key
@@ -163,16 +241,22 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def test_feedparser_dates(self):
         file_url = yarss2.util.common.get_resource("rss_with_special_dates.rss", path="tests/data/feeds/")
-        from yarss2.lib.feedparser import feedparser
-        parsed_feed = feedparser.parse(file_url)
+        rssfeed_data = {"name": "Test", "url": file_url}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
 
-        for item in parsed_feed['items']:
+        for k, item in parsed_feed['items'].items():
             # Some RSS feeds do not have a proper timestamp
-            if 'published_parsed' in item:
-                published_parsed = item['published_parsed']
-                import time
-                test_val = time.struct_time((2014, 4, 10, 3, 44, 14, 3, 100, 0))
-                self.assertEquals(test_val, published_parsed)
+            if 'updated_datetime' in item:
+                updated_datetime = item['updated_datetime']
+                import datetime
+                if parsed_feed["raw_result"]['parser'] == "atoma":
+                    test_val = datetime.datetime(2014, 10, 4, 3, 44, 14)
+                else:
+                    # Feedparser parses date 10/04/2014 03:44:14 as day/month/year ....
+                    test_val = datetime.datetime(2014, 4, 10, 3, 44, 14)
+
+                test_val = yarss2.util.common.datetime_add_timezone(test_val)
+                self.assertEquals(test_val, updated_datetime)
                 break
 
     def test_get_rssfeed_parsed_no_items(self):
@@ -187,8 +271,15 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
         self.assertTrue("items" in parsed_feed)
 
+
+    def test_get_rssfeed_parsed_server_error_message(self):
+        file_url = yarss2.util.common.get_resource("rarbg.to.rss.too_many_requests.html", path="tests/data/feeds/")
+        rssfeed_data = {"name": "Test", "url": file_url}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+        self.assertTrue("items" not in parsed_feed)
+
     # def test_test_feedparser_parse(self):
-    #     #file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests/")
+    #     #file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
     #     from yarss2.lib.feedparser import feedparser
     #     file_url = ""
     #     parsed_feed = feedparser.parse(file_url, timeout=10)

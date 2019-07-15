@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
@@ -10,20 +10,29 @@
 import datetime
 import os.path
 
+from unittest import mock
+
+import pytest
 from twisted.trial import unittest
 
-from deluge.log import LOG
+import logging
+LOG = logging.getLogger(__name__)
+
+from deluge.error import AddTorrentError
 
 import yarss2.torrent_handling
 from yarss2.torrent_handling import TorrentHandler, TorrentDownload
 from yarss2.util.common import GeneralSubsConf, read_file
 import yarss2.util.common
-import common
+
+from . import common as test_common
 
 test_component = None
 
 
 class TestComponent(object):
+    __test__ = False
+
     def __init__(self, add_retval=True):
         global test_component
         test_component = self
@@ -39,7 +48,7 @@ class TestComponent(object):
         download.filedump = filedump
         download.filename = filename
         download.options = options
-        download.magnet = magnet
+        download.magnet = magnet.decode() if magnet else magnet  # Ensure str on python3
         download.add_success = self.add_success
         self.added.append(download)
         return download
@@ -69,7 +78,12 @@ class TestComponent(object):
 def get(key):
     return test_component
 
-import test_torrent_handling
+#import test_torrent_handling
+try:
+    from . import test_torrent_handling
+except ImportError:
+    import test_torrent_handling
+
 # This makes sure that component.get("TorrentManager") returns
 # the TestComponent, and not the deluge TorrentManager.
 yarss2.torrent_handling.component = test_torrent_handling
@@ -94,12 +108,12 @@ class TorrentHandlingTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
         self.log = LOG
-        self.config = common.get_test_config()
+        self.config = test_common.get_test_config()
         # get_test_config will load a new core.conf with the default values.
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
         self.config.core_config.save()
         global test_component
-        test_component = TestComponent(True)
+        test_component = TestComponent(add_retval=True)
 
     def test_add_torrent(self):
         handler = TorrentHandler(self.log)
@@ -113,6 +127,17 @@ class TorrentHandlingTestCase(unittest.TestCase):
         self.assertEquals(torrent_added.filename, os.path.split(filename)[1])
         self.assertFalse(torrent_added.filedump is None)
         self.assertEquals(torrent_download.url, filename)
+
+    def test_add_torrent_raise_AddTorrentError(self):
+        print()
+        handler = TorrentHandler(self.log)
+        filename = yarss2.util.common.get_resource("FreeBSD-9.0-RELEASE-amd64-dvd1.torrent", path="tests/data/")
+        torrent_info = {"link": filename, "site_cookies_dict": {}}
+
+        with mock.patch.object(TestComponent, 'add') as test_component_add:
+            test_component_add.side_effect = AddTorrentError('Torrent already in session (%s).' % 1)
+            torrent_added = handler.add_torrent(torrent_info)
+            self.assertFalse(torrent_added.success)
 
     def test_add_torrent_magnet_link(self):
         handler = TorrentHandler(self.log)
@@ -139,6 +164,7 @@ class TorrentHandlingTestCase(unittest.TestCase):
         test_component.download_success = True
 
     def test_add_torrent_with_subscription_data(self):
+        print()
         handler = TorrentHandler(self.log)
         subscription_data = yarss2.yarss_config.get_fresh_subscription_config()
         subscription_data["move_completed"] = "move/path"
@@ -206,14 +232,14 @@ class TorrentHandlingTestCase(unittest.TestCase):
         config = get_test_config_dict()                                # 0 is the rssfeed key
         match_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")
         matching_torrents = match_result["matching_torrents"]
-
+        rssfeed_data = config["rssfeeds"]["0"]
         saved_subscriptions = []
 
         def save_subscription_func(subscription_data):
             saved_subscriptions.append(subscription_data)
 
         handler.add_torrents(save_subscription_func, matching_torrents, self.config.get_config())
-        self.assertEquals(len(saved_subscriptions), 1)
+        self.assertEquals(len(saved_subscriptions), 3)
         handler.use_filedump = None
 
 ####################################
@@ -223,9 +249,9 @@ class TorrentHandlingTestCase(unittest.TestCase):
 
 def get_test_config_dict():
     config = yarss2.yarss_config.default_prefs()
-    file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
-    rssfeeds = common.get_default_rssfeeds(3)
-    subscriptions = common.get_default_subscriptions(5)
+    file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests")
+    rssfeeds = test_common.get_default_rssfeeds(3)
+    subscriptions = test_common.get_default_subscriptions(5)
 
     rssfeeds["0"]["name"] = "Test RSS Feed"
     rssfeeds["0"]["url"] = file_url

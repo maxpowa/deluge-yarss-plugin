@@ -28,8 +28,8 @@ class GTKUILogger(object):
             time = get_current_date_in_isoformat()
             msg_to_append = "(%s): %s" % (time, message)
             buf.insert(buf.get_end_iter(), msg_to_append + "\n")
-        import gobject  # Do not import on top as only the client needs to have this package
-        gobject.idle_add(add_msg)
+        from gi.repository import GLib  # Do not import on top as only the client needs to have this package
+        GLib.idle_add(add_msg)
 
 
 class GtkUILogMessageEvent(DelugeEvent):

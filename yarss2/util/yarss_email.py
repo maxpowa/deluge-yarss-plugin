@@ -18,7 +18,8 @@ import yarss2.util.logger
 try:
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-except ImportError, e:
+except ImportError as e:
+    print("YEARSS MIME")
     from yarss2.lib.mime.multipart import MIMEMultipart
     from yarss2.lib.mime.text import MIMEText
 
@@ -59,7 +60,7 @@ def send_email(email_conf, server_conf):
             pass
     try:
         mail_server = smtplib.SMTP(server_conf["smtp_server"], port)
-    except Exception, e:
+    except Exception as e:
         log.error("There was an error sending the notification email: %s" % e)
         return False
 
@@ -81,7 +82,7 @@ def send_email(email_conf, server_conf):
     try:
         mail_server.sendmail(server_conf["from_address"], email_conf["to_address"], mime_message.as_string())
         mail_server.quit()
-    except Exception, e:
+    except Exception as e:
         log.error("Sending email notification failed: %s" % e)
         return False
     else:

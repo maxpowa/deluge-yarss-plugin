@@ -7,7 +7,7 @@
 __all__ = ['MIMEMultipart']
 
 #from email.mime.base import MIMEBase
-from base import MIMEBase
+from .base import MIMEBase
 
 
 
@@ -44,5 +44,6 @@ class MIMEMultipart(MIMEBase):
         if _subparts:
             for p in _subparts:
                 self.attach(p)
+
         if boundary:
             self.set_boundary(boundary)

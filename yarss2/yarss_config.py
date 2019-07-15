@@ -17,6 +17,13 @@ from deluge.event import DelugeEvent
 from yarss2.util import common
 from yarss2.util.common import GeneralSubsConf
 
+try:
+    # Does not exist in python3
+    unicode('')
+except NameError:
+    unicode = str
+
+
 DEFAULT_UPDATE_INTERVAL = 120
 
 DUMMY_RSSFEED_KEY = "9999"
@@ -224,9 +231,9 @@ class YARSSConfig(object):
                     # Cannot insert default value, and cannot know the correct value.
                     rssfeed_key_invalid = True
                 else:
-                    self.log.warn("Config is missing a dictionary key: '%s'. Inserting "
-                                  "default value ('%s'). Affected config: %s\n" %
-                                  (key, str(default_config[key]), str(config)))
+                    self.log.warning("Config is missing a dictionary key: '%s'. Inserting "
+                                     "default value ('%s'). Affected config: %s\n" %
+                                     (key, str(default_config[key]), str(config)))
                     config[key] = default_config[key]
                 changed = True
             else:
@@ -245,11 +252,11 @@ class YARSSConfig(object):
                                 rssfeed_key_invalid = True
                         else:
                             rssfeed_key_invalid = True
-                            self.log.warn("The value of the dictionary key '%s' has the wrong type! "
-                                          "Value: '%s'. Excpected '%s' but found '%s'. "
-                                          "Must be fixed manually.\nAffected config: %s\n" %
-                                          (key, str(type(default_config[key])),
-                                           str(type(config[key])), str(config[key]), str(config)))
+                            self.log.warning("The value of the dictionary key '%s' has the wrong type! "
+                                             "Value: '%s'. Excpected '%s' but found '%s'. "
+                                             "Must be fixed manually.\nAffected config: %s\n" %
+                                             (key, str(type(default_config[key])),
+                                              str(type(config[key])), str(config[key]), str(config)))
                     # If default is unicode, and value is str
                     elif (type(default_config[key]) is unicode and type(config[key]) is str):
                         # Ignore if default is unicode and value is an empty string,
@@ -262,11 +269,11 @@ class YARSSConfig(object):
                                 config[key] = default_config[key]
                             changed = True
                     else:
-                        self.log.warn("Config value ('%s') is the wrong data type! dictionary key: '%s'. "
-                                      "Expected '%s' but found '%s'. "
-                                      "Inserting default value. Affected config: %s" %
-                                      (config[key], key, str(type(default_config[key])),
-                                       str(type(config[key])), str(config)))
+                        self.log.warning("Config value ('%s') is the wrong data type! dictionary key: '%s'. "
+                                         "Expected '%s' but found '%s'. "
+                                         "Inserting default value. Affected config: %s" %
+                                         (config[key], key, str(type(default_config[key])),
+                                          str(type(config[key])), str(config)))
                         config[key] = default_config[key]
                         changed = True
                 # Test if key and rssfeed_key are valid
@@ -295,9 +302,9 @@ class YARSSConfig(object):
                                                                rssfeed_key=None if "rssfeed_key" not in config
                                                                else config["rssfeed_key"])
                 if common.dicts_equals(config, default_config):
-                    self.log.warn("Found subscription with missing rssfeed_key. "
-                                  "The subscription is empty, so it will be deleted.")
-                    for key in config.keys():
+                    self.log.warning("Found subscription with missing rssfeed_key. "
+                                     "The subscription is empty, so it will be deleted.")
+                    for key in list(config.keys()):
                         del config[key]
                     return True
                 else:
@@ -311,8 +318,8 @@ class YARSSConfig(object):
                                                                  active=False, key=DUMMY_RSSFEED_KEY)
                         self.config["rssfeeds"][DUMMY_RSSFEED_KEY] = dummy_rssfeed
                     invalid_rssfeed_key = "Missing" if "rssfeed_key" not in config else config["rssfeed_key"]
-                    self.log.warn("Found subscription with missing or invalid rssfeed_key ('%s'). "
-                                  "A dummy rssfeed will be used for this subscription." % invalid_rssfeed_key)
+                    self.log.warning("Found subscription with missing or invalid rssfeed_key ('%s'). "
+                                     "A dummy rssfeed will be used for this subscription." % invalid_rssfeed_key)
                     config["rssfeed_key"] = DUMMY_RSSFEED_KEY
                     changed = True
         return changed

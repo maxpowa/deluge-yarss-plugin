@@ -6,12 +6,18 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+from __future__ import print_function
 
 import datetime
 import os
 import sys
 
+#from yarss2.lib.dateutil import parser as dateutil_parser
+
 import pkg_resources
+
+PY2 = sys.version_info.major == 2
+PY3 = sys.version_info.major == 3
 
 
 def get_version():
@@ -36,35 +42,59 @@ def get_deluge_version():
 
 
 def get_resource(filename, path="data"):
-    return pkg_resources.resource_filename("yarss2", os.path.join(path, filename))
+    if path:
+        filename = os.path.join(path, filename)
+    return pkg_resources.resource_filename("yarss2", filename)
 
 
 def get_default_date():
-    return datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
+    return datetime_add_timezone(datetime.datetime(datetime.MINYEAR, 1, 1, 0, 0, 0, 0))
 
 
 def get_current_date():
-    return datetime.datetime.now()
+    return datetime_add_timezone(datetime.datetime.now())
 
 
 def get_current_date_in_isoformat():
     return get_current_date().strftime("%Y-%m-%dT%H:%M:%S")
 
 
+def datetime_ensure_timezone(dt):
+    if dt.tzinfo is None:
+        dt = datetime_add_timezone(dt)
+    return dt
+
+
+def datetime_add_timezone(dt, tzinfo=None):
+    from dateutil.tz import tzutc
+    if tzinfo is None:
+        tzinfo = tzutc()
+    return dt.replace(tzinfo=tzinfo)
+
+
 def isodate_to_datetime(date_in_isoformat):
+    from dateutil import parser as dateutil_parser
     try:
-        return datetime.datetime.strptime(date_in_isoformat, "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
+        dt = dateutil_parser.parse(date_in_isoformat)
+        return datetime_add_timezone(dt)
+    except ValueError as err:
+        import yarss2.util.logger
+        log = yarss2.util.logger.Logger()
+        log.warning("isodate_to_datetime error:", err)
         return get_default_date()
 
 
 def string_to_unicode(string):
-    if type(string) is unicode:
-        # Already unicode
-        return string
-    try:
-        return string.decode("utf-8")
-    except:
+    import sys
+    if sys.version_info[0] == 2:
+        if type(string) is unicode:
+            # Already unicode
+            return string
+        try:
+            return string.decode("utf-8")
+        except:
+            return string
+    else:
         return string
 
 
@@ -108,7 +138,7 @@ def write_to_file(filepath, content):
 def read_file(filepath):
     if not os.path.isfile(filepath):
         return None
-    f = open(filepath, "r")
+    f = open(filepath, "rb")
     content = f.read()
     return content
 
@@ -138,13 +168,13 @@ def dicts_equals(dict1, dict2, debug=False):
     """Compares two dictionaries, checking that they have the same key/values"""
     ret = True
     if not (type(dict1) is dict and type(dict2) is dict):
-        print "dicts_equals: Both arguments are not dictionaries!"
+        print("dicts_equals: Both arguments are not dictionaries!")
         return False
 
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
         if debug:
-            print "dicts_equals: Keys differ:", key_diff
+            print("dicts_equals: Keys differ:", key_diff)
         return False
     for key in dict1.keys():
         if type(dict1[key]) is dict and type(dict2[key]) is dict:
@@ -154,7 +184,7 @@ def dicts_equals(dict1, dict2, debug=False):
             # Compare values
             if dict1[key] != dict2[key]:
                 if debug:
-                    print "Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key])
+                    print("Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key]))
                 ret = False
     return ret
 
@@ -195,7 +225,10 @@ def get_completion_paths(args):
 
     def get_subdirs(dirname):
         try:
-            return os.walk(dirname).next()[1]
+            if PY2:
+                return os.walk(dirname).__next__[1]
+            else:
+                return next(os.walk(dirname))[1]
         except StopIteration:
             # Invalid dirname
             return []

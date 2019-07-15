@@ -4,3 +4,4 @@ YaRSS2.egg-info/*
 *.pyc
 *.pyo
 *.bak
+.tox

@@ -18,7 +18,8 @@ from deluge import bencode
 from deluge.common import decode_string
 from deluge.ui.common import FileTree, FileTree2
 
-import yarss2.util.logger as log
+import yarss2.util.logger
+log = yarss2.util.logger.Logger()
 
 try:
     from hashlib import sha1 as sha
@@ -45,7 +46,7 @@ class TorrentInfo(object):
             try:
                 log.debug("Attempting to open %s.", filename)
                 self.__m_filedata = open(filename, "rb").read()
-            except Exception, e:
+            except Exception as e:
                 log.warning("Unable to open %s: %s", filename, e)
                 raise e
         else:
@@ -57,7 +58,7 @@ class TorrentInfo(object):
             return
         try:
             self.__m_metadata = bencode.bdecode(self.__m_filedata)
-        except Exception, e:
+        except Exception as e:
             log.warning("Failed to decode torrent data %s: %s", self.filename if self.filename else "", e)
             raise e
 

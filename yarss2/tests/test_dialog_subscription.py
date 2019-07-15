@@ -1,36 +1,48 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
 
-from twisted.trial import unittest
 import datetime
 import re
+import json
 
-from twisted.internet import defer
+import pytest
+from twisted.internet import defer, task, threads
+from twisted.trial import unittest
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
+import deluge.config
 import deluge.component as component
 import deluge.common
-json = deluge.common.json
-
-import common
+import deluge.ui.client
 
 import yarss2.util.common
 from yarss2 import yarss_config
-import yarss2.gtkui.dialog_subscription
 
-import deluge.ui.client
-
-from yarss2.gtkui.dialog_subscription import DialogSubscription
 from yarss2.util.logger import Logger
+
 from yarss2.tests import common as tests_common
+
+from .common import PY2, PY3
+
+if PY2:
+    import yarss2.gtkui.dialog_subscription
+    from yarss2.gtkui.dialog_subscription import DialogSubscription
+else:
+    import yarss2.gtk3ui.dialog_subscription
+    from yarss2.gtk3ui.dialog_subscription import DialogSubscription
+
 
 
 class TestGTKUIBase(object):
+    __test__ = False
+
     def __init__(self):
         self.labels = []
 
@@ -38,28 +50,39 @@ class TestGTKUIBase(object):
         return defer.succeed(self.labels)
 
 
+import pytest_twisted
+
+#@pytest.mark.skipif(PY3, reason="Requires python 2")
 class DialogSubscriptionTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
         self.log = Logger()
         tests_common.set_tmp_config_dir()
+
+        # Must override callLater to avoid unclean twisted reactor
+        clock = task.Clock()
+        deluge.config.callLater = clock.callLater
+
         self.client = deluge.ui.client.client
-        self.client.start_classic_mode()
+        self.client.start_standalone()
 
     def tearDown(self):  # NOQA
+
         def on_shutdown(result):
             # Components aren't removed from registry in component.shutdown...
             # so must do that manually
             component._ComponentRegistry.components = {}
+
         return component.shutdown().addCallback(on_shutdown)
 
     def test_rssfeed_selected(self):
-        yarss2.gtkui.dialog_subscription.client = self.client
+        yarss2.gtk3ui.dialog_subscription.client = self.client
 
         def verify_result(empty, subscription_dialog):
-            stored_items = common.load_json_testdata()
+            stored_items = tests_common.load_json_testdata()
             result = self.get_rssfeed_store_content(subscription_dialog)
-            self.assertTrue(self.compare_dicts_content(stored_items, result))
+            self.compare_dicts_content(stored_items, result)
+
         deferred = self.run_select_rssfeed(callback_func=verify_result)
         return deferred
 
@@ -113,7 +136,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         subscription_dialog.method_perform_rssfeed_selection = pass_func
 
         # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
         rssfeeds_combobox.set_active(0)
 
         deferred = subscription_dialog.perform_rssfeed_selection()
@@ -121,6 +144,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         return deferred
 
     def test_search(self):
+
         def run_search_test(empty, dialog_subscription):
             subscription_config = yarss_config.get_fresh_subscription_config()
             include_regex = ".*"
@@ -167,7 +191,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                 if yarss2.util.common.dicts_equals(dict1[k1], dict2[k2]):
                     break
             else:
-                return False
+                raise AssertionError("Value for key '%s' in dict1 not found in dict2" % (k1))
         return True
 
     def get_rssfeed_store_content(self, subscription_dialog):
@@ -181,6 +205,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             item["matches"] = store.get_value(it, 0)
             item["title"] = store.get_value(it, 1)
             item["updated"] = store.get_value(it, 2)
+            updated_dt = store.get_value(it, 2)
             item["updated_datetime"] = yarss2.util.common.isodate_to_datetime(store.get_value(it, 2))
             item["link"] = store.get_value(it, 3)
             item["torrent"] = store.get_value(it, 5)
@@ -192,9 +217,9 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
     def get_test_config(self):
         config = yarss2.yarss_config.default_prefs()
-        file_url = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
-        rssfeeds = common.get_default_rssfeeds(2)
-        subscriptions = common.get_default_subscriptions(5)
+        file_url = yarss2.util.common.get_resource(tests_common.testdata_rssfeed_filename, path="tests")
+        rssfeeds = tests_common.get_default_rssfeeds(2)
+        subscriptions = tests_common.get_default_subscriptions(5)
 
         rssfeeds["0"]["name"] = "Test RSS Feed"
         rssfeeds["0"]["url"] = file_url
@@ -245,21 +270,21 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
         subscription_dialog.setup()
-        subscription_dialog.glade.get_widget("txt_name").set_text(subscription_title)
-        subscription_dialog.glade.get_widget("txt_regex_include").set_text(regex_include)
-        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state_default").set_active(False)
-        subscription_dialog.glade.get_widget("checkbox_add_torrents_in_paused_state").set_active(True)
-        subscription_dialog.glade.get_widget("checkbutton_auto_managed_default").set_active(False)
-        subscription_dialog.glade.get_widget("checkbutton_auto_managed").set_active(False)
-        subscription_dialog.glade.get_widget("checkbutton_sequential_download_default").set_active(True)
-        subscription_dialog.glade.get_widget("checkbutton_sequential_download").set_active(False)
-        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last_default").set_active(True)
-        subscription_dialog.glade.get_widget("checkbutton_prioritize_first_last").set_active(True)
+        subscription_dialog.glade.get_object("txt_name").set_text(subscription_title)
+        subscription_dialog.glade.get_object("txt_regex_include").set_text(regex_include)
+        subscription_dialog.glade.get_object("checkbox_add_torrents_in_paused_state_default").set_active(False)
+        subscription_dialog.glade.get_object("checkbox_add_torrents_in_paused_state").set_active(True)
+        subscription_dialog.glade.get_object("checkbutton_auto_managed_default").set_active(False)
+        subscription_dialog.glade.get_object("checkbutton_auto_managed").set_active(False)
+        subscription_dialog.glade.get_object("checkbutton_sequential_download_default").set_active(True)
+        subscription_dialog.glade.get_object("checkbutton_sequential_download").set_active(False)
+        subscription_dialog.glade.get_object("checkbutton_prioritize_first_last_default").set_active(True)
+        subscription_dialog.glade.get_object("checkbutton_prioritize_first_last").set_active(True)
 
         # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
         rssfeeds_combobox.set_active(0)
-        subscription_dialog.save_subscription_data()
+        return threads.deferToThread(subscription_dialog.save_subscription_data)
 
     def test_save_subscription_with_label(self):
         subscription_title = "Test subscription"
@@ -267,6 +292,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         testcase = self
 
         class TestGTKUI(unittest.TestCase, TestGTKUIBase):
+
             def __init__(self):
                 TestGTKUIBase.__init__(self)
                 self.labels = ["Test_label"]
@@ -284,9 +310,46 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
         subscription_dialog.setup()
-        subscription_dialog.glade.get_widget("txt_name").set_text(subscription_title)
+        subscription_dialog.glade.get_object("txt_name").set_text(subscription_title)
 
         # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_widget("combobox_rssfeeds")
+        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
         rssfeeds_combobox.set_active(0)
-        subscription_dialog.save_subscription_data()
+        return threads.deferToThread(subscription_dialog.save_subscription_data)
+
+    @inlineCallbacks
+    def test_add_torrent_error(self):
+        subscription_title = "Test subscription"
+        config = self.get_test_config()
+        testcase = self
+
+        class TestGTKUI(unittest.TestCase, TestGTKUIBase):
+
+            def __init__(self):
+                TestGTKUIBase.__init__(self)
+                self.labels = ["Test_label"]
+
+            def save_subscription(self, subscription_data):
+                testcase.assertEquals(subscription_data["label"], self.labels[0])
+
+            def add_torrent(self, torrent_link, subscription_data):
+                torrent_download = {'filedump': b'<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n<meta name="theme-color" content="#3860BB" />\n</head>\n<body>\n<script type="text/javascript" src="https://dyncdn.me/static/20/js/jquery-1.11.3.min.js"></script>\n<style type="text/css">a,abbr,acronym,address,applet,article,aside,audio,b,big,blockquote,body,canvas,caption,center,cite,code,dd,del,details,dfn,div,dl,dt,em,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,h5,h6,header,hgroup,html,i,iframe,img,ins,kbd,label,legend,li,mark,menu,nav,object,ol,p,pre,q,s,samp,section,small,span,strike,strong,sub,summary,sup,table,tbody,td,tfoot,th,thead,time,tr,tt,u,ul,var,video{margin:0;padding:0;border:0;outline:0;font:inherit;vertical-align:baseline}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:after,blockquote:before,q:after,q:before{content:\'\';content:none}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}\nbody {\n    background: #000 url("https://dyncdn.me/static/20/img/bknd_body.jpg") repeat-x scroll 0 0 !important;\n    font: 400 8pt normal Tahoma,Verdana,Arial,Arial  !important;\n}\n.button {\n    background-color: #3860bb;\n    border: none;\n    color: white;\n    padding: 15px 32px;\n    text-align: center;\n    text-decoration: none;\n    display: inline-block;\n    font-size: 16px;\n    cursor: pointer;\n    text-transform: none;\n    overflow: visible;\n}\n.content-rounded {\n    background: #fff none repeat scroll 0 0 !important;\n    border-radius: 3px;\n    color: #000 !important;\n    padding: 20px;\n    width:961px;\n}\n</style><div align="center" style="margin-top:20px;padding-top:20px;color: #000 !important;">\n<div  class="content-rounded" style="color: #000 !important;">\n<img src="https://dyncdn.me/static/20/img/logo_dark_nodomain2_optimized.png"><br/>\nPlease wait while we try to verify your browser...<br/>\n<div style="font-weight: bold"><b>Please don\'t change tabs / minimize your browser or the process will fail</b></div><br/>\nIf you are stuck on this page disable your browser addons<br/><img src="https://dyncdn.me/static/20/img/loading_flat.gif">\n</div>\n</div>\n<script>\nvar w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;\nvar h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;\nvar days = 7;\nvar date = new Date();\nvar name = \'sk\';\nvar value_sk = \'pgjy3amc4u\';\nvar value_c = \'23842531\';\nvar value_i = \'1367198171\';\ndate.setTime(date.getTime()+(days*24*60*60*1000));\nvar expires = ";expires="+date.toGMTString();\ndocument.cookie = name+"="+value_sk+expires+"; path=/";\n\nif(w < 100 || h < 100) {\n\twindow.location.href = "/threat_defence.php?defence=nojc&r=38283315";\n} else {\n\tif(!document.domain) { var ref_cookie = \'\'; } else { var ref_cookie = document.domain; }\n\t$.ajax({type: \'GET\',url: \'/threat_defence_ajax.php?sk=\'+value_sk+\'&cid=\'+value_c+\'&i=\'+value_i+\'&r=25867870\',contentType: \'text/plain\', async: true, timeout: 3000, cache: false });\n\tsetTimeout(function(){\n\t\twindow.location.href = "/threat_defence.php?defence=2&sk="+value_sk+"&cid="+value_c+"&i="+value_i+"&ref_cookie="+ref_cookie+"&r=72304732";\n\t}, 5500);\n}\n</script>\n\t\t\n\n\t\t\n\t\t', 'error_msg': "Unable to decode torrent file! (unexpected end of file in bencoded string) URL: 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t'", 'torrent_id': None, 'success': False, 'url': 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t', 'is_magnet': False, 'cookies_dict': None, 'cookies': {}, 'headers': {}}
+                return defer.succeed(torrent_download)
+
+
+        yield component.start()  # Necessary to avoid 'Reactor was unclean' error
+
+        subscription_config = yarss_config.get_fresh_subscription_config()
+        subscription_dialog = DialogSubscription(TestGTKUI(),  # GTKUI
+                                                 self.log,  # logger
+                                                 subscription_config,
+                                                 config["rssfeeds"],
+                                                 [],  # self.get_move_completed_list(),
+                                                 [],  # self.get_download_location_list(),
+                                                 {},  # self.email_messages,
+                                                 {})  # self.cookies)
+        subscription_dialog.setup()
+
+        torrent_link = "http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t"
+        success = yield subscription_dialog.add_torrent(torrent_link, None)
+        self.assertFalse(success)

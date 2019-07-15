@@ -1,27 +1,38 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
 
+from unittest import mock
+
 import pytest
 from twisted.trial import unittest
-import twisted.internet.defer as defer
+from twisted.internet import defer, task
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from yarss2.util.logger import Logger
-from yarss2.gtkui.gtkui import GtkUI
-import yarss2.gtkui.gtkui
-import test_gtkui
-
 from yarss2.tests import common as tests_common
 from deluge.ui.client import client
 
 import deluge.component as component
+import deluge.config
 
-yarss2.gtkui.gtkui.component = test_gtkui
+from .common import PY2, PY3
+
+if PY2:
+    from yarss2.gtkui.gtkui import GtkUI
+    import yarss2.gtkui.gtkui
+    import test_gtkui
+    yarss2.gtkui.gtkui.component = test_gtkui
+else:
+    from yarss2.gtk3ui.gtkui import GtkUI
+    import yarss2.gtk3ui.gtkui
+    from . import test_gtkui
+    yarss2.gtk3ui.gtkui.component = test_gtkui
 
 
 class DummyComponent(object):
@@ -41,7 +52,7 @@ class GtkUITestCase(unittest.TestCase):
     def setUp(self):  # NOQA
         defer.setDebugging(True)
         tests_common.set_tmp_config_dir()
-        client.start_classic_mode()
+        client.start_standalone()
 
         self.log = Logger()
         self.gtkui = GtkUI("YaRSS2")
@@ -49,7 +60,7 @@ class GtkUITestCase(unittest.TestCase):
 
     def tearDown(self):  # NOQA
         client._daemon_proxy = None
-        client.__started_in_classic = False
+        client.__started_standalone = False
 
         def on_shutdown(result):
             component._ComponentRegistry.components = {}
@@ -59,11 +70,17 @@ class GtkUITestCase(unittest.TestCase):
 @pytest.mark.label
 class GtkUIWithCoreTestCase(unittest.TestCase):
 
+    @inlineCallbacks
     def setUp(self):  # NOQA
         defer.setDebugging(True)
+        # Must override callLater to avoid unclean twisted reactor
+        clock = task.Clock()
+        deluge.config.callLater = clock.callLater
+
         tests_common.set_tmp_config_dir()
-        client.start_classic_mode()
-        client.core.enable_plugin("Label")
+        client.start_standalone()
+
+        yield client.core.enable_plugin("Label")
 
         self.log = Logger()
         self.gtkui = GtkUI("YaRSS2")
@@ -71,26 +88,24 @@ class GtkUIWithCoreTestCase(unittest.TestCase):
 
     def tearDown(self):  # NOQA
         client._daemon_proxy = None
-        client.__started_in_classic = False
+        client.__started_standalone = False
+        return component.shutdown()
 
-        def on_shutdown(result):
-            component._ComponentRegistry.components = {}
-        return component.shutdown().addCallback(on_shutdown)
+    @inlineCallbacks
+    def test_get_labels(self, *patched_get):
+        from deluge.i18n import setup_mock_translation
+        setup_mock_translation()
 
-    def test_get_labels(self):
-        d = self.gtkui.plugins_enabled_changed("Label")
+        yield component.start()  # Necessary to avoid 'Reactor was unclean' error
 
-        def on_labels(labels):
-            self.assertEquals([""], labels)
-        d.addCallback(on_labels)
+        labels = yield self.gtkui.plugins_enabled_changed("Label")
+        self.assertEquals([""], labels)
 
         # Add some labels
         client.label.add("Test-label")
         client.label.add("Test-label2")
 
-        d = self.gtkui.plugins_enabled_changed("Label")
+        labels = yield self.gtkui.plugins_enabled_changed("Label")
 
-        def on_labels2(labels):
-            self.failUnlessIn("test-label", labels)
-            self.failUnlessIn("test-label2", labels)
-        d.addCallback(on_labels2)
+        self.failUnlessIn("test-label", labels)
+        self.failUnlessIn("test-label2", labels)

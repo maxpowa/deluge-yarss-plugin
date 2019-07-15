@@ -7,9 +7,50 @@
 # See LICENSE for more details.
 #
 
-import urllib
-import urlparse
-from HTMLParser import HTMLParser
+#import urllib
+
+PY2 = False
+PY3 = False
+
+try:
+    import urllib.parse as urlparse
+    from urllib.parse import quote as urllib_quote
+    from urllib.parse import quote_plus as urllib_quote_plus
+    from html.parser import HTMLParser
+    unicode = str
+    PY3 = True
+except ImportError as err:
+    # python 2
+    import urlparse
+    #print("urlparse:", urlparse)
+    from urllib import quote as urllib_quote
+    from urllib import quote_plus as urllib_quote_plus
+    from HTMLParser import HTMLParser
+    PY2 = True
+
+
+def download_file(url_file_stream_or_string, site_cookies_dict=None, etag=None, modified=None, user_agent=None,
+                  referrer=None, handlers=None, request_headers=None, response_headers=None,
+                  resolve_relative_uris=None, sanitize_html=None, timeout='Global'):
+    from . import feedparsing
+    result = dict(
+        bozo = False,
+        entries = [],
+        feed = {},
+        headers = {},
+    )
+
+    if site_cookies_dict:
+        cookie_header = get_cookie_header(site_cookies_dict)
+        if request_headers is None:
+            request_headers = {}
+        request_headers.update(cookie_header)
+        print("request_headers:", request_headers)
+
+    data = feedparsing._open_resource(url_file_stream_or_string, etag, modified, user_agent, referrer,
+                                         handlers, request_headers, result, timeout=timeout)
+    result['content'] = feedparsing.convert_to_utf8(result['headers'], data, result)
+    return result
 
 
 def get_matching_cookies_dict(cookies, url):
@@ -63,20 +104,25 @@ def url_fix(s, charset='utf-8'):
     :param charset: The target charset for the URL if the url was
                     given as unicode string.
     """
-    if isinstance(s, unicode):
+    if PY2 and isinstance(s, unicode):
         s = s.encode(charset, 'ignore')
+
     scheme, netloc, path, qs, anchor = urlparse.urlsplit(s)
-    path = urllib.quote(path, safe="%/:=&?~#+!$,;'@()*[]")
-    qs = urllib.quote_plus(qs, ':&=')
+    path = urllib_quote(path, safe="%/:=&?~#+!$,;'@()*[]")
+    qs = urllib_quote_plus(qs, ':&=')
     return urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
 
 
 def clean_html_body(html_page):
+    #print("\n\nhtml_page:", html_page)
     from bs4 import BeautifulSoup, Comment
+    #soup = BeautifulSoup(html_page, features="html.parser")
     soup = BeautifulSoup(html_page)
     comments = soup.findAll(text=lambda text: isinstance(html_page, Comment))
     [comment.extract() for comment in comments]
 
+    #print("\n\nsoup.html:", soup.html)
+    #print("\n\nsoup.html:", dir(soup.html))
     # Removing head
     soup.html.head.extract()
     # Removing scripts
@@ -96,7 +142,9 @@ def clean_html_body(html_page):
 
 
 class HTMLStripper(HTMLParser):
+
     def __init__(self):
+        super(HTMLStripper, self).__init__()
         self.reset()
         self.fed = []
 
@@ -116,3 +164,16 @@ class HTMLStripper(HTMLParser):
                 data += i.rstrip()
             prev_empty = empty
         return data
+
+
+#from HTMLParser import HTMLParser
+#
+#class MLStripper(HTMLParser):
+#
+#    def __init__(self):
+#        self.reset()
+#        self.fed = []
+#    def handle_data(self, d):
+#        self.fed.append(d)
+#    def get_data(self):
+#        return ''.join(self.fed)

@@ -8,7 +8,10 @@
 #
 
 import deluge.component as component
-from deluge.log import LOG as log  # NOQA
+#from deluge.log import LOG as log  # NOQA
+import logging
+log = logging.getLogger(__name__)
+
 from OpenSSL.SSL import Error as SSLError
 
 from yarss2.util import common
@@ -38,7 +41,10 @@ class Logger(object):
         self.handle_gtkui_log(message, gtkui)
 
     def warn(self, message, gtkui=True):
-        log.warn(self._msg(message))
+        self.warning(message, gtkui=gtkui)
+
+    def warning(self, message, gtkui=True):
+        log.warning(self._msg(message))
         self.handle_gtkui_log(message, gtkui)
 
     def error(self, message, gtkui=True):

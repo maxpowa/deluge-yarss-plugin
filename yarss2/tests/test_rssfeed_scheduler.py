@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
@@ -12,27 +12,29 @@ import threading
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.trial import unittest
 
-from deluge.log import LOG
+import logging
+LOG = logging.getLogger(__name__)
 
 import yarss2.util.common
 import yarss2.yarss_config
 from yarss2.rssfeed_scheduler import RSSFeedScheduler, RSSFeedRunQueue
 
-from test_torrent_handling import TestComponent
-import common
+from .test_torrent_handling import TestComponent
+
+from . import common as test_common
 
 
 class RSSFeedSchedulerTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.rssfeeds = common.get_default_rssfeeds(5)
+        self.rssfeeds = test_common.get_default_rssfeeds(5)
         self.rssfeeds["0"]["update_interval"] = 1
         self.rssfeeds["1"]["update_interval"] = 3
         self.rssfeeds["2"]["update_interval"] = 10
         self.rssfeeds["3"]["update_interval"] = 30
         self.rssfeeds["4"]["update_interval"] = 120
 
-        self.config = common.get_test_config()
+        self.config = test_common.get_test_config()
         self.config.set_config({"rssfeeds": self.rssfeeds,
                                 "email_configurations": {"send_email_on_torrent_events": False}})
 
@@ -123,12 +125,12 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         self.assertFalse(self.scheduler.rssfeed_update_handler_safe(1))
 
     def test_ttl_value_updated(self):
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
-        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests")
 
-        yarss_config = common.get_test_config()
+        yarss_config = test_common.get_test_config()
         yarss_config.set_config(config)
 
         self.scheduler.disable_timers()
@@ -155,7 +157,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         """
         # Don't use the loopingcall, so disable just to avoid any trouble
         self.scheduler.disable_timers()
-        self.config.set_config(common.get_test_config_dict())
+        self.config.set_config(test_common.get_test_config_dict())
 
         add_torrents_count = []
         main_thread = threading.current_thread()
@@ -212,6 +214,7 @@ class RSSFeedRunQueueTestCase(unittest.TestCase):
                 runtime_dict[str(id)]
                 self.assertTrue(tmp_date < runtime_dict[str(id)]["start"])
                 tmp_date = runtime_dict[str(id)]["end"]
+
         d_verify = Deferred()
         d_verify.addCallback(verify_times)
         # Add verify_times to the last added deferred

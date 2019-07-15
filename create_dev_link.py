@@ -20,8 +20,9 @@ except:
 
 
 if __name__ == '__main__':
-    argparser = argparse.ArgumentParser(description="Create and delete ZFS snapshots")
+    argparser = argparse.ArgumentParser(description="Create development link for Deluge plugin into config directory")
     argparser.add_argument("-c", "--config", help="Config path to copy dev link to. Default: '%(default)s'.", default="~/.config/deluge")
+    argparser.add_argument("-w", "--workdir", help="Workdir. Default: '%(default)s'.", default=".")
     argparser.add_argument("-f", "--force", help="Create config dir if it doesn't exist and delete temp dir before build.", action='store_true', default=False)
     argparser.add_argument("--temp-dir", help="The name of the temporary dir for building. Default: '%(default)s'.", default="temp")
     argparser.add_argument("--no-delete-temp", help="Do not delete the temporary build directory.", action='store_true')
@@ -62,7 +63,18 @@ if __name__ == '__main__':
     if args.verbose:
         cprint(build_result, 'yellow')
 
-    cmd = ["cp", "%s/YaRSS2.egg-link" % args.temp_dir, "%s/plugins/" % config_path]
+
+    d = os.listdir(args.workdir)
+    print("d:", d)
+    egg_dir = [d for d in os.listdir(args.workdir) if d.endswith('.egg-info')]
+
+    if not egg_dir:
+        print("No '.egg-info' directory found in '%s'" % args.workdir)
+        sys.exit(1)
+
+    plugin_name = egg_dir[0].split(".egg-info")[0]
+    cmd = ["cp", "%s/%s.egg-link" % (args.temp_dir, plugin_name), "%s/plugins/" % config_path]
+
     if args.verbose:
         print("Copying egg-link: '%s'" % " ".join(cmd))
 

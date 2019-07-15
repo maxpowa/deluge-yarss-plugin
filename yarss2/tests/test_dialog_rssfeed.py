@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
 
+import pytest
 from twisted.trial import unittest
 import copy
-from urlparse import urlparse
 
 import yarss2.yarss_config
 from yarss2.util.logger import Logger
-from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
 from yarss2.util import http
+from yarss2.util.http import urlparse
+
+from .common import PY2, PY3
+
+
+if PY2:
+    #from urlparse import urlparse
+    from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
+else:
+    from yarss2.gtk3ui.dialog_rssfeed import DialogRSSFeed
 
 
 class DummyClass(object):
@@ -48,7 +57,7 @@ class DialogRSSFeedTestCase(unittest.TestCase):
         rssfeed["name"] = "Test"
         rssfeed["url"] = "http://test"
         rssfeed["update_interval"] = int(10)
-        rssfeed["site"] = urlparse("http://test.site.com/blabla/blalba.php").netloc
+        rssfeed["site"] = urlparse.urlparse("http://test.site.com/blabla/blalba.php").netloc
         rssfeed["obey_ttl"] = False
 
         rssfeed_copy = copy.copy(rssfeed)
@@ -57,7 +66,7 @@ class DialogRSSFeedTestCase(unittest.TestCase):
 
         dialog = DialogRSSFeed(dummy, rssfeed)
         dialog.dialog = dummy
-        dialog.glade.get_widget("txt_name").set_text("Test2")
+        dialog.glade.get_object("txt_name").set_text("Test2")
         dialog.on_button_save_clicked()
 
         # Should test the values that are saved
@@ -70,7 +79,7 @@ class DialogRSSFeedTestCase(unittest.TestCase):
         rssfeed["name"] = "Test"
         rssfeed["url"] = url
         rssfeed["update_interval"] = int(10)
-        rssfeed["site"] = urlparse(url).netloc
+        rssfeed["site"] = urlparse.urlparse(url).netloc
         rssfeed["obey_ttl"] = False
 
         cookies = {'uid': '92323', 'passkey': 'aksdf9798d767sadf8678as6df9df'}

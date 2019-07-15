@@ -20,6 +20,11 @@ import sys
 import pkg_resources
 from deluge.plugins.init import PluginInitBase
 
+#import warnings
+#warnings.filterwarnings('ignore', message='.*g_value_get_int.*G_VALUE_HOLDS_INT.*', category=Warning)
+#warnings.simplefilter('ignore')
+
+
 import yarss2.util.logger
 
 log = yarss2.util.logger.Logger()
@@ -48,3 +53,11 @@ class GtkUIPlugin(PluginInitBase):
         from gtkui.gtkui import GtkUI as GtkUIPluginClass
         self._plugin_cls = GtkUIPluginClass
         super(GtkUIPlugin, self).__init__(plugin_name)
+
+
+class Gtk3UIPlugin(PluginInitBase):
+    def __init__(self, plugin_name):
+        load_libs()
+        from gtk3ui.gtkui import GtkUI as GtkUIPluginClass
+        self._plugin_cls = GtkUIPluginClass
+        super(Gtk3UIPlugin, self).__init__(plugin_name)

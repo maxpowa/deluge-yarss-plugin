@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
 
+import sys
+
 from twisted.trial import unittest
+import pytest
+
 from yarss2.util import http
 import yarss2.yarss_config
-from yarss2.lib.feedparser import feedparser
 from yarss2.util import common
+
+from . import common as test_common
 
 
 class HTTPTestCase(unittest.TestCase):
@@ -61,20 +66,22 @@ class HTTPTestCase(unittest.TestCase):
 
     def test_url_fix(self):
         url = u"http://de.wikipedia.org/wiki/Elf (Begriffsklärung)"
-        expected = "http://de.wikipedia.org/wiki/Elf%20%28Begriffskl%C3%A4rung%29"
+        expected = "http://de.wikipedia.org/wiki/Elf%20(Begriffskl%C3%A4rung)"
         result = http.url_fix(url)
         self.assertEquals(expected, result)
 
+    @pytest.mark.skipif(sys.version_info[0] == 3, reason="python 2")
     def test_feedparser_ampersant_in_url(self):
         """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
         This test disables XML Parser and verifies that the URL is correct
         """
+        from yarss2.lib import feedparser
         file_path = common.get_resource("rss_with_ampersand_link.rss", path="tests")
         # This is the link in rss_with_ampersand_link.rss
         expected = "http://hostname.com/Fetch?hash=2f21d4e59&digest=865178f9bc"
         # Disable XML Parser
-        feedparser._XML_AVAILABLE = 0
-        parsed_feeds = feedparser.parse(file_path)
+        feedparser.feedparser._XML_AVAILABLE = 0
+        parsed_feeds = feedparser.feedparser.parse(file_path)
 
         for item in parsed_feeds['items']:
             self.assertEquals(expected, item["link"])
@@ -105,3 +112,55 @@ class HTTPTestCase(unittest.TestCase):
   </body>
  </html>"""
         http.clean_html_body(web_page)
+
+    def test_atoma_parsing(self):
+        from yarss2.lib.atoma import atoma
+        filename = "ettv-rss-1.xml"
+        file_path = common.get_resource(filename, path="tests/data/feeds/")
+        parsed_feeds = atoma.parse_rss_file(file_path)
+
+        self.assertEquals('The top100 torrents', parsed_feeds.description)
+        self.assertEquals('https://therss.so', parsed_feeds.link)
+        self.assertEquals(None, parsed_feeds.ttl)
+
+    @pytest.mark.skip()
+    def test_rssfeed_handling_fetch_feedparser(self):
+        """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
+        This test disables XML Parser and verifies that the URL is correct
+        """
+        from yarss2 import rssfeed_handling
+        filename = "ezrss-rss-full.xml"
+        #filename = "ezrss-rss-full2.xml"
+        filename = "ezrss-rss-3.xml"
+        #filename = "freebsd_rss.xml"
+        #filename = "ezrss-rss-4.xml"
+
+        file_path = common.get_resource(filename, path="tests/data/feeds/")
+        parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
+
+        #print("parsed_feeds:", parsed_feeds)
+
+        feed = parsed_feeds['feed']
+        #print("\nfeed:", feed)
+
+        entries = parsed_feeds['entries']
+        #print("\nentries(%s): %s" % (len(entries), entries))
+        print("\nentries(%s): %s" % (len(entries), ""))
+
+        links = feed['links']
+        print("\nlinks(%s): %s" % (len(links), links))
+
+        #print("\nparsed_feeds - entries(%s): %s" % (len(parsed_feeds['entries']), parsed_feeds['entries']))
+        entry1 = parsed_feeds['items'][0]
+        print("entry 0:", entry1)
+        #print("entry 0:", entry1.item)
+        self.assertEquals('The.Other.Show.HDTV.x264-SVA[ettv]', entry1['title'])
+        magnet_link = 'magnet:?xt=urn:btih:D62CA80E996599057B28DB63511F02610DEB6A8E&dn=The.Other.Show.HDTV.x264-SVA%5Bettv%5D'
+        magnet_uri = magnet_link.replace('&', '&amp;')
+
+        #self.assertEquals(magnet_link, entry1['links'][0]['href'])
+        self.assertEquals(magnet_link, entry1['link'])
+        self.assertEquals('336607878', entry1['contentlength'])
+        self.assertEquals('D62CA80E996599057B28DB63511F02610DEB6A8E', entry1['infohash'])
+        self.assertEquals(magnet_uri, entry1['magneturi'])
+        self.assertEquals('', entry1['torrent'])

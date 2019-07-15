@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
 
+import pytest
 from twisted.trial import unittest
 import copy
 
 import yarss2.yarss_config
 from yarss2.util.logger import Logger
-from yarss2.gtkui.dialog_cookie import DialogCookie
+
+from .common import PY2, PY3
+
+if PY2:
+    from yarss2.gtkui.dialog_cookie import DialogCookie
+else:
+    from yarss2.gtk3ui.dialog_cookie import DialogCookie
 
 
 class DummyClass(object):
@@ -47,8 +54,8 @@ class DialogCookiesTestCase(unittest.TestCase):
         cookie_copy = copy.deepcopy(self.test_cookie)
         dialog = DialogCookie(dummy, cookie_copy)
         dialog.dialog = dummy
-        dialog.glade.get_widget("text_key").set_text("key1")
-        dialog.glade.get_widget("text_value").set_text("value1")
+        dialog.glade.get_object("text_key").set_text("key1")
+        dialog.glade.get_object("text_value").set_text("value1")
         dialog.on_button_add_cookie_data_clicked(None)
         dialog.on_button_save_clicked(None)
 

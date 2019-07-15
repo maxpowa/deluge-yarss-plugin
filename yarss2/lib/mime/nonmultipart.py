@@ -8,7 +8,7 @@ __all__ = ['MIMENonMultipart']
 
 from email import errors
 #from email.mime.base import MIMEBase
-from base import MIMEBase
+from .base import MIMEBase
 
 
 class MIMENonMultipart(MIMEBase):

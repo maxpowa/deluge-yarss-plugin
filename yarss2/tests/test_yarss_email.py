@@ -1,27 +1,37 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+from __future__ import print_function
 
 import smtplib
 import base64
 
 from twisted.trial import unittest
 
-from deluge.log import LOG
+import logging
+log = logging.getLogger(__name__)
 
 from yarss2.torrent_handling import TorrentHandler
 from yarss2.util.yarss_email import send_email, send_torrent_email
 import yarss2.yarss_config
-import common
-import test_yarss_email
+
+from . import common as test_common
+
 
 smtp = None
 inbox = []
+
+
+def base64_encoded(msg_str):
+    msg_bytes = msg_str.encode()
+    msg_base64_bytes = base64.b64encode(msg_bytes)
+    msg_base64_str = msg_base64_bytes.decode()
+    return msg_base64_str
 
 
 class Message(object):
@@ -46,6 +56,8 @@ class DummySMTP(object):
 
     def sendmail(self, from_address, to_address, fullmessage):
         global inbox
+        # This hack is necessary to on python3 to make the output equal the python2 output
+        fullmessage = fullmessage.replace("; boundary=", ";\nboundary=")
         inbox.append(Message(from_address, to_address, fullmessage))
         return []
 
@@ -68,7 +80,7 @@ smtplib.SMTP = DummySMTP
 class YaRSS2EmailTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.config = common.get_test_config()
+        self.config = test_common.get_test_config()
 
     def test_send_email(self):
         email_config = yarss2.yarss_config.get_fresh_email_config()
@@ -118,8 +130,9 @@ class YaRSS2EmailTestCase(unittest.TestCase):
 class YaRSS2TorrentEmailTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.handler = TorrentHandler(LOG)
-        smtplib.SMTP = test_yarss_email.DummySMTP
+        self.handler = TorrentHandler(log)
+        #smtplib.SMTP = test_yarss_email.DummySMTP
+        smtplib.SMTP = DummySMTP
         self.email_config = yarss2.yarss_config.get_fresh_email_config()
         self.email_config["from_address"] = "from@test.com"
         self.email = {}
@@ -183,7 +196,8 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
             message_base64 += lines[index]
             index += 1
 
-        msg_plain_base64 = base64.b64encode(email_data["message"])
+        #msg_plain_base64 = base64.b64encode(email_data["message"])
+        msg_plain_base64 = base64_encoded(email_data["message"])
         self.assertEquals(message_base64, msg_plain_base64)
 
         # Content type text/html
@@ -200,7 +214,8 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
             message_base64 += lines[index]
             index += 1
 
-        msg_plain_base64 = base64.b64encode(email_data["message_html"])
+        #msg_plain_base64 = base64.b64encode(email_data["message_html"])
+        msg_plain_base64 = base64_encoded(email_data["message_html"])
         self.assertEquals(message_base64, msg_plain_base64)
 
     def verify_email(self, email_message, email, email_config):
@@ -223,12 +238,15 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         self.assertEquals(lines[4], self.expected_messsage[4] % email_config["from_address"])
         # To address
         self.assertEquals(lines[5], self.expected_messsage[5] % email["to_address"])
+
         # Line 7 is the entire message content encoded in base64.
-        self.assertEquals(lines[7], base64.b64encode(email["message"]))
+        base64_email_str = base64_encoded(email["message"])
+        self.assertEquals(lines[7], base64_email_str)
 
     def test_send_torrent_email_with_deferred(self):
         def callback(args):
-            self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
+            #self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
+            self.verify_email(smtp.get_emails().pop(), self.email, self.email_config)
         # Send email in
         d = send_torrent_email(self.email_config, self.email, deferred=True)
         d.addCallback(callback)
@@ -238,7 +256,8 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         """This test uses the callback keyword argument to add the callback
         function to the deferred"""
         def callback(args):
-            self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
+            #self.verify_email(test_yarss_email.smtp.get_emails().pop(), self.email, self.email_config)
+            self.verify_email(smtp.get_emails().pop(), self.email, self.email_config)
         # Send email in
         d = send_torrent_email(self.email_config, self.email, deferred=True,
                                callback_func=callback)
@@ -251,7 +270,8 @@ class YaRSS2TorrentEmailTestCase(unittest.TestCase):
         email_data = {}
 
         def callback(args):
-            message = test_yarss_email.smtp.get_emails().pop()
+            #message = test_yarss_email.smtp.get_emails().pop()
+            message = smtp.get_emails().pop()
             self.verify_email_multipart(message, self.email, self.email_config, email_data)
             # Verify that the torrent names have been inserted into the message
             self.assertTrue(email_data["message"].find(torrent_names[0]) != -1)

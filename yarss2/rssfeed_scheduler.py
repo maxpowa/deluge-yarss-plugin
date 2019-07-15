@@ -43,7 +43,7 @@ class RSSFeedScheduler(object):
                           (rssfeed["name"], rssfeed["update_interval"]))
 
     def disable_timers(self):
-        for key in self.rssfeed_timers.keys():
+        for key in list(self.rssfeed_timers.keys()):
             self.rssfeed_timers[key]["timer"].stop()
             del self.rssfeed_timers[key]
 
@@ -51,15 +51,15 @@ class RSSFeedScheduler(object):
         """Schedule a timer for the specified interval."""
         try:
             interval = int(interval)
-        except ValueError, e:
+        except ValueError as e:
             self.log.error("Failed to convert interval '%s' to int!" % str(interval))
             return False
         # Already exists, so reschedule
         if key in self.rssfeed_timers:
             try:
                 self.rssfeed_timers[key]["timer"].stop()
-            except AssertionError, e:
-                self.log.warn("AssertionError:", e)
+            except AssertionError as e:
+                self.log.warning("AssertionError:", e)
                 return False
             self.rssfeed_timers[key]["update_interval"] = interval
         else:
@@ -73,7 +73,7 @@ class RSSFeedScheduler(object):
     def delete_timer(self, key):
         """Delete timer with the specified key."""
         if key not in self.rssfeed_timers:
-            self.log.warn("Cannot delete timer. No timer with key %s" % key)
+            self.log.warning("Cannot delete timer. No timer with key %s" % key)
             return False
         self.rssfeed_timers[key]["timer"].stop()
         del self.rssfeed_timers[key]
@@ -90,7 +90,7 @@ class RSSFeedScheduler(object):
         except:
             traceback.print_exc()
             exc_str = traceback.format_exc()
-            self.log.warn("An exception was thrown by the RSS update handler. Please report this bug!\n%s" % exc_str)
+            self.log.warning("An exception was thrown by the RSS update handler. Please report this bug!\n%s" % exc_str)
 
     def rssfeed_update_handler(self, rssfeed_key=None, subscription_key=None):
         """Goes through all the feeds and runs the active ones.

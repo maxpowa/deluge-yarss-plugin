@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
@@ -12,15 +12,23 @@ from twisted.trial import unittest
 import shutil
 
 import yarss2.yarss_config
-import common
+
 import yarss2.util.common
 from yarss2.util.common import GeneralSubsConf
+
+from . import common as test_common
+
+
+try:
+    unicode
+except:
+    unicode = str
 
 
 class ConfigTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.config = common.get_test_config(verify_config=False)
+        self.config = test_common.get_test_config(verify_config=False)
 
     def test_insert_missing_dict_values(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
@@ -49,7 +57,7 @@ class ConfigTestCase(unittest.TestCase):
         rssfeed_key = "0"
         self.config.config["rssfeeds"][rssfeed_key] = yarss2.yarss_config.get_fresh_rssfeed_config(key=rssfeed_key)
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
-        subscriptions = common.get_default_subscriptions(2)
+        subscriptions = test_common.get_default_subscriptions(2)
 
         for i in range(2):
             subscriptions[str(i)]["name"] = None
@@ -181,8 +189,8 @@ class ConfigTestCase(unittest.TestCase):
 
     def test_verify_config(self):
         default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
-        test_feeds = common.get_default_rssfeeds(2)
-        test_subscriptions = common.get_default_subscriptions(3)
+        test_feeds = test_common.get_default_rssfeeds(2)
+        test_subscriptions = test_common.get_default_subscriptions(3)
         test_subscriptions["0"]["rssfeed_key"] = "0"
         test_subscriptions["1"]["rssfeed_key"] = "0"
         test_subscriptions["0"]["name"] = True  # Wrong type
@@ -214,9 +222,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_to_version4(self):
         # default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Create 2 feeds
-        test_feeds = common.get_default_rssfeeds(2)
+        test_feeds = test_common.get_default_rssfeeds(2)
         # Create 3 subscriptions
-        test_subscriptions = common.get_default_subscriptions(2)
+        test_subscriptions = test_common.get_default_subscriptions(2)
 
         last_match_value = test_subscriptions["0"]["last_match"]
         # Old config had last_update instead of last_match
@@ -238,9 +246,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_to_version5(self):
         # default_subscription = yarss2.yarss_config.get_fresh_subscription_config()
         # Create 2 feeds
-        test_feeds = common.get_default_rssfeeds(2)
+        test_feeds = test_common.get_default_rssfeeds(2)
         # Create 3 subscriptions
-        test_subscriptions = common.get_default_subscriptions(2)
+        test_subscriptions = test_common.get_default_subscriptions(2)
 
         # Replace field last_update with last_match
         self.config.config["rssfeeds"] = test_feeds
@@ -272,9 +280,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version2(self):
         config_file = "yarss2_v1.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         # Call the function that makes the changes
         self.config.config.run_converter((0, 1), 2, self.config.update_config_to_version2)
@@ -291,9 +299,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version3(self):
         config_file = "yarss2_v2.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         # Call the function that makes the changes
         self.config.config.run_converter((2, 2), 3, self.config.update_config_to_version3)
@@ -306,17 +314,20 @@ class ConfigTestCase(unittest.TestCase):
         for key in self.config.config["rssfeeds"]:
             self.assertTrue("obey_ttl" in self.config.config["rssfeeds"][key], "Field 'obey_ttl' does not exist!")
 
-        for key in self.config.config["email_configurations"].keys():
-            self.assertTrue(not type(self.config.config["email_configurations"][key]) is str, "Field in str!")
+        import sys
+        if sys.version_info[0] == 2:
+            for key in self.config.config["email_configurations"].keys():
+                self.assertTrue(type(self.config.config["email_configurations"][key]) is not str,
+                                "Field %s is not str!" % (key))
 
         self.assertEquals(self.config.config._Config__version["file"], 3)
 
     def test_update_config_file_to_version4(self):
         config_file = "yarss2_v3.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         subscription_keys = self.config.config["subscriptions"].keys()
         last_update_values = [self.config.config["subscriptions"][key]["last_update"] for key in subscription_keys]
@@ -335,9 +346,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version5(self):
         config_file = "yarss2_v4.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         # Call the function that makes the changes
         self.config.config.run_converter((4, 4), 5, self.config.update_config_to_version5)
@@ -372,9 +383,9 @@ class ConfigTestCase(unittest.TestCase):
     def test_update_config_file_to_version6(self):
         config_file = "yarss2_v5.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         # Call the function that makes the changes
         self.config.config.run_converter((5, 5), 6, self.config.update_config_to_version6)
@@ -394,12 +405,12 @@ class ConfigTestCase(unittest.TestCase):
         self.assertEquals(self.config.config._Config__version["file"], 6)
 
     def test_update_config_file_from_1_0(self):
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         # Copy the yarss2_v1.conf file to test dir to avoid changes to the file.
         config_file = "yarss2_v1.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         self.assertEquals(self.config.config._Config__version["format"], 1)
         self.assertEquals(self.config.config._Config__version["file"], 1)
@@ -436,11 +447,11 @@ class ConfigTestCase(unittest.TestCase):
         self.assertEquals(self.config.config._Config__version["format"], 1)
 
     def test_update_config_file_from_1_2_beta(self):
-        tmp_dir = common.set_tmp_config_dir()
+        tmp_dir = test_common.set_tmp_config_dir()
         config_file = "yarss2_v1.2.beta.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
 
         self.assertEquals(self.config.config._Config__version["format"], 1)
         self.assertEquals(self.config.config._Config__version["file"], 2)
@@ -456,7 +467,7 @@ class ConfigTestCase(unittest.TestCase):
         config_file = "yarss2_v5.conf"
         filename = yarss2.util.common.get_resource(config_file, path="tests/data/")
         shutil.copy(filename, tmp_dir)
-        self.config = common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
+        self.config = test_common.get_test_config(config_filename=config_file, config_dir=tmp_dir, verify_config=False)
         config_dict_v5 = self.config.config.config
 
         # Verify that the 1.2 beta config equals the config updated from earlier versions

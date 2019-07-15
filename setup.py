@@ -44,7 +44,11 @@ setup(
     %s = %s:CorePlugin
     [deluge.plugin.gtkui]
     %s = %s:GtkUIPlugin
+    [deluge.plugin.gtk3ui]
+    %s = %s:Gtk3UIPlugin
     [yarss2.libpaths]
+    yarss2 = yarss2
     include = yarss2.include
-    """ % ((__plugin_name__, __plugin_name__.lower()) * 2)
+    lib = yarss2.lib
+    """ % ((__plugin_name__, __plugin_name__.lower()) * 3)
 )

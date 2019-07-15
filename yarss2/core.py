@@ -29,6 +29,10 @@ class Core(CorePluginBase):
             # To avoid warnings when running tests
             self._component_name = name
 
+    def __del__(self):
+        if self._component_name != "test":
+            super(Core, self).__del__()
+
     def enable(self, config=None):
         self.log = yarss2.util.logger.Logger()
         self.torrent_handler = TorrentHandler(self.log)
@@ -61,7 +65,7 @@ class Core(CorePluginBase):
         conf = {"general": conf}
         try:
             self.yarss_config.set_config(conf)
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save general configurations:" + str(v))
 
     @export
@@ -69,7 +73,7 @@ class Core(CorePluginBase):
         conf = {"email_configurations": email_configurations}
         try:
             self.yarss_config.set_config(conf)
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save email configurations:" + str(v))
 
     @export
@@ -86,7 +90,7 @@ class Core(CorePluginBase):
         try:
             return self.yarss_config.generic_save_config("subscriptions", dict_key=dict_key,
                                                          data_dict=subscription_data, delete=delete)
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save subscription:" + str(v))
         return None
 
@@ -114,7 +118,7 @@ class Core(CorePluginBase):
                     self.log.info("Scheduled RSS Feed '%s' with interval %s" %
                                   (rssfeed_data["name"], rssfeed_data["update_interval"]))
             return config
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save rssfeed:" + str(v))
 
     @export
@@ -128,7 +132,7 @@ class Core(CorePluginBase):
         try:
             return self.yarss_config.generic_save_config("cookies", dict_key=dict_key,
                                                          data_dict=cookie_data, delete=delete)
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save cookie:" + str(v))
 
     @export
@@ -138,7 +142,7 @@ class Core(CorePluginBase):
         try:
             return self.yarss_config.generic_save_config("email_messages", dict_key=dict_key,
                                                          data_dict=message_data, delete=delete)
-        except ValueError as (v):
+        except ValueError as v:
             self.log.error("Failed to save email message:" + str(v))
 
     @export

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2015 bendikro bro.devel+yarss2@gmail.com
+# Copyright (C) 2012-2019 bendikro bro.devel+yarss2@gmail.com
 #
 # This file is part of YaRSS2 and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
@@ -9,7 +9,8 @@
 
 from twisted.trial import unittest
 
-from deluge.log import LOG
+import logging
+LOG = logging.getLogger(__name__)
 
 import yarss2.yarss_config
 import yarss2.util.common
@@ -17,20 +18,21 @@ from yarss2.core import Core
 from yarss2.torrent_handling import TorrentHandler, TorrentDownload
 from yarss2.yarss_config import get_user_agent
 
-from test_torrent_handling import TestComponent
-import test_torrent_handling
-import common
+from .test_torrent_handling import TestComponent
+from . import test_torrent_handling
+from . import common as test_common
+
 
 import twisted.internet.defer as defer
 
-common.disable_new_release_check()
+test_common.disable_new_release_check()
 
 
 class CoreTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
         defer.setDebugging(True)
-        self.config = common.get_test_config()
+        self.config = test_common.get_test_config()
         # get_test_config will load a new core.conf with the default values.
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
         self.config.core_config.save()
@@ -50,7 +52,7 @@ class CoreTestCase(unittest.TestCase):
         self.core.disable()
 
 #    def test_save_rssfeed(self):
-#        config = common.get_test_config()
+#        config = test_common.get_test_config()
 #        rssfeed = yarss2.yarss_config.get_fresh_rssfeed_config()
 #
 #        core = Core("YaRSS2")
@@ -75,7 +77,7 @@ class CoreTestCase(unittest.TestCase):
         torrent_name = "FreeBSD-9.0-RELEASE-amd64-dvd1.torrent"
         torrent_url = yarss2.util.common.get_resource(torrent_name, path="tests/data/")
         torrent_info = {"link": torrent_url, "rssfeed_key": "0"}
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         default_user_agent = get_user_agent()
         self.config.set_config(config)
         self.core.yarss_config = self.config
@@ -87,7 +89,7 @@ class CoreTestCase(unittest.TestCase):
         torrent_name = "FreeBSD-9.0-RELEASE-amd64-dvd1.torrent"
         torrent_url = yarss2.util.common.get_resource(torrent_name, path="tests/data/")
         torrent_info = {"link": torrent_url, "rssfeed_key": "0"}
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         custom_user_agent = "Custom user agent test"
         config["rssfeeds"]["0"]["user_agent"] = custom_user_agent
         self.config.set_config(config)
@@ -97,10 +99,10 @@ class CoreTestCase(unittest.TestCase):
         self.assertEquals(download_dict["headers"]["User-Agent"], custom_user_agent)
 
     def test_initiate_rssfeed_update(self):
-        config = common.get_test_config_dict()
+        config = test_common.get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
-        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(common.testdata_rssfeed_filename, path="tests")
+        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests")
 
         self.config.set_config(config)
         self.core.yarss_config = self.config
@@ -116,5 +118,6 @@ class CoreTestCase(unittest.TestCase):
         def callback_check(args):
             # Verify that add_torrents_pass was called
             self.assertTrue(self.add_torrents_called, "add_torrents has not been called")
+
         d.addCallback(callback_check)
         return d
