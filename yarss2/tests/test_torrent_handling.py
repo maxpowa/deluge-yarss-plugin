@@ -100,7 +100,7 @@ def get_file(url, cookies={}, headers={}, verify=True):
         pass
     return r
 
-from yarss2.lib import requests
+import requests
 requests.get = get_file
 
 

@@ -9,13 +9,14 @@
 
 import os
 
+import requests
+
 import deluge.component as component
 from deluge._libtorrent import lt
 from deluge.common import decode_bytes
 from deluge.core.torrent import TorrentOptions
 from deluge.error import AddTorrentError
 
-from yarss2.lib import requests
 from yarss2.util import common, http, torrentinfo
 from yarss2.util.common import GeneralSubsConf, TorrentDownload
 from yarss2.util.yarss_email import send_torrent_email

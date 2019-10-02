@@ -152,8 +152,8 @@ def fetch_and_parse_rssfeed_atom(url_file_stream_or_string, site_cookies_dict=No
                             user_agent=None, request_headers=None, timeout=10):
     result = http.download_file(url_file_stream_or_string, site_cookies_dict=site_cookies_dict,
                                 user_agent=user_agent, request_headers=request_headers, timeout=timeout)
-
-    from yarss2.lib.atoma import atoma
+    import atoma
+    atoma.rss.supported_rss_versions = []
     parsed_feeds = {}
 
     try:

@@ -7,7 +7,7 @@
 # See LICENSE for more details.
 #
 
-#import urllib
+import re
 
 PY2 = False
 PY3 = False
@@ -22,7 +22,6 @@ try:
 except ImportError as err:
     # python 2
     import urlparse
-    #print("urlparse:", urlparse)
     from urllib import quote as urllib_quote
     from urllib import quote_plus as urllib_quote_plus
     from HTMLParser import HTMLParser
@@ -114,15 +113,11 @@ def url_fix(s, charset='utf-8'):
 
 
 def clean_html_body(html_page):
-    #print("\n\nhtml_page:", html_page)
     from bs4 import BeautifulSoup, Comment
-    #soup = BeautifulSoup(html_page, features="html.parser")
-    soup = BeautifulSoup(html_page)
+    soup = BeautifulSoup(html_page, features="html5lib")
     comments = soup.findAll(text=lambda text: isinstance(html_page, Comment))
     [comment.extract() for comment in comments]
 
-    #print("\n\nsoup.html:", soup.html)
-    #print("\n\nsoup.html:", dir(soup.html))
     # Removing head
     soup.html.head.extract()
     # Removing scripts
@@ -135,7 +130,7 @@ def clean_html_body(html_page):
     s = HTMLStripper()
     s.feed(str(soup))
     safe_html = s.get_data()
-    import re
+
     # Allow max two consecutive \n
     safe_html = re.sub(r'\n(\n)+', r'\n\n', safe_html)
     return safe_html

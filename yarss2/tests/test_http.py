@@ -114,7 +114,8 @@ class HTTPTestCase(unittest.TestCase):
         http.clean_html_body(web_page)
 
     def test_atoma_parsing(self):
-        from yarss2.lib.atoma import atoma
+        import atoma
+        atoma.rss.supported_rss_versions = []
         filename = "ettv-rss-1.xml"
         file_path = common.get_resource(filename, path="tests/data/feeds/")
         parsed_feeds = atoma.parse_rss_file(file_path)
