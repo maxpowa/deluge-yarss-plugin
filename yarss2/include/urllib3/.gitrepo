@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/urllib3/urllib3.git
+	branch = 1.25.6
+	commit = 6b4ac9b6b973c405d3e58aaa4ef1ad86252208c0
+	parent = 57aec4ba5162233175fffbbdd5899ea50e7476ca
+	method = merge
+	cmdver = 0.3.1
