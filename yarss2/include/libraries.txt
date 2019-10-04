@@ -5,6 +5,8 @@ atoma
 - dateutil
 - defusedxml
 - requests
+  - urllib3
+  - certifi
 
 # Parsing html reponses from servers:
 BeautifulSoup

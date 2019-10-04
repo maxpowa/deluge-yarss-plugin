@@ -55,4 +55,6 @@ beautifulsoup = yarss2.include.beautifulsoup.py3k
 atoma = yarss2.include.atoma
 html5lib = yarss2.include.html5lib
 webencodings = yarss2.include.webencodings
+urllib3 = yarss2.include.urllib3.src
+certifi = yarss2.include.certifi
 """ % ((__plugin_name__, __plugin_name__.lower()) * 3))
