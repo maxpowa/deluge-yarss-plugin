@@ -37,6 +37,7 @@ setup(
     url=__url__,
     license=__license__,
     long_description=__long_description__ if __long_description__ else __description__,
+    include_package_data=True,
     packages=packages,
     package_data=__pkg_data__,
     entry_points="""[deluge.plugin.core]

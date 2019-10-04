@@ -67,7 +67,7 @@ class HTTPTestCase(unittest.TestCase):
         result = http.url_fix(url)
         self.assertEquals(expected, result)
 
-    @pytest.mark.skipif(sys.version_info[0] == 3, reason="python 2")
+    @unittest.SkipTest
     def test_feedparser_ampersant_in_url(self):
         """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
         This test disables XML Parser and verifies that the URL is correct

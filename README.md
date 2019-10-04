@@ -38,6 +38,14 @@ yarss2$ trial tests
 
 ## Changelog ##
 
+v2.0.0 - 2019-10-04
+
+* Fix #54: Add support for Deluge 2.X
+* Replaced [feedparser](https://github.com/kurtmckee/feedparser) with
+  [atoma](https://github.com/NicolasLM/atoma) for parsing RSS feeds
+
+Note: YaRSS2 v2.X does not support Deluge 1.3.X
+
 v1.4.3 - 2015-11-14
 
 * Fix #10: Option to make YaRSS2 fetch subscriptions on startup
