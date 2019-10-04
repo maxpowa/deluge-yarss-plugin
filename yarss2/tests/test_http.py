@@ -9,14 +9,11 @@
 
 import sys
 
-from twisted.trial import unittest
 import pytest
+from twisted.trial import unittest
 
-from yarss2.util import http
 import yarss2.yarss_config
-from yarss2.util import common
-
-from . import common as test_common
+from yarss2.util import common, http
 
 
 class HTTPTestCase(unittest.TestCase):
@@ -123,45 +120,3 @@ class HTTPTestCase(unittest.TestCase):
         self.assertEquals('The top100 torrents', parsed_feeds.description)
         self.assertEquals('https://therss.so', parsed_feeds.link)
         self.assertEquals(None, parsed_feeds.ttl)
-
-    @pytest.mark.skip()
-    def test_rssfeed_handling_fetch_feedparser(self):
-        """A bug in feedparser resulted in URL containing &amp when XML Parser was not available.
-        This test disables XML Parser and verifies that the URL is correct
-        """
-        from yarss2 import rssfeed_handling
-        filename = "ezrss-rss-full.xml"
-        #filename = "ezrss-rss-full2.xml"
-        filename = "ezrss-rss-3.xml"
-        #filename = "freebsd_rss.xml"
-        #filename = "ezrss-rss-4.xml"
-
-        file_path = common.get_resource(filename, path="tests/data/feeds/")
-        parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
-
-        #print("parsed_feeds:", parsed_feeds)
-
-        feed = parsed_feeds['feed']
-        #print("\nfeed:", feed)
-
-        entries = parsed_feeds['entries']
-        #print("\nentries(%s): %s" % (len(entries), entries))
-        print("\nentries(%s): %s" % (len(entries), ""))
-
-        links = feed['links']
-        print("\nlinks(%s): %s" % (len(links), links))
-
-        #print("\nparsed_feeds - entries(%s): %s" % (len(parsed_feeds['entries']), parsed_feeds['entries']))
-        entry1 = parsed_feeds['items'][0]
-        print("entry 0:", entry1)
-        #print("entry 0:", entry1.item)
-        self.assertEquals('The.Other.Show.HDTV.x264-SVA[ettv]', entry1['title'])
-        magnet_link = 'magnet:?xt=urn:btih:D62CA80E996599057B28DB63511F02610DEB6A8E&dn=The.Other.Show.HDTV.x264-SVA%5Bettv%5D'
-        magnet_uri = magnet_link.replace('&', '&amp;')
-
-        #self.assertEquals(magnet_link, entry1['links'][0]['href'])
-        self.assertEquals(magnet_link, entry1['link'])
-        self.assertEquals('336607878', entry1['contentlength'])
-        self.assertEquals('D62CA80E996599057B28DB63511F02610DEB6A8E', entry1['infohash'])
-        self.assertEquals(magnet_uri, entry1['magneturi'])
-        self.assertEquals('', entry1['torrent'])

@@ -10,31 +10,9 @@ from __future__ import print_function
 
 import datetime
 import re
-import sys
 
 from yarss2.util import common, http
 from yarss2.yarss_config import get_user_agent
-
-
-def _parse_date_no_timezone(date_string):
-    """parse a date in yyyy/mm/dd hh:mm:ss TTT format"""
-    import time
-    try:
-        import rfc822
-    except ImportError:
-        from email import _parseaddr as rfc822
-
-    # Sun, 11 Oct 2015 16:17:19
-    _date_pattern = re.compile(r'(\w{,3}), (\d{,2}) (\w{,3}) (\d{,4}) (\d{,2}):(\d{2}):(\d{2})$')
-
-    m = _date_pattern.match(date_string)
-    if m is None:
-        return None
-    dow, year, month, day, hour, minute, second = m.groups()
-    date = "%s, %s %s %s %s:%s:%s -0000" % (dow, day, month, year, hour, minute, second)
-    tm = rfc822.parsedate_tz(date)
-    if tm:
-        return time.gmtime(rfc822.mktime_tz(tm))
 
 
 def _parse_size(string):
@@ -80,14 +58,6 @@ def _get_size(item):
     return size
 
 
-try:
-    from yarss2.lib.feedparser import feedparser
-    feedparser.registerDateHandler(_parse_date_no_timezone)
-except:
-    # python 2
-    pass
-
-
 class RssItemWrapper(object):
 
     def __init__(self, item):
@@ -107,12 +77,12 @@ class RssItemWrapper(object):
             try:
                 getattr(self.item, key)
                 return True
-            except:
+            except AttributeError:
                 return False
 
     def __getitem__(self, key):
         if isinstance(self.item, dict):
-            return self.item[key ]
+            return self.item[key]
         else:
             # For atom, return pub_date (datetime))
             if key == 'published_parsed':
@@ -126,30 +96,28 @@ class RssItemWrapper(object):
         return self["link"]
 
     def get_download_size(self):
-        #if len(self["enclosures"]) > 0:
-        #    return self["enclosures"][0].length
         return _get_size(self)
-
 
 
 def atoma_result_to_dict(atoma_result):
     items = [RssItemWrapper(item) for item in atoma_result.items if item.title is not None]
-    result = {'items': items, 'bozo': 0,
-              'feed': {
-                  'ttl': atoma_result.ttl,
-                  'encoded': atoma_result.content_encoded,
-                  'link': atoma_result.link,
-                  'title': atoma_result.title,
-                  'subtitle': atoma_result.description,
-                  'language': atoma_result.language,
-                  'version': atoma_result.version,
-                  }
+    result = {
+        'items': items, 'bozo': 0,
+        'feed': {
+            'ttl': atoma_result.ttl,
+            'encoded': atoma_result.content_encoded,
+            'link': atoma_result.link,
+            'title': atoma_result.title,
+            'subtitle': atoma_result.description,
+            'language': atoma_result.language,
+            'version': atoma_result.version,
+        }
     }
     return result
 
 
 def fetch_and_parse_rssfeed_atom(url_file_stream_or_string, site_cookies_dict=None,
-                            user_agent=None, request_headers=None, timeout=10):
+                                 user_agent=None, request_headers=None, timeout=10):
     result = http.download_file(url_file_stream_or_string, site_cookies_dict=site_cookies_dict,
                                 user_agent=user_agent, request_headers=request_headers, timeout=timeout)
     import atoma
@@ -172,7 +140,7 @@ def fetch_and_parse_rssfeed_atom(url_file_stream_or_string, site_cookies_dict=No
 
 
 def fetch_and_parse_rssfeed_feedparser(url_file_stream_or_string, site_cookies_dict=None,
-                            user_agent=None, request_headers=None, timeout=10):
+                                       user_agent=None, request_headers=None, timeout=10):
     from yarss2.lib.feedparser import api as feedparser
 
     parsed_feed = feedparser.parse(url_file_stream_or_string, request_headers=request_headers,
@@ -181,12 +149,7 @@ def fetch_and_parse_rssfeed_feedparser(url_file_stream_or_string, site_cookies_d
     return parsed_feed
 
 
-if sys.version_info[0] == 2:
-    fetch_and_parse_rssfeed = fetch_and_parse_rssfeed_feedparser
-else:
-    fetch_and_parse_rssfeed = fetch_and_parse_rssfeed_atom
-
-#fetch_and_parse_rssfeed = fetch_and_parse_rssfeed_feedparser
+fetch_and_parse_rssfeed = fetch_and_parse_rssfeed_atom
 
 
 class RSSFeedHandler(object):
@@ -201,7 +164,7 @@ class RSSFeedHandler(object):
             if len(item.enclosures) > 0:
                 try:
                     link = item.enclosures[0].url
-                except:
+                except AttributeError:
                     pass
         return link
 
@@ -228,7 +191,7 @@ class RSSFeedHandler(object):
         # Will abort after 10 seconds if server doesn't answer
         try:
             parsed_feed = fetch_and_parse_rssfeed(rssfeed_data["url"], user_agent=user_agent,
-                                                   request_headers=cookie_header, timeout=10)
+                                                  request_headers=cookie_header, timeout=10)
         except Exception as e:
             self.log.warning("Exception occured in feedparser: " + str(e))
             self.log.warning("Feedparser was called with url: '%s' using cookies: '%s' and User-agent: '%s'" %
@@ -356,7 +319,7 @@ class RSSFeedHandler(object):
         if options["regex_include"] is not None and options["regex_include"] != "":
             flags = re.IGNORECASE if options["regex_include_ignorecase"] else 0
             try:
-                regex = common.string_to_unicode(options["regex_include"]).encode("utf-8")
+                regex = options["regex_include"].encode("utf-8")
                 p_include = re.compile(regex, flags)
             except Exception as e:
                 self.log.warning("Regex compile error:" + str(e))
@@ -366,7 +329,7 @@ class RSSFeedHandler(object):
         if options["regex_exclude"] is not None and options["regex_exclude"] != "":
             flags = re.IGNORECASE if options["regex_exclude_ignorecase"] else 0
             try:
-                regex = common.string_to_unicode(options["regex_exclude"]).encode("utf-8")
+                regex = options["regex_exclude"].encode("utf-8")
                 p_exclude = re.compile(regex, flags)
             except Exception as e:
                 self.log.warning("Regex compile error:" + str(e))
@@ -439,9 +402,7 @@ class RSSFeedHandler(object):
             # not when a subscription is run manually by the user.
             # Don't need microseconds. Remove because it requires changes to the GUI to not display them
             dt = common.get_current_date().replace(microsecond=0)
-            #print("Overwrite last_update : %s -> %s" % ())
             rssfeed_data["last_update"] = dt.isoformat()
-            #print("FETCH_FEED set last_update:", rssfeed_data["last_update"])
         return fetch_data
 
     def handle_ttl(self, rssfeed_data, rssfeed_parsed, fetch_data):
@@ -450,7 +411,6 @@ class RSSFeedHandler(object):
         if "ttl" in rssfeed_parsed:
             # Value is already TTL, so ignore
             try:
-                print()
                 ttl = int(rssfeed_parsed["ttl"])
                 if rssfeed_data["update_interval"] == ttl:
                     return

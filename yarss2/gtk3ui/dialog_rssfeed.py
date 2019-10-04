@@ -11,10 +11,10 @@ import re
 
 import deluge.component as component
 
-from yarss2.util.http import urlparse
-from yarss2.util.common import get_resource
 import yarss2.yarss_config
 from yarss2.util import http
+from yarss2.util.common import get_resource
+from yarss2.util.http import urlparse
 
 from .common import Gtk
 

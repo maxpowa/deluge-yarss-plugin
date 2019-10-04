@@ -8,19 +8,18 @@
 #
 from twisted.internet import threads
 
-from .CellRendererPango import CustomAttribute, CellRendererPango
-
 import deluge.component as component
 from deluge.ui.client import client
 
-from yarss2.util.common import get_resource, get_value_in_selected_row, string_to_unicode, \
-    get_current_date_in_isoformat, GeneralSubsConf, TorrentDownload
-from yarss2.util import http
-from yarss2.rssfeed_handling import RSSFeedHandler
 from yarss2.gtk3ui.path_chooser import PathChooser
+from yarss2.rssfeed_handling import RSSFeedHandler
+from yarss2.util import http
+from yarss2.util.common import (GeneralSubsConf, TorrentDownload, get_current_date_in_isoformat, get_resource,
+                                get_value_in_selected_row)
 from yarss2.yarss_config import get_user_agent
 
-from .common import Gtk, Gdk, GdkPixbuf
+from .CellRendererPango import CellRendererPango, CustomAttribute
+from .common import Gdk, GdkPixbuf, Gtk
 
 
 class DialogSubscription(object):
@@ -262,7 +261,6 @@ class DialogSubscription(object):
         torrent_link = get_value_in_selected_row(self.matching_treeview,
                                                  self.matching_store, column_index=3)
 
-        print("torrent_link:", torrent_link)
         # Save current data to dict
         self.store_subscription_data()
         self.add_torrent(torrent_link, self.subscription_data if use_settings else None)
@@ -385,7 +383,6 @@ class DialogSubscription(object):
         textbuffer = self.glade.get_object("textview_custom_text").get_buffer()
         lines = []
         text = textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter(), True)
-        text = string_to_unicode(text)
         for line in text.splitlines():
             lines.append(line.strip())
         return lines

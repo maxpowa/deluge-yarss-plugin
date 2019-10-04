@@ -7,7 +7,7 @@ from numrangeregex import generate_numeric_range_regex
 class NrRangeRegexGeneratorTest(unittest.TestCase):
 
     def _verify_range(self, regex, min_, max_, from_min_, to_max_):
-        for nr in xrange(from_min_, to_max_ + 1):
+        for nr in range(from_min_, to_max_ + 1):
             if min_ <= nr <= max_:
                 self.assertTrue(re.search(regex, str(nr)) is not None)
             else:

@@ -9,35 +9,22 @@
 
 import datetime
 import re
-import json
 
 import pytest
 from twisted.internet import defer, task, threads
 from twisted.trial import unittest
 
-from twisted.internet.defer import inlineCallbacks, returnValue
-
-import deluge.config
-import deluge.component as component
 import deluge.common
+import deluge.component as component
+import deluge.config
 import deluge.ui.client
 
+import yarss2.gtk3ui.dialog_subscription
 import yarss2.util.common
 from yarss2 import yarss_config
-
-from yarss2.util.logger import Logger
-
+from yarss2.gtk3ui.dialog_subscription import DialogSubscription
 from yarss2.tests import common as tests_common
-
-from .common import PY2, PY3
-
-if PY2:
-    import yarss2.gtkui.dialog_subscription
-    from yarss2.gtkui.dialog_subscription import DialogSubscription
-else:
-    import yarss2.gtk3ui.dialog_subscription
-    from yarss2.gtk3ui.dialog_subscription import DialogSubscription
-
+from yarss2.util.logger import Logger
 
 
 class TestGTKUIBase(object):
@@ -50,9 +37,7 @@ class TestGTKUIBase(object):
         return defer.succeed(self.labels)
 
 
-import pytest_twisted
-
-#@pytest.mark.skipif(PY3, reason="Requires python 2")
+@pytest.mark.gui
 class DialogSubscriptionTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
@@ -205,7 +190,6 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             item["matches"] = store.get_value(it, 0)
             item["title"] = store.get_value(it, 1)
             item["updated"] = store.get_value(it, 2)
-            updated_dt = store.get_value(it, 2)
             item["updated_datetime"] = yarss2.util.common.isodate_to_datetime(store.get_value(it, 2))
             item["link"] = store.get_value(it, 3)
             item["torrent"] = store.get_value(it, 5)
@@ -317,9 +301,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
         rssfeeds_combobox.set_active(0)
         return threads.deferToThread(subscription_dialog.save_subscription_data)
 
-    @inlineCallbacks
+    @defer.inlineCallbacks
     def test_add_torrent_error(self):
-        subscription_title = "Test subscription"
         config = self.get_test_config()
         testcase = self
 
@@ -333,9 +316,17 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                 testcase.assertEquals(subscription_data["label"], self.labels[0])
 
             def add_torrent(self, torrent_link, subscription_data):
-                torrent_download = {'filedump': b'<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n<meta name="theme-color" content="#3860BB" />\n</head>\n<body>\n<script type="text/javascript" src="https://dyncdn.me/static/20/js/jquery-1.11.3.min.js"></script>\n<style type="text/css">a,abbr,acronym,address,applet,article,aside,audio,b,big,blockquote,body,canvas,caption,center,cite,code,dd,del,details,dfn,div,dl,dt,em,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,h5,h6,header,hgroup,html,i,iframe,img,ins,kbd,label,legend,li,mark,menu,nav,object,ol,p,pre,q,s,samp,section,small,span,strike,strong,sub,summary,sup,table,tbody,td,tfoot,th,thead,time,tr,tt,u,ul,var,video{margin:0;padding:0;border:0;outline:0;font:inherit;vertical-align:baseline}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:after,blockquote:before,q:after,q:before{content:\'\';content:none}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}\nbody {\n    background: #000 url("https://dyncdn.me/static/20/img/bknd_body.jpg") repeat-x scroll 0 0 !important;\n    font: 400 8pt normal Tahoma,Verdana,Arial,Arial  !important;\n}\n.button {\n    background-color: #3860bb;\n    border: none;\n    color: white;\n    padding: 15px 32px;\n    text-align: center;\n    text-decoration: none;\n    display: inline-block;\n    font-size: 16px;\n    cursor: pointer;\n    text-transform: none;\n    overflow: visible;\n}\n.content-rounded {\n    background: #fff none repeat scroll 0 0 !important;\n    border-radius: 3px;\n    color: #000 !important;\n    padding: 20px;\n    width:961px;\n}\n</style><div align="center" style="margin-top:20px;padding-top:20px;color: #000 !important;">\n<div  class="content-rounded" style="color: #000 !important;">\n<img src="https://dyncdn.me/static/20/img/logo_dark_nodomain2_optimized.png"><br/>\nPlease wait while we try to verify your browser...<br/>\n<div style="font-weight: bold"><b>Please don\'t change tabs / minimize your browser or the process will fail</b></div><br/>\nIf you are stuck on this page disable your browser addons<br/><img src="https://dyncdn.me/static/20/img/loading_flat.gif">\n</div>\n</div>\n<script>\nvar w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;\nvar h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;\nvar days = 7;\nvar date = new Date();\nvar name = \'sk\';\nvar value_sk = \'pgjy3amc4u\';\nvar value_c = \'23842531\';\nvar value_i = \'1367198171\';\ndate.setTime(date.getTime()+(days*24*60*60*1000));\nvar expires = ";expires="+date.toGMTString();\ndocument.cookie = name+"="+value_sk+expires+"; path=/";\n\nif(w < 100 || h < 100) {\n\twindow.location.href = "/threat_defence.php?defence=nojc&r=38283315";\n} else {\n\tif(!document.domain) { var ref_cookie = \'\'; } else { var ref_cookie = document.domain; }\n\t$.ajax({type: \'GET\',url: \'/threat_defence_ajax.php?sk=\'+value_sk+\'&cid=\'+value_c+\'&i=\'+value_i+\'&r=25867870\',contentType: \'text/plain\', async: true, timeout: 3000, cache: false });\n\tsetTimeout(function(){\n\t\twindow.location.href = "/threat_defence.php?defence=2&sk="+value_sk+"&cid="+value_c+"&i="+value_i+"&ref_cookie="+ref_cookie+"&r=72304732";\n\t}, 5500);\n}\n</script>\n\t\t\n\n\t\t\n\t\t', 'error_msg': "Unable to decode torrent file! (unexpected end of file in bencoded string) URL: 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t'", 'torrent_id': None, 'success': False, 'url': 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t', 'is_magnet': False, 'cookies_dict': None, 'cookies': {}, 'headers': {}}
+                torrent_download = {
+                    'filedump': '<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n<meta name="theme-color" content="#3860BB" />\n</head>\n<body>\n<script type="text/javascript" src="https://dyncdn.me/static/20/js/jquery-1.11.3.min.js"></script>\n<style type="text/css">a,abbr,acronym,address,applet,article,aside,audio,b,big,blockquote,body,canvas,caption,center,cite,code,dd,del,details,dfn,div,dl,dt,em,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,h5,h6,header,hgroup,html,i,iframe,img,ins,kbd,label,legend,li,mark,menu,nav,object,ol,p,pre,q,s,samp,section,small,span,strike,strong,sub,summary,sup,table,tbody,td,tfoot,th,thead,time,tr,tt,u,ul,var,video{margin:0;padding:0;border:0;outline:0;font:inherit;vertical-align:baseline}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:after,blockquote:before,q:after,q:before{content:\'\';content:none}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}\nbody {\n    background: #000 url("https://dyncdn.me/static/20/img/bknd_body.jpg") repeat-x scroll 0 0 !important;\n    font: 400 8pt normal Tahoma,Verdana,Arial,Arial  !important;\n}\n.button {\n    background-color: #3860bb;\n    border: none;\n    color: white;\n    padding: 15px 32px;\n    text-align: center;\n    text-decoration: none;\n    display: inline-block;\n    font-size: 16px;\n    cursor: pointer;\n    text-transform: none;\n    overflow: visible;\n}\n.content-rounded {\n    background: #fff none repeat scroll 0 0 !important;\n    border-radius: 3px;\n    color: #000 !important;\n    padding: 20px;\n    width:961px;\n}\n</style><div align="center" style="margin-top:20px;padding-top:20px;color: #000 !important;">\n<div  class="content-rounded" style="color: #000 !important;">\n<img src="https://dyncdn.me/static/20/img/logo_dark_nodomain2_optimized.png"><br/>\nPlease wait while we try to verify your browser...<br/>\n<div style="font-weight: bold"><b>Please don\'t change tabs / minimize your browser or the process will fail</b></div><br/>\nIf you are stuck on this page disable your browser addons<br/><img src="https://dyncdn.me/static/20/img/loading_flat.gif">\n</div>\n</div>\n<script>\nvar w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;\nvar h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;\nvar days = 7;\nvar date = new Date();\nvar name = \'sk\';\nvar value_sk = \'pgjy3amc4u\';\nvar value_c = \'23842531\';\nvar value_i = \'1367198171\';\ndate.setTime(date.getTime()+(days*24*60*60*1000));\nvar expires = ";expires="+date.toGMTString();\ndocument.cookie = name+"="+value_sk+expires+"; path=/";\n\nif(w < 100 || h < 100) {\n\twindow.location.href = "/threat_defence.php?defence=nojc&r=38283315";\n} else {\n\tif(!document.domain) { var ref_cookie = \'\'; } else { var ref_cookie = document.domain; }\n\t$.ajax({type: \'GET\',url: \'/threat_defence_ajax.php?sk=\'+value_sk+\'&cid=\'+value_c+\'&i=\'+value_i+\'&r=25867870\',contentType: \'text/plain\', async: true, timeout: 3000, cache: false });\n\tsetTimeout(function(){\n\t\twindow.location.href = "/threat_defence.php?defence=2&sk="+value_sk+"&cid="+value_c+"&i="+value_i+"&ref_cookie="+ref_cookie+"&r=72304732";\n\t}, 5500);\n}\n</script>\n\t\t\n\n\t\t\n\t\t',  # noqa: E501
+                    'error_msg': "Unable to decode torrent file! (unexpected end of file in bencoded string) URL: 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t'",  # noqa: E501
+                    'torrent_id': None,
+                    'success': False,
+                    'url': 'http://rarbg.to/rss_rt.php?id=k2jae9rlwn&m=t',
+                    'is_magnet': False,
+                    'cookies_dict': None,
+                    'cookies': {},
+                    'headers': {}}
                 return defer.succeed(torrent_download)
-
 
         yield component.start()  # Necessary to avoid 'Reactor was unclean' error
 

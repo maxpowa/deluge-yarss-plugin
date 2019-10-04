@@ -7,21 +7,20 @@
 # See LICENSE for more details.
 #
 
+import logging
 import threading
 
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.trial import unittest
 
-import logging
-LOG = logging.getLogger(__name__)
-
 import yarss2.util.common
 import yarss2.yarss_config
-from yarss2.rssfeed_scheduler import RSSFeedScheduler, RSSFeedRunQueue
-
-from .test_torrent_handling import TestComponent
+from yarss2.rssfeed_scheduler import RSSFeedRunQueue, RSSFeedScheduler
 
 from . import common as test_common
+from .test_torrent_handling import TestComponent
+
+log = logging.getLogger(__name__)
 
 
 class RSSFeedSchedulerTestCase(unittest.TestCase):
@@ -38,7 +37,7 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         self.config.set_config({"rssfeeds": self.rssfeeds,
                                 "email_configurations": {"send_email_on_torrent_events": False}})
 
-        self.scheduler = RSSFeedScheduler(self.config, LOG)
+        self.scheduler = RSSFeedScheduler(self.config, log)
         test_component = TestComponent()
         self.scheduler.torrent_handler.download_torrent_file = test_component.download_torrent_file
         self.scheduler.enable_timers()
@@ -128,7 +127,8 @@ class RSSFeedSchedulerTestCase(unittest.TestCase):
         config = test_common.get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
-        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests")
+        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(
+            test_common.testdata_rssfeed_filename, path="tests")
 
         yarss_config = test_common.get_test_config()
         yarss_config.set_config(config)

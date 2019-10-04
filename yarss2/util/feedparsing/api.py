@@ -102,8 +102,6 @@ def _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, h
 
     :return: A :class:`StringIO.StringIO` or :class:`io.BytesIO`.
     """
-    #print("FEEDPARSING_API - OPEN_RESOURCE !!!!!!!!!!!!!!!!!!!!!!")
-
     if hasattr(url_file_stream_or_string, 'read'):
         return url_file_stream_or_string.read()
 

@@ -8,26 +8,26 @@
 #
 
 import datetime
+import logging
 import os.path
-
 from unittest import mock
 
-import pytest
+import requests
 from twisted.trial import unittest
-
-import logging
-LOG = logging.getLogger(__name__)
 
 from deluge.error import AddTorrentError
 
 import yarss2.torrent_handling
-from yarss2.torrent_handling import TorrentHandler, TorrentDownload
-from yarss2.util.common import GeneralSubsConf, read_file
 import yarss2.util.common
+from yarss2.torrent_handling import TorrentDownload, TorrentHandler
+from yarss2.util.common import GeneralSubsConf, read_file
 
 from . import common as test_common
+from . import test_torrent_handling
 
 test_component = None
+
+log = logging.getLogger(__name__)
 
 
 class TestComponent(object):
@@ -78,11 +78,6 @@ class TestComponent(object):
 def get(key):
     return test_component
 
-#import test_torrent_handling
-try:
-    from . import test_torrent_handling
-except ImportError:
-    import test_torrent_handling
 
 # This makes sure that component.get("TorrentManager") returns
 # the TestComponent, and not the deluge TorrentManager.
@@ -100,14 +95,14 @@ def get_file(url, cookies={}, headers={}, verify=True):
         pass
     return r
 
-import requests
+
 requests.get = get_file
 
 
 class TorrentHandlingTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.log = LOG
+        self.log = log
         self.config = test_common.get_test_config()
         # get_test_config will load a new core.conf with the default values.
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
@@ -128,8 +123,7 @@ class TorrentHandlingTestCase(unittest.TestCase):
         self.assertFalse(torrent_added.filedump is None)
         self.assertEquals(torrent_download.url, filename)
 
-    def test_add_torrent_raise_AddTorrentError(self):
-        print()
+    def test_add_torrent_raise_AddTorrentError(self):  # noqa: N802
         handler = TorrentHandler(self.log)
         filename = yarss2.util.common.get_resource("FreeBSD-9.0-RELEASE-amd64-dvd1.torrent", path="tests/data/")
         torrent_info = {"link": filename, "site_cookies_dict": {}}
@@ -164,7 +158,6 @@ class TorrentHandlingTestCase(unittest.TestCase):
         test_component.download_success = True
 
     def test_add_torrent_with_subscription_data(self):
-        print()
         handler = TorrentHandler(self.log)
         subscription_data = yarss2.yarss_config.get_fresh_subscription_config()
         subscription_data["move_completed"] = "move/path"
@@ -232,7 +225,6 @@ class TorrentHandlingTestCase(unittest.TestCase):
         config = get_test_config_dict()                                # 0 is the rssfeed key
         match_result = self.rssfeedhandler.fetch_feed_torrents(config, "0")
         matching_torrents = match_result["matching_torrents"]
-        rssfeed_data = config["rssfeeds"]["0"]
         saved_subscriptions = []
 
         def save_subscription_func(subscription_data):

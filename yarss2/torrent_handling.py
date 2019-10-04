@@ -156,8 +156,8 @@ class TorrentHandler(object):
                 download.set_error("Failed to add torrent to Deluge: %s" % (str(err)))
                 self.log.warning(download.error_msg)
             else:
-                if ("Label" in component.get("Core").get_enabled_plugins() and
-                        subscription_data and subscription_data.get("label", "")):
+                if ("Label" in component.get("Core").get_enabled_plugins()
+                        and subscription_data and subscription_data.get("label", "")):
                     component.get("CorePlugin.Label").set_torrent(download.torrent_id, subscription_data["label"])
 
         return download
@@ -183,7 +183,6 @@ class TorrentHandler(object):
                 # The order of the torrents are in ordered from newest to oldest
                 if torrent_time and last_subscription_update <= torrent_time:
                     torrent_match["subscription_data"]["last_match"] = torrent_time.isoformat()
-                    #print("Setting last match:", torrent_match["subscription_data"]["last_match"])
                     # Save subsription with updated timestamp
                     save_subscription_func(subscription_data=torrent_match["subscription_data"])
 

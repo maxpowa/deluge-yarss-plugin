@@ -9,11 +9,12 @@
 
 import traceback
 
-import deluge.component as component
 import twisted.internet.defer as defer
 from twisted.internet import threads
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
+
+import deluge.component as component
 
 from yarss2.rssfeed_handling import RSSFeedHandler
 from yarss2.torrent_handling import TorrentHandler
@@ -51,7 +52,7 @@ class RSSFeedScheduler(object):
         """Schedule a timer for the specified interval."""
         try:
             interval = int(interval)
-        except ValueError as e:
+        except ValueError:
             self.log.error("Failed to convert interval '%s' to int!" % str(interval))
             return False
         # Already exists, so reschedule
@@ -87,7 +88,7 @@ class RSSFeedScheduler(object):
         """
         try:
             return self.rssfeed_update_handler(rssfeed_key=rssfeed_key, subscription_key=subscription_key)
-        except:
+        except:  # noqa: E722 do not use bare 'except'
             traceback.print_exc()
             exc_str = traceback.format_exc()
             self.log.warning("An exception was thrown by the RSS update handler. Please report this bug!\n%s" % exc_str)

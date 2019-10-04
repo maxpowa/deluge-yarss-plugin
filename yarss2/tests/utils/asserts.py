@@ -1,7 +1,6 @@
 import difflib
 
-#from nose.tools import assert_almost_equal, assert_equal
-from .assert_funcs import *
+from .assert_funcs import assert_almost_equal, assert_equal
 
 
 def _get_lists_diff(l1, l2):
@@ -108,7 +107,7 @@ def _assert_almost_equal_dict(dict1, dict2, **kwargs):
     for key in dict1:
         try:
             assert_almost_equal_any(dict1[key], dict2[key], **kwargs)
-        except AssertionError as err:
+        except AssertionError:
             diffing_keys.append(key)
 
     if diffing_keys:

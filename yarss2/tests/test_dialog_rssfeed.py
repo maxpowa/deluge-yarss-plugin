@@ -7,23 +7,16 @@
 # See LICENSE for more details.
 #
 
-import pytest
-from twisted.trial import unittest
 import copy
 
+import pytest
+from twisted.trial import unittest
+
 import yarss2.yarss_config
-from yarss2.util.logger import Logger
+from yarss2.gtk3ui.dialog_rssfeed import DialogRSSFeed
 from yarss2.util import http
 from yarss2.util.http import urlparse
-
-from .common import PY2, PY3
-
-
-if PY2:
-    #from urlparse import urlparse
-    from yarss2.gtkui.dialog_rssfeed import DialogRSSFeed
-else:
-    from yarss2.gtk3ui.dialog_rssfeed import DialogRSSFeed
+from yarss2.util.logger import Logger
 
 
 class DummyClass(object):
@@ -39,6 +32,7 @@ class DummyClass(object):
         pass
 
 
+@pytest.mark.gui
 class DialogRSSFeedTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA

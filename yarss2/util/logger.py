@@ -6,16 +6,16 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-import deluge.component as component
-#from deluge.log import LOG as log  # NOQA
 import logging
-log = logging.getLogger(__name__)
 
 from OpenSSL.SSL import Error as SSLError
 
+import deluge.component as component
+
 from yarss2.util import common
 from yarss2.util.gtkui_log import GtkUILogMessageEvent
+
+log = logging.getLogger(__name__)
 
 
 class Logger(object):

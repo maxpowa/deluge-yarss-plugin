@@ -7,23 +7,22 @@
 # See LICENSE for more details.
 #
 
-from twisted.trial import unittest
-
 import logging
-LOG = logging.getLogger(__name__)
-
-import yarss2.yarss_config
-import yarss2.util.common
-from yarss2.core import Core
-from yarss2.torrent_handling import TorrentHandler, TorrentDownload
-from yarss2.yarss_config import get_user_agent
-
-from .test_torrent_handling import TestComponent
-from . import test_torrent_handling
-from . import common as test_common
-
 
 import twisted.internet.defer as defer
+from twisted.trial import unittest
+
+import yarss2.util.common
+import yarss2.yarss_config
+from yarss2.core import Core
+from yarss2.torrent_handling import TorrentDownload, TorrentHandler
+from yarss2.yarss_config import get_user_agent
+
+from . import common as test_common
+from . import test_torrent_handling
+from .test_torrent_handling import TestComponent
+
+log = logging.getLogger(__name__)
 
 test_common.disable_new_release_check()
 
@@ -37,7 +36,7 @@ class CoreTestCase(unittest.TestCase):
         # Must save to save to file so that torrent.py.TorrentOptions loads the default values
         self.config.core_config.save()
         test_component = TestComponent()
-        self.torrent_handler = TorrentHandler(LOG)
+        self.torrent_handler = TorrentHandler(log)
         self.torrent_handler.download_torrent_file = test_component.download_torrent_file
 
         # Might be necessary for changes in master branch
@@ -102,7 +101,8 @@ class CoreTestCase(unittest.TestCase):
         config = test_common.get_test_config_dict()
         config["rssfeeds"]["0"]["update_interval"] = 30
         config["rssfeeds"]["0"]["obey_ttl"] = True
-        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests")
+        config["rssfeeds"]["0"]["url"] = yarss2.util.common.get_resource(
+            test_common.testdata_rssfeed_filename, path="tests")
 
         self.config.set_config(config)
         self.core.yarss_config = self.config

@@ -5,3 +5,4 @@ YaRSS2.egg-info/*
 *.pyo
 *.bak
 .tox
+_trial_temp/

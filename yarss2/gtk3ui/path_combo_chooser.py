@@ -11,17 +11,17 @@
 from __future__ import division, print_function, unicode_literals
 
 import os
-import warnings
 import sys
+import warnings
 
 from gi.repository import Gdk, GObject, Gtk
 from gi.repository.GObject import SignalFlags
 
-# from deluge.common import PY2, resource_filename
 from deluge.common import PY2
 
-from yarss2.util.common import get_completion_paths
-from yarss2.util.common import get_resource
+from yarss2.util.common import get_completion_paths, get_resource
+
+# from deluge.common import PY2, resource_filename
 
 
 def _get_resource(package, r):
@@ -40,13 +40,6 @@ def resource_filename2(package, filename):
 
 
 resource_filename = resource_filename2
-
-
-
-
-
-
-#Warning: g_value_get_int: assertion 'G_VALUE_HOLDS_INT (value)' failed
 
 
 def is_ascii_value(keyval, ascii_key):

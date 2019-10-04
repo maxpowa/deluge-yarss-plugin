@@ -19,12 +19,13 @@ from deluge.common import decode_string
 from deluge.ui.common import FileTree, FileTree2
 
 import yarss2.util.logger
-log = yarss2.util.logger.Logger()
 
 try:
     from hashlib import sha1 as sha
 except ImportError:
     from sha import sha
+
+log = yarss2.util.logger.Logger()
 
 
 class TorrentInfo(object):

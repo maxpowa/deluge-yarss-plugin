@@ -101,9 +101,9 @@ def _generate_regex(min_, max_):
     nr_dig_max = len(max_)
     if nr_dig_min != nr_dig_max:
         middle_parts = []
-        for i in xrange(nr_dig_min, nr_dig_max - 1):
+        for i in range(nr_dig_min, nr_dig_max - 1):
             middle_parts.append(
-                "[1-9]%s" % "".join(["[0-9]" for x in xrange(i)]))
+                "[1-9]%s" % "".join(["[0-9]" for x in range(i)]))
         middle = "|".join(middle_parts)
         starting = generate_to_bound(min_, "upper")
         ending = _generate_for_same_len_nr("1" + "0" * (len(max_) - 1), max_)
@@ -125,13 +125,14 @@ def generate_numeric_range_regex(min_, max_, capturing=False):
         raise ValueError("min > max")
     return _generate_word_bounded_regex(str(min_), str(max_))
 
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 3:
-        print "usage: numrageregex.py min max"
+        print("usage: numrageregex.py min max")
         sys.exit(1)
     min_, max_ = sys.argv[1:]
-    print generate_numeric_range_regex(int(min_), int(max_))
+    print(generate_numeric_range_regex(int(min_), int(max_)))
 
 
 # def assert_in_range(regex, min_, max_, lower, upper):

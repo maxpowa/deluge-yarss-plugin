@@ -1,0 +1,13 @@
+# External libraries included as subrepos
+
+# Parsing RSS feeds:
+atoma
+- dateutil
+- defusedxml
+- requests
+
+# Parsing html reponses from servers:
+BeautifulSoup
+- soupsieve
+- Parser to handle broken html:
+  html5lib,webencodings

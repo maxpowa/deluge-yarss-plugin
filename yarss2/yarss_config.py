@@ -237,7 +237,7 @@ class YARSSConfig(object):
                     config[key] = default_config[key]
                 changed = True
             else:
-                if type(default_config[key]) != type(config[key]):
+                if type(default_config[key]) != type(config[key]):  # noqa: E721 do not compare types
                     if key == "key":
                         config[key] = config_key
                         changed = True
@@ -265,7 +265,7 @@ class YARSSConfig(object):
                             # Try to convert to unicode
                             try:
                                 config[key] = config[key].decode("utf8")
-                            except:
+                            except (UnicodeDecodeError, AttributeError):
                                 config[key] = default_config[key]
                             changed = True
                     else:
@@ -387,7 +387,7 @@ class YARSSConfig(object):
             if type(email_conf[key]) is str:
                 try:
                     config[key] = email_conf[key].decode("utf8")
-                except:
+                except (UnicodeDecodeError, AttributeError):
                     config[key] = default_email_conf[key]
         return config
 

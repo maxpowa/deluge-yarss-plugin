@@ -19,7 +19,7 @@ try:
     from html.parser import HTMLParser
     unicode = str
     PY3 = True
-except ImportError as err:
+except ImportError:
     # python 2
     import urlparse
     from urllib import quote as urllib_quote
@@ -33,10 +33,10 @@ def download_file(url_file_stream_or_string, site_cookies_dict=None, etag=None, 
                   resolve_relative_uris=None, sanitize_html=None, timeout='Global'):
     from . import feedparsing
     result = dict(
-        bozo = False,
-        entries = [],
-        feed = {},
-        headers = {},
+        bozo=False,
+        entries=[],
+        feed={},
+        headers={},
     )
 
     if site_cookies_dict:
@@ -44,10 +44,9 @@ def download_file(url_file_stream_or_string, site_cookies_dict=None, etag=None, 
         if request_headers is None:
             request_headers = {}
         request_headers.update(cookie_header)
-        print("request_headers:", request_headers)
 
     data = feedparsing._open_resource(url_file_stream_or_string, etag, modified, user_agent, referrer,
-                                         handlers, request_headers, result, timeout=timeout)
+                                      handlers, request_headers, result, timeout=timeout)
     result['content'] = feedparsing.convert_to_utf8(result['headers'], data, result)
     return result
 
@@ -159,16 +158,3 @@ class HTMLStripper(HTMLParser):
                 data += i.rstrip()
             prev_empty = empty
         return data
-
-
-#from HTMLParser import HTMLParser
-#
-#class MLStripper(HTMLParser):
-#
-#    def __init__(self):
-#        self.reset()
-#        self.fed = []
-#    def handle_data(self, d):
-#        self.fed.append(d)
-#    def get_data(self):
-#        return ''.join(self.fed)

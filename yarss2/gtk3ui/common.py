@@ -1,7 +1,9 @@
-import gi
+import gi  # isort:skip
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf, Pango, GObject, PangoCairo  # noqa: F401
+
+# isort:imports-thirdparty
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk, Pango, PangoCairo  # noqa: F401
 
 
 def popup_gtk_menu(menu_widget, treeview, event, expected_button=3):

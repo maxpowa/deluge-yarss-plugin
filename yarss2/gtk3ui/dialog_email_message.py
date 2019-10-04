@@ -6,10 +6,10 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
 from gi.repository import Gtk
 
 import deluge.component as component
+
 from yarss2.util.common import get_resource
 
 

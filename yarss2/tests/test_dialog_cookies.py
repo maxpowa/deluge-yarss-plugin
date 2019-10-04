@@ -7,19 +7,14 @@
 # See LICENSE for more details.
 #
 
-import pytest
-from twisted.trial import unittest
 import copy
 
+import pytest
+from twisted.trial import unittest
+
 import yarss2.yarss_config
+from yarss2.gtk3ui.dialog_cookie import DialogCookie
 from yarss2.util.logger import Logger
-
-from .common import PY2, PY3
-
-if PY2:
-    from yarss2.gtkui.dialog_cookie import DialogCookie
-else:
-    from yarss2.gtk3ui.dialog_cookie import DialogCookie
 
 
 class DummyClass(object):
@@ -34,6 +29,7 @@ class DummyClass(object):
         self.cookie_data = cookie_data
 
 
+@pytest.mark.gui
 class DialogCookiesTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA

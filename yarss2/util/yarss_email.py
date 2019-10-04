@@ -18,8 +18,8 @@ import yarss2.util.logger
 try:
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-except ImportError as e:
-    print("YEARSS MIME")
+except ImportError:
+    # These must be readded if required
     from yarss2.lib.mime.multipart import MIMEMultipart
     from yarss2.lib.mime.text import MIMEText
 
@@ -56,7 +56,7 @@ def send_email(email_conf, server_conf):
     if len(server_conf["smtp_port"].strip()) > 0:
         try:
             port = int(server_conf["smtp_port"])
-        except:
+        except ValueError:
             pass
     try:
         mail_server = smtplib.SMTP(server_conf["smtp_server"], port)

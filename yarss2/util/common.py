@@ -12,8 +12,6 @@ import datetime
 import os
 import sys
 
-#from yarss2.lib.dateutil import parser as dateutil_parser
-
 import pkg_resources
 
 PY2 = sys.version_info.major == 2
@@ -82,20 +80,6 @@ def isodate_to_datetime(date_in_isoformat):
         log = yarss2.util.logger.Logger()
         log.warning("isodate_to_datetime error:", err)
         return get_default_date()
-
-
-def string_to_unicode(string):
-    import sys
-    if sys.version_info[0] == 2:
-        if type(string) is unicode:
-            # Already unicode
-            return string
-        try:
-            return string.decode("utf-8")
-        except:
-            return string
-    else:
-        return string
 
 
 def get_new_dict_key(dictionary, string_key=True):

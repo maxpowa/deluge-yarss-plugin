@@ -6,33 +6,22 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from unittest import mock
-
 import pytest
-from twisted.trial import unittest
 from twisted.internet import defer, task
-from twisted.internet.defer import inlineCallbacks, returnValue
-
-from yarss2.util.logger import Logger
-from yarss2.tests import common as tests_common
-from deluge.ui.client import client
+from twisted.trial import unittest
 
 import deluge.component as component
 import deluge.config
+from deluge.ui.client import client
 
-from .common import PY2, PY3
+import yarss2.gtk3ui.gtkui
+from yarss2.gtk3ui.gtkui import GtkUI
+from yarss2.tests import common as tests_common
+from yarss2.util.logger import Logger
 
-if PY2:
-    from yarss2.gtkui.gtkui import GtkUI
-    import yarss2.gtkui.gtkui
-    import test_gtkui
-    yarss2.gtkui.gtkui.component = test_gtkui
-else:
-    from yarss2.gtk3ui.gtkui import GtkUI
-    import yarss2.gtk3ui.gtkui
-    from . import test_gtkui
-    yarss2.gtk3ui.gtkui.component = test_gtkui
+from . import test_gtkui
+
+yarss2.gtk3ui.gtkui.component = test_gtkui
 
 
 class DummyComponent(object):
@@ -70,7 +59,7 @@ class GtkUITestCase(unittest.TestCase):
 @pytest.mark.label
 class GtkUIWithCoreTestCase(unittest.TestCase):
 
-    @inlineCallbacks
+    @defer.inlineCallbacks
     def setUp(self):  # NOQA
         defer.setDebugging(True)
         # Must override callLater to avoid unclean twisted reactor
@@ -91,7 +80,7 @@ class GtkUIWithCoreTestCase(unittest.TestCase):
         client.__started_standalone = False
         return component.shutdown()
 
-    @inlineCallbacks
+    @defer.inlineCallbacks
     def test_get_labels(self, *patched_get):
         from deluge.i18n import setup_mock_translation
         setup_mock_translation()

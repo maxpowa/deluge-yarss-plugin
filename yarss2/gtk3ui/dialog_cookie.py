@@ -64,7 +64,6 @@ class DialogCookie():
             self.dialog.destroy()
 
     def on_button_remove_cookie_data_clicked(self, button):
-        print("on_button_remove_cookie_data_clicked")
         tree_sel = self.treeview.get_selection()
         (tm, ti) = tree_sel.get_selected()
         if not ti:

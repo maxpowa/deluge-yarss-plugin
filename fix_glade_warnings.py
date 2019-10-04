@@ -7,7 +7,7 @@ import re
 
 
 def fix_glade_file(filepath):
-    print "Fixing:", filepath
+    print("Fixing:", filepath)
     filepath_out = filepath + "_tmp"
     infile = open(filepath, 'r')
     outfile = open(filepath_out, 'w')
@@ -19,10 +19,11 @@ def fix_glade_file(filepath):
     outfile.close()
     os.rename(filepath_out, filepath)
 
+
 if __name__ == '__main__':
     path = "yarss2/data/"
 
-    dirList = os.listdir(path)
-    for fname in dirList:
+    dir_list = os.listdir(path)
+    for fname in dir_list:
         if fname.endswith(".glade") or fname.endswith(".ui"):
             fix_glade_file(os.path.join(path, fname))

@@ -15,14 +15,14 @@ from setuptools import find_packages, setup
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.devel+yarss2@gmail.com"
-__version__ = "1.4.3"
+__version__ = "2.0.0"
 __url__ = "http://dev.deluge-torrent.org/wiki/Plugins/YaRSS2"
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
 __long_description__ = """
 Yet another RSS 2, a simple RSS plugin for Deluge, based on
 YaRSS written by Camillo Dell'mour <cdellmour@gmail.com>.
-Tested with Deluge 1.3.12.
+Tested with Deluge 2.0.3.
 """
 
 __pkg_data__ = {__plugin_name__.lower(): ["data/*"]}
@@ -39,16 +39,20 @@ setup(
     long_description=__long_description__ if __long_description__ else __description__,
     packages=packages,
     package_data=__pkg_data__,
-    entry_points="""
-    [deluge.plugin.core]
-    %s = %s:CorePlugin
-    [deluge.plugin.gtkui]
-    %s = %s:GtkUIPlugin
-    [deluge.plugin.gtk3ui]
-    %s = %s:Gtk3UIPlugin
-    [yarss2.libpaths]
-    yarss2 = yarss2
-    include = yarss2.include
-    lib = yarss2.lib
-    """ % ((__plugin_name__, __plugin_name__.lower()) * 3)
-)
+    entry_points="""[deluge.plugin.core]
+%s = %s:CorePlugin
+[deluge.plugin.gtkui]
+%s = %s:GtkUIPlugin
+[deluge.plugin.gtk3ui]
+%s = %s:Gtk3UIPlugin
+[yarss2.libpaths]
+yarss2 = yarss2
+include = yarss2.include
+requests = yarss2.include.requests
+dateutil = yarss2.include.dateutil
+defusedxml = yarss2.include.defusedxml
+beautifulsoup = yarss2.include.beautifulsoup.py3k
+atoma = yarss2.include.atoma
+html5lib = yarss2.include.html5lib
+webencodings = yarss2.include.webencodings
+""" % ((__plugin_name__, __plugin_name__.lower()) * 3))

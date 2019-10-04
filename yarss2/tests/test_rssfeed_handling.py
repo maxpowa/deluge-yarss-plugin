@@ -6,18 +6,18 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+import logging
+
 from twisted.trial import unittest
 
-import logging
-log = logging.getLogger(__name__)
-
 import yarss2.util.common
+from yarss2 import rssfeed_handling
 from yarss2.util import common
 
-#from yarss2.rssfeed_handling import RSSFeedHandler
-from yarss2 import rssfeed_handling
-
 from . import common as test_common
+from .utils import assert_equal
+
+log = logging.getLogger(__name__)
 
 
 class RSSFeedHandlingTestCase(unittest.TestCase):
@@ -41,7 +41,6 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.assertTrue("items" in parsed_feed)
         items = parsed_feed["items"]
         stored_items = test_common.load_json_testdata()
-        from .utils import assert_equal, assert_almost_equal_dict
 
         assert_equal(items, stored_items)
         self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")),
@@ -50,8 +49,6 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
     def test_get_link(self):
         file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
-        #from yarss2.lib.feedparser import feedparser
-        #parsed_feed = feedparser.parse(file_url)
         parsed_feed = rssfeed_handling.fetch_and_parse_rssfeed(file_url)
 
         item = None
@@ -83,7 +80,8 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
         entry0 = parsed_feeds['items'][0]
         self.assertEquals('The.Show.WEB.H264-MEMENTO[ettv]', entry0['title'])
-        magnet_link = 'magnet:?xt=urn:btih:CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05&dn=The.Show.WEB.H264-MEMENTO%5Bettv%5D'
+        magnet_link = ('magnet:?xt=urn:btih:CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05'
+                       '&dn=The.Show.WEB.H264-MEMENTO%5Bettv%5D')
         magnet_uri = magnet_link.replace('&', '&amp;')
 
         self.assertEquals(magnet_link, entry0['link'])
@@ -106,7 +104,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         link = 'https://eztv.io/ep/1369854/lolly-tang-2009-09-26-web-x264-tbs/'
         self.assertEquals(link, entry0['link'])
 
-        magnet_uri = 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969'
+        magnet_uri = 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969'  # noqa: E501
 
         self.assertEquals('288475596', entry0.item.torrent.contentlength)
         self.assertEquals('4CF874831F61F5DB9C3299E503E28A8103047BA0', entry0.item.torrent.infohash)
@@ -270,7 +268,6 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         rssfeed_data = {"name": "Test", "url": file_url}
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
         self.assertTrue("items" in parsed_feed)
-
 
     def test_get_rssfeed_parsed_server_error_message(self):
         file_url = yarss2.util.common.get_resource("rarbg.to.rss.too_many_requests.html", path="tests/data/feeds/")

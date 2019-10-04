@@ -8,35 +8,25 @@
 #
 
 import datetime
+import json
+import logging
+import tempfile
 
 import deluge.config
-import tempfile
 import deluge.configmanager
 import deluge.core.preferencesmanager
 
 import yarss2.util.common
-from yarss2.util.common import PY2, PY3
+from yarss2 import load_libs, yarss_config
 
-from yarss2 import yarss_config
-
-#import deluge.log
-#deluge.log.setupLogger("none")
-
-#from deluge.log import LOG
-
-import logging
-log = logging.getLogger(__name__)
-
-from yarss2 import load_libs
-print("LOAD_LIBS")
 load_libs()
-
-
+log = logging.getLogger(__name__)
 
 
 def disable_new_release_check():
     import deluge.core.preferencesmanager
     deluge.core.preferencesmanager.DEFAULT_PREFS["new_release_check"] = False
+
 
 disable_new_release_check()
 
@@ -76,9 +66,6 @@ def set_tmp_config_dir():
     deluge.configmanager.set_config_dir(config_directory)
     return config_directory
 
-#import deluge.common
-#json = deluge.common.json
-import json
 
 # http://torrents.freebsd.org:8080/rss.xml
 testdata_rssfeed_filename = "data/feeds/freebsd_rss.xml"
@@ -92,7 +79,6 @@ def load_json_testdata():
 def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
         if "updated_datetime" in dct:
-            dt_orig = dct["updated_datetime"]
             dct["updated_datetime"] = yarss2.util.common.isodate_to_datetime(dct["updated_datetime"])
         if 'updated' in dct:
             # Add timezone (+0000)
@@ -123,7 +109,6 @@ def json_dump(obj, filename):
 class DatetimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
-            #print("obj.isoformat():", obj.isoformat())
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 

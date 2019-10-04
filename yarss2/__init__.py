@@ -18,12 +18,8 @@
 import sys
 
 import pkg_resources
+
 from deluge.plugins.init import PluginInitBase
-
-#import warnings
-#warnings.filterwarnings('ignore', message='.*g_value_get_int.*G_VALUE_HOLDS_INT.*', category=Warning)
-#warnings.simplefilter('ignore')
-
 
 import yarss2.util.logger
 

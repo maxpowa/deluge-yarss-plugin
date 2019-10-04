@@ -7,7 +7,7 @@
 # See LICENSE for more details.
 #
 
-from .common import Gtk, Pango, PangoCairo, GObject
+from .common import GObject, Gtk, Pango, PangoCairo
 
 
 class CustomAttribute(GObject.GObject, object):

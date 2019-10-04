@@ -23,7 +23,7 @@ class Core(CorePluginBase):
 
     def __init__(self, name):
         """Used for tests only"""
-        if name is not "test":
+        if name != "test":
             super(Core, self).__init__(name)
         else:
             # To avoid warnings when running tests

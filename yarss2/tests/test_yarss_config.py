@@ -6,22 +6,19 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+import shutil
 
 from twisted.trial import unittest
 
-import shutil
-
-import yarss2.yarss_config
-
 import yarss2.util.common
+import yarss2.yarss_config
 from yarss2.util.common import GeneralSubsConf
 
 from . import common as test_common
 
-
 try:
-    unicode
-except:
+    unicode  # noqa: F821 undefined name
+except NameError:
     unicode = str
 
 
@@ -313,12 +310,6 @@ class ConfigTestCase(unittest.TestCase):
 
         for key in self.config.config["rssfeeds"]:
             self.assertTrue("obey_ttl" in self.config.config["rssfeeds"][key], "Field 'obey_ttl' does not exist!")
-
-        import sys
-        if sys.version_info[0] == 2:
-            for key in self.config.config["email_configurations"].keys():
-                self.assertTrue(type(self.config.config["email_configurations"][key]) is not str,
-                                "Field %s is not str!" % (key))
 
         self.assertEquals(self.config.config._Config__version["file"], 3)
 

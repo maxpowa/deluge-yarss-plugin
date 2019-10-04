@@ -14,25 +14,23 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
 from twisted.internet import defer
 
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import Gtk3PluginBase
-
 import deluge.component as component
+from deluge.plugins.pluginbase import Gtk3PluginBase
+from deluge.ui.client import client
 
-from yarss2.util.logger import Logger
-from yarss2.util.gtkui_log import GTKUILogger
-from yarss2.util.common import get_resource, get_value_in_selected_row
-from yarss2.util.http import encode_cookie_values
 from yarss2 import yarss_config
+from yarss2.util.common import get_resource, get_value_in_selected_row
+from yarss2.util.gtkui_log import GTKUILogger
+from yarss2.util.http import encode_cookie_values
+from yarss2.util.logger import Logger
 
-from .common import popup_gtk_menu, Gtk
-from .dialog_subscription import DialogSubscription
-from .dialog_rssfeed import DialogRSSFeed
-from .dialog_email_message import DialogEmailMessage
+from .common import Gtk, popup_gtk_menu
 from .dialog_cookie import DialogCookie
+from .dialog_email_message import DialogEmailMessage
+from .dialog_rssfeed import DialogRSSFeed
+from .dialog_subscription import DialogSubscription
 
 
 class GtkUI(Gtk3PluginBase):
