@@ -69,7 +69,8 @@ class GtkUIWithCoreTestCase(unittest.TestCase):
         tests_common.set_tmp_config_dir()
         client.start_standalone()
 
-        yield client.core.enable_plugin("Label")
+        success = yield client.core.enable_plugin("Label")
+        self.assertTrue(success, msg="Failed to enable Label plugin")
 
         self.log = Logger()
         self.gtkui = GtkUI("YaRSS2")

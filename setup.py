@@ -15,7 +15,7 @@ from setuptools import find_packages, setup
 __plugin_name__ = "YaRSS2"
 __author__ = "Bro"
 __author_email__ = "bro.devel+yarss2@gmail.com"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __url__ = "http://dev.deluge-torrent.org/wiki/Plugins/YaRSS2"
 __license__ = "GPLv3"
 __description__ = "Yet another RSS 2"
@@ -44,6 +44,8 @@ setup(
 %s = %s:CorePlugin
 [deluge.plugin.gtkui]
 %s = %s:GtkUIPlugin
+[deluge.plugin.web]
+%s = %s:WebUIPlugin
 [deluge.plugin.gtk3ui]
 %s = %s:Gtk3UIPlugin
 [yarss2.libpaths]
@@ -58,4 +60,4 @@ html5lib = yarss2.include.html5lib
 webencodings = yarss2.include.webencodings
 urllib3 = yarss2.include.urllib3.src
 certifi = yarss2.include.certifi
-""" % ((__plugin_name__, __plugin_name__.lower()) * 3))
+""" % ((__plugin_name__, __plugin_name__.lower()) * 4))

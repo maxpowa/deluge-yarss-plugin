@@ -7,9 +7,6 @@
 # See LICENSE for more details.
 #
 
-import sys
-
-import pytest
 from twisted.trial import unittest
 
 import yarss2.yarss_config

@@ -38,6 +38,10 @@ yarss2$ trial tests
 
 ## Changelog ##
 
+v2.1.0 - 2019-10-09
+
+* Add WebUI Preferences page to inform that the plugin must be managed through the GTK UI client
+
 v2.0.0 - 2019-10-04
 
 * Fix #54: Add support for Deluge 2.X

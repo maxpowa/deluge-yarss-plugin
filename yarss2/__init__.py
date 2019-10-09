@@ -57,3 +57,11 @@ class Gtk3UIPlugin(PluginInitBase):
         from gtk3ui.gtkui import GtkUI as GtkUIPluginClass
         self._plugin_cls = GtkUIPluginClass
         super(Gtk3UIPlugin, self).__init__(plugin_name)
+
+
+class WebUIPlugin(PluginInitBase):
+    def __init__(self, plugin_name):
+        print("WebUIPlugin()")
+        from .webui import WebUI as _pluginCls
+        self._plugin_cls = _pluginCls
+        super(WebUIPlugin, self).__init__(plugin_name)
