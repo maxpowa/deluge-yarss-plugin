@@ -6,8 +6,10 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+import datetime
 import logging
 
+from dateutil.tz import tzoffset
 from twisted.trial import unittest
 
 import yarss2.util.common
@@ -46,6 +48,47 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         self.assertEquals(sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")),
                           ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
         self.assertEquals(parsed_feed["user_agent"], user_agent)
+
+    def test_get_rssfeed_parsed_prefer_magnet_link(self):
+        filename = "ezrss-rss-2.xml"
+        file_url = yarss2.util.common.get_resource(filename, path="tests/data/feeds")
+
+        rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments",
+                        "prefer_magnet": True}
+        site_cookies = {"uid": "18463", "passkey": "b830f87d023037f9393749s932"}
+        user_agent = "User_agent_test"
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data, site_cookies_dict=site_cookies,
+                                                             user_agent=user_agent)
+
+        # When needing to dump the result in json format
+        # common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
+
+        self.assertTrue("items" in parsed_feed)
+        items = parsed_feed["items"]
+
+        stored_items = {
+            0: {
+                'title': 'Lolly Tang 2009 09 26 WEB x264-TBS',
+                'link': 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
+                'matches': False,
+                'updated': '2019-09-27T08:12:48-04:00',
+                'magnet': 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
+                'torrent': 'https://zoink.ch/torrent/Lolly.Tang.2009.09.26.WEB.x264-TBS[eztv].mkv.torrent',
+                'updated_datetime': datetime.datetime(2019, 9, 27, 8, 12, 48, tzinfo=tzoffset(None, -14400))},
+            1: {
+                'title': 'The.Show.WEB.H264-MEMENTO',
+                'link': 'magnet:?xt=urn:btih:3B4BBDB57E3D83F900EA9844753006A7DA62D0B6&dn=The.Show.WEB.H264-MEMENTO[eztv].mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
+                'matches': False,
+                'updated': '2019-09-27T06:41:36-04:00',
+                'magnet': 'magnet:?xt=urn:btih:3B4BBDB57E3D83F900EA9844753006A7DA62D0B6&dn=The.Show.WEB.H264-MEMENTO[eztv].mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
+                'torrent': 'https://zoink.ch/torrent/The.Show.WEB.H264-MEMENTO[eztv].mkv.torrent',
+                'updated_datetime': datetime.datetime(2019, 9, 27, 6, 41, 36, tzinfo=tzoffset(None, -14400))}
+        }
+
+        self.assertEqual(stored_items, items)
+        self.assertEquals(['passkey=b830f87d023037f9393749s932', 'uid=18463'],
+                          sorted(parsed_feed["cookie_header"]['Cookie'].split("; ")))
+        self.assertEquals(user_agent, parsed_feed["user_agent"])
 
     def test_get_link(self):
         file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
@@ -243,10 +286,21 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
 
         for k, item in parsed_feed['items'].items():
+
+            expected_item = {
+                'title': '[TORRENT] Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS [PublicHD]',
+                'link': 'http://publichd.se/download.php?id=d8004c7344c8952177845891be9f9d3a2b92fd7d&f=Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS-[PublicHD]',  # noqa: E501
+                'matches': False,
+                'updated': '2014-10-04T03:44:14+00:00',
+                'magnet': 'magnet:?xt=urn:btih:3AAEY42EZCKSC54ELCI35H45HIVZF7L5&dn=Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS+[PublicHD]&tr=udp://tracker.publichd.eu/announce&tr=udp://tracker.1337x.org:80/announce&tr=udp://tracker.openbittorrent.com:80/announce&tr=http://fr33dom.h33t.com:3310/announce',  # noqa: E501
+                'torrent': 'http://publichd.se/download.php?id=d8004c7344c8952177845891be9f9d3a2b92fd7d&f=Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS-[PublicHD]',  # noqa: E501
+                'updated_datetime': datetime.datetime(2014, 10, 4, 3, 44, 14, tzinfo=datetime.timezone.utc)
+            }
+            self.assertEqual(expected_item, item)
+
             # Some RSS feeds do not have a proper timestamp
             if 'updated_datetime' in item:
                 updated_datetime = item['updated_datetime']
-                import datetime
                 if parsed_feed["raw_result"]['parser'] == "atoma":
                     test_val = datetime.datetime(2014, 10, 4, 3, 44, 14)
                 else:

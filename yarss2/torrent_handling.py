@@ -13,17 +13,12 @@ import requests
 
 import deluge.component as component
 from deluge._libtorrent import lt
-from deluge.common import decode_bytes
 from deluge.core.torrent import TorrentOptions
 from deluge.error import AddTorrentError
 
 from yarss2.util import common, http, torrentinfo
 from yarss2.util.common import GeneralSubsConf, TorrentDownload
 from yarss2.util.yarss_email import send_torrent_email
-
-
-def utf8_encoded(str_, encoding='utf8'):
-    return decode_bytes(str_, encoding).encode('utf8')
 
 
 class TorrentHandler(object):
@@ -132,7 +127,7 @@ class TorrentHandler(object):
         if download.is_magnet:
             self.log.info("Adding magnet: '%s'" % torrent_url)
             download.torrent_id = component.get("TorrentManager").add(options=options,
-                                                                      magnet=utf8_encoded(download.url))
+                                                                      magnet=download.url)
         else:
             # Error occured
             if not download.success:

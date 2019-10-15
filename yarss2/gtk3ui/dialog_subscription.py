@@ -6,6 +6,8 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
+import html
+
 from twisted.internet import threads
 
 import deluge.component as component
@@ -19,7 +21,7 @@ from yarss2.util.common import (GeneralSubsConf, TorrentDownload, get_current_da
 from yarss2.yarss_config import get_user_agent
 
 from .CellRendererPango import CellRendererPango, CustomAttribute
-from .common import Gdk, GdkPixbuf, Gtk
+from .common import Gdk, GdkPixbuf, Gtk, get_selected_combobox_key
 
 
 class DialogSubscription(object):
@@ -69,7 +71,7 @@ class DialogSubscription(object):
             "on_key_pressed": self.on_key_pressed,
             "on_textview_custom_text_move_cursor": lambda x, y: x,
             "on_panel_matching_move_handle": lambda x, y: x,
-            "on_dialog_subscription_response2": self.on_response,
+            "on_dialog_subscription_response": self.on_dialog_subscription_response_signal,
         })
 
         # This is to make testing of the GUI possible (unit tests)
@@ -86,15 +88,22 @@ class DialogSubscription(object):
         self.set_custom_text_tooltip()
         self.load_subscription_data()
 
-    def on_response(self, widget, arg):
+    def on_dialog_subscription_response_signal(self, widget, arg):
         # Escape key or close button (X in corner)
         if arg == -4:
-            self.dialog.destroy()
+            self.destroy()
 
     def show(self):
         self.setup()
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
-        self.dialog.run()
+        self.dialog.show()
+        # Disable modality for Preferences to allow managing the torrent list while
+        # this dialog is opened
+        component.get("Preferences").pref_dialog.set_modal(False)
+
+    def destroy(self):
+        component.get("Preferences").pref_dialog.set_modal(True)
+        self.dialog.destroy()
 
 ########################################
 # GUI creation
@@ -162,7 +171,7 @@ class DialogSubscription(object):
 
     def create_matching_tree(self):
         # Matches, Title, Published, link, CustomAttribute for PangoCellrenderer, torrent link, magnet link
-        self.matching_store = Gtk.ListStore(bool, str, str, str, CustomAttribute, str, str)
+        self.matching_store = Gtk.ListStore(bool, str, str, str, CustomAttribute, str, str, int)
 
         self.matching_treeview = Gtk.TreeView(model=self.matching_store)
         self.matching_treeview.connect('button-press-event', self.on_matches_list_button_press_event)
@@ -234,8 +243,28 @@ class DialogSubscription(object):
         link = self.matching_store.get_value(it, 3)
         if link is None:
             return False
-        tooltip_text = ("<b>Title:</b> %s\n<b>Link:</b> <u>%s</u>\n<b>Published:</b> %s" %
-                        (title.replace("&", "&amp;"), link.replace("&", "&amp;"), published))
+
+        rssfeed_key = self.get_current_rssfeed_key()
+        rssfeed = self.rssfeeds[rssfeed_key]
+        prefer_magnet = rssfeed['prefer_magnet']
+
+        torrent_key = self.matching_store.get_value(it, 7)
+        magnet = self.rssfeeds_dict[torrent_key]['magnet']
+        torrent = self.rssfeeds_dict[torrent_key]['torrent']
+
+        tooltip_text = ("<b>Title:</b> %s\n<b>Published:</b> %s" %
+                        (html.escape(title), published))
+
+        def add_html_tag(text, tag, add=True):
+            if add is False:
+                return text
+            return "<{tag}>{text}</{tag}>".format(text=text, tag=tag)
+
+        if torrent is not None:
+            tooltip_text += "\n<b>Torrent: </b> %s" % (add_html_tag(html.escape(torrent), 'u', add=not prefer_magnet))
+        if magnet is not None:
+            tooltip_text += "\n<b>Magnet: </b> %s" % (add_html_tag(html.escape(magnet), 'u', add=prefer_magnet))
+
         tooltip.set_markup(tooltip_text)
         widget.set_tooltip_cell(tooltip, path, None, None)
         return True
@@ -340,18 +369,12 @@ class DialogSubscription(object):
         viewport.add(self.messages_treeview)
         viewport.show_all()
 
-########################################
-# GUI Update / Callbacks
-########################################
+    ########################################
+    # GUI Update / Callbacks
+    ########################################
 
-    def get_selected_combobox_key(self, combobox):
-        """Get the key of the currently selected item in the combobox"""
-        # Get selected item
-        model = combobox.get_model()
-        iterator = combobox.get_active_iter()
-        if iterator is None or model.get_value(iterator, 0) == -1:
-            return None
-        return model.get_value(iterator, 0)
+    def get_current_rssfeed_key(self):
+        return get_selected_combobox_key(self.glade.get_object("combobox_rssfeeds"))
 
 ##################
 # RSS Matching
@@ -370,7 +393,7 @@ class DialogSubscription(object):
         self.method_perform_rssfeed_selection()
 
     def perform_rssfeed_selection(self):
-        rssfeed_key = self.get_selected_combobox_key(self.glade.get_object("combobox_rssfeeds"))
+        rssfeed_key = self.get_current_rssfeed_key()
         deferred = threads.deferToThread(self.get_and_update_rssfeed_results, rssfeed_key)
         deferred.addCallback(self.update_matching_view_with_rssfeed_results)
         return deferred
@@ -406,12 +429,12 @@ class DialogSubscription(object):
         # Insert treeview
         self.set_matching_window_child(self.treeview)
 
-# Perform matching and update liststore (which updates GUI)
+    # Perform matching and update liststore (which updates GUI)
 
     def perform_matching_and_update_liststore(self, match_option_dict):
-        """Updates the rssfeed_dict with matching according to
-        options in match_option_dict
-        Also updates the GUI
+        """
+        Updates the rssfeed_dict with matching according to
+        options in match_option_dict Also updates the GUI
         """
         if not self.rssfeeds_dict and not match_option_dict["custom_text_lines"]:
             return
@@ -449,7 +472,7 @@ class DialogSubscription(object):
             updated = rssfeeds_dict[key]['updated']
             store.append([rssfeeds_dict[key]['matches'], rssfeeds_dict[key]['title'],
                           updated if updated else "Not available", rssfeeds_dict[key]['link'],
-                          custom_attributes, rssfeeds_dict[key]["torrent"], rssfeeds_dict[key]["magnet"]])
+                          custom_attributes, rssfeeds_dict[key]["torrent"], rssfeeds_dict[key]["magnet"], key])
 
     def get_and_update_rssfeed_results(self, rssfeed_key):
         site_cookies = http.get_matching_cookies_dict(self.cookies, self.rssfeeds[rssfeed_key]["site"])
@@ -558,7 +581,7 @@ class DialogSubscription(object):
 
     def on_button_add_notication_clicked(self, button):
         combobox = self.glade.get_object("combobox_messages")
-        key = self.get_selected_combobox_key(combobox)
+        key = get_selected_combobox_key(combobox)
         if key is None:
             return
         # Current notications
@@ -609,12 +632,12 @@ class DialogSubscription(object):
     def on_button_last_matched_now_clicked(self, button):
         self.glade.get_object("txt_last_matched").set_text(get_current_date_in_isoformat())
 
-# Save / Close
-###################
+    # Save / Close
+    ###################
 
     def on_button_save_subscription_clicked(self, event=None, a=None, col=None):
         if self.save_subscription_data():
-            self.dialog.destroy()
+            self.destroy()
 
     def save_subscription_data(self):
         if not self.store_subscription_data():
@@ -671,10 +694,10 @@ class DialogSubscription(object):
         if active_label is not None:
             label = combobox_labels.get_model().get_value(active_label, 0)
 
-        rss_key = self.get_selected_combobox_key(self.glade.get_object("combobox_rssfeeds"))
+        rssfeed_key = self.get_current_rssfeed_key()
 
         # RSS feed is mandatory
-        if not rss_key:
+        if not rssfeed_key:
             self.rssfeed_is_mandatory_message()
             return False
 
@@ -686,7 +709,7 @@ class DialogSubscription(object):
         self.subscription_data["move_completed"] = move_completed
         self.subscription_data["download_location"] = download_location
         self.subscription_data["custom_text_lines"] = custom_text_lines
-        self.subscription_data["rssfeed_key"] = rss_key
+        self.subscription_data["rssfeed_key"] = rssfeed_key
         self.subscription_data["last_match"] = last_match
         self.subscription_data["ignore_timestamp"] = ignore_timestamp
 
@@ -712,11 +735,11 @@ class DialogSubscription(object):
         md.destroy()
 
     def on_button_cancel_clicked(self, event=None):
-        self.dialog.destroy()
+        self.destroy()
 
     def on_key_pressed(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
-            self.dialog.destroy()
+            self.destroy()
 
 ########################################
 # Load data on creation

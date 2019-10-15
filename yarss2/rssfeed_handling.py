@@ -98,6 +98,9 @@ class RssItemWrapper(object):
     def get_download_size(self):
         return _get_size(self)
 
+    def __str__(self):
+        return "RssItemWrapper(%s)" % self.item
+
 
 def atoma_result_to_dict(atoma_result):
     items = [RssItemWrapper(item) for item in atoma_result.items if item.title is not None]
@@ -168,6 +171,15 @@ class RSSFeedHandler(object):
                     pass
         return link
 
+    def get_magnet_link(self, item):
+        """
+        Get magnet URI from torrent item
+        """
+        torrent = item['torrent']
+        if torrent and torrent.magneturi is not None:
+            return torrent.magneturi
+        return None
+
     def get_size(self, item):
         return _get_size(item)
 
@@ -233,21 +245,13 @@ class RSSFeedHandler(object):
 
             # Find the link
             link = self.get_link(item)
+            magnet = self.get_magnet_link(item)
 
             # link or enclosures url is magnet
             if link is not None and link.startswith("magnet:"):
                 magnet = link
             else:
                 torrent = link
-
-            if "torrent_magneturi" in item:
-                if magnet is not None:
-                    if item["torrent_magneturi"].startswith("magnet:") and item["torrent_magneturi"] != magnet:
-                        self.log.warning("Feed has multiple magnet links...")
-                    else:
-                        magnet = item["torrent_magneturi"]
-                else:
-                    magnet = item["torrent_magneturi"]
 
             if rssfeed_data.get("prefer_magnet", None) and magnet:
                 link = magnet

@@ -20,3 +20,13 @@ def popup_gtk_menu(menu_widget, treeview, event, expected_button=3):
         menu_widget.popup(None, None, None, None, event.button, event.time)
         menu_widget.show_all()
     return True
+
+
+def get_selected_combobox_key(combobox, index=0):
+    """Get the key of the currently selected item in the combobox"""
+    # Get selected item
+    model = combobox.get_model()
+    iterator = combobox.get_active_iter()
+    if iterator is None or model.get_value(iterator, index) == -1:
+        return None
+    return model.get_value(iterator, index)

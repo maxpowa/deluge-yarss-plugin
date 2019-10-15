@@ -48,7 +48,7 @@ class TestComponent(object):
         download.filedump = filedump
         download.filename = filename
         download.options = options
-        download.magnet = magnet.decode() if magnet else magnet  # Ensure str on python3
+        download.magnet = magnet
         download.add_success = self.add_success
         self.added.append(download)
         return download
