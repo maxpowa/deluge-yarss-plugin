@@ -49,6 +49,33 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                           ['passkey=b830f87d023037f9393749s932', 'uid=18463'])
         self.assertEquals(parsed_feed["user_agent"], user_agent)
 
+    def test_get_rssfeed_showrss(self):
+        filename = "showrss.xml"
+        file_url = yarss2.util.common.get_resource(filename, path="tests/data/feeds")
+        rssfeed_data = {"name": "Test", "url": file_url, "site:": "only used whith cookie arguments",
+                        "prefer_magnet": True}
+        parsed_feed = self.rssfeedhandler.get_rssfeed_parsed(rssfeed_data)
+
+        # When needing to dump the result in json format
+        # common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
+
+        from dateutil.tz import tzutc
+
+        self.assertTrue("items" in parsed_feed)
+        items = parsed_feed["items"]
+
+        stored_items = {
+            0: {
+                'title': 'The Show WEB H264 MEMENTO',
+                'link': 'magnet:?xt=urn:btih:AB3C1AD2258201BFD289D886F1062761D8427A40&dn=The+Show+WEB+H264+MEMENTO&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce',  # noqa: E501
+                'matches': False,
+                'updated': '2019-10-14T03:10:26+00:00',
+                'magnet': 'magnet:?xt=urn:btih:AB3C1AD2258201BFD289D886F1062761D8427A40&dn=The+Show+WEB+H264+MEMENTO&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce',  # noqa: E501
+                'torrent': None,
+                'updated_datetime': datetime.datetime(2019, 10, 14, 3, 10, 26, tzinfo=tzutc())}
+        }
+        self.assertEqual(stored_items, items)
+
     def test_get_rssfeed_parsed_prefer_magnet_link(self):
         filename = "ezrss-rss-2.xml"
         file_url = yarss2.util.common.get_resource(filename, path="tests/data/feeds")
