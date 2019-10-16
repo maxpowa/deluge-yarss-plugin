@@ -1,5 +1,9 @@
 ## Changelog ##
 
+v2.1.3 - 2019-10-17
+
+* Fix #43: Unable to add Cookie-information
+
 v2.1.2 - 2019-10-17
 
 * Fix #53: Download RSS feeds via the plugin core (on the server)
