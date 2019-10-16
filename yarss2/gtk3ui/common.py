@@ -30,3 +30,8 @@ def get_selected_combobox_key(combobox, index=0):
     if iterator is None or model.get_value(iterator, index) == -1:
         return None
     return model.get_value(iterator, index)
+
+
+def set_tooltip_markup(tooltip, markup):
+    tooltip.set_markup(markup)
+    return True

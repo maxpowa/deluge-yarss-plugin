@@ -16,7 +16,7 @@ from yarss2.util import http
 from yarss2.util.common import get_resource
 from yarss2.util.http import urlparse
 
-from .common import Gtk
+from .common import Gtk, set_tooltip_markup
 
 
 class DialogRSSFeed(object):
@@ -29,6 +29,10 @@ class DialogRSSFeed(object):
             "on_button_cancel_clicked": self.on_button_cancel_clicked,
             "on_button_save_clicked": self.on_button_save_clicked,
             "on_dialog_rssfeed_response": self.on_response,
+            "on_txt_cookies_query_tooltip": self.on_txt_cookies_query_tooltip,
+            "on_checkbox_ebey_ttl_query_tooltip": self.on_checkbox_ebey_ttl_query_tooltip,
+            "on_checkbox_prefer_magnet_query_tooltip": self.on_checkbox_prefer_magnet_query_tooltip,
+            "on_checkbox_run_on_startup_query_tooltip": self.on_checkbox_run_on_startup_query_tooltip,
         })
         self.populate_data_fields()
 
@@ -108,3 +112,21 @@ class DialogRSSFeed(object):
 
     def on_button_cancel_clicked(self, event=None):
         self.dialog.destroy()
+
+    def on_txt_cookies_query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        return set_tooltip_markup(
+            tooltip, "The cookies that match the RSS Feed URL. Manage cookies in the settings panel")
+
+    def on_checkbox_ebey_ttl_query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        return set_tooltip_markup(
+            tooltip, ("Some RSS Feeds provide a TTL value to suggest the update time to be used. "
+                      "Check this to have 'update time' set to the TTL found in the RSS Feed"))
+
+    def on_checkbox_prefer_magnet_query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        return set_tooltip_markup(
+            tooltip, "If the feed contains both a torrent link and a magnet link, prefer magnet link")
+
+    def on_checkbox_run_on_startup_query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        return set_tooltip_markup(
+            tooltip, ("By checking this, the feed will be fetched when deluge is started. "
+                      "Otherwise the feed will be fetched first after waiting the specified update interval."))

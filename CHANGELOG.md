@@ -1,5 +1,9 @@
 ## Changelog ##
 
+v2.1.2 - 2019-10-17
+
+* Fix #53: Download RSS feeds via the plugin core (on the server)
+
 v2.1.1 - 2019-10-15
 
 * Fix: Bug adding torrent links to deluge

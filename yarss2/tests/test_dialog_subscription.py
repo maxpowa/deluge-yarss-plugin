@@ -9,9 +9,10 @@
 
 import datetime
 import re
+from unittest import mock
 
 import pytest
-from twisted.internet import defer, task, threads
+from twisted.internet import defer, threads
 from twisted.trial import unittest
 
 import deluge.common
@@ -37,28 +38,40 @@ class TestGTKUIBase(object):
         return defer.succeed(self.labels)
 
 
-@pytest.mark.gui
-class DialogSubscriptionTestCase(unittest.TestCase):
+class ComponentTestBase(unittest.TestCase):
+
+    patch_component_start = True
 
     def setUp(self):  # NOQA
-        self.log = Logger()
-        tests_common.set_tmp_config_dir()
-
-        # Must override callLater to avoid unclean twisted reactor
-        clock = task.Clock()
-        deluge.config.callLater = clock.callLater
-
-        self.client = deluge.ui.client.client
-        self.client.start_standalone()
+        if getattr(self, 'patch_component_start', False) is True:
+            self.component_start_patcher = mock.patch('deluge.component.start')
+            self.component_start_patcher.start()
 
     def tearDown(self):  # NOQA
-
         def on_shutdown(result):
-            # Components aren't removed from registry in component.shutdown...
+            # Components aren't removed from registry in component.shutdown
             # so must do that manually
             component._ComponentRegistry.components = {}
+            if getattr(self, 'patch_component_start', False) is True:
+                self.component_start_patcher.stop()
 
         return component.shutdown().addCallback(on_shutdown)
+
+    def enable_twisted_debug(self):
+        defer.setDebugging(True)
+        import twisted.internet.base
+        twisted.internet.base.DelayedCall.debug = True
+
+
+@pytest.mark.gui
+class DialogSubscriptionTestCase(ComponentTestBase):
+
+    def setUp(self):  # NOQA
+        super().setUp()
+        self.log = Logger()
+        tests_common.set_tmp_config_dir()
+        self.client = deluge.ui.client.client
+        self.client.start_standalone()
 
     def test_rssfeed_selected(self):
         yarss2.gtk3ui.dialog_subscription.client = self.client
@@ -85,7 +98,8 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                 if result[k]["matches"] is True:
                     match_count += 1
                     self.assertTrue(p.search(result[k]["title"]))
-            self.assertEquals(match_count, expected_match_count)
+
+            self.assertEquals(expected_match_count, match_count)
 
         deferred = self.run_select_rssfeed(subscription_config=subscription_config, callback_func=verify_result)
         return deferred
@@ -95,38 +109,45 @@ class DialogSubscriptionTestCase(unittest.TestCase):
 
         if not subscription_config:
             subscription_config = yarss_config.get_fresh_subscription_config()
+
         subscription_dialog = DialogSubscription(TestGTKUIBase(),  # GTKUI
                                                  self.log,  # logger
                                                  subscription_config,
                                                  config["rssfeeds"],
-                                                 [],  # self.get_move_completed_list(),
-                                                 [],  # self.get_download_location_list(),
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
-        subscription_dialog.setup()
 
-        def pass_func(*arg):
-            return defer.succeed(None)
+        def get_rssfeed_parsed(rssfeed_data, site_cookies_dict=None, user_agent=None):
+            res = subscription_dialog.rssfeedhandler.get_rssfeed_parsed(rssfeed_data,
+                                                                        site_cookies_dict=site_cookies_dict,
+                                                                        user_agent=user_agent)
+            return defer.succeed(res)
 
-        class DialogWrapper(object):
-            def __init__(self, dialog):
-                self.dialog = dialog
+        with mock.patch.object(subscription_dialog, 'get_rssfeed_parsed', new=get_rssfeed_parsed):
+            subscription_dialog.setup()
 
-            def get_visible(self):
-                return True
+            def pass_func(*arg):
+                return defer.succeed(None)
 
-        subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
+            class DialogWrapper(object):
+                def __init__(self, dialog):
+                    self.dialog = dialog
 
-        # Override the default selection callback
-        subscription_dialog.method_perform_rssfeed_selection = pass_func
+                def get_visible(self):
+                    return True
 
-        # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(0)
+            subscription_dialog.dialog = DialogWrapper(subscription_dialog.dialog)
 
-        deferred = subscription_dialog.perform_rssfeed_selection()
-        deferred.addCallback(callback_func, subscription_dialog)
-        return deferred
+            # Override the default selection callback
+            subscription_dialog.method_perform_rssfeed_selection = pass_func
+
+            # Sets the index 0 of rssfeed combox activated.
+            rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
+            rssfeeds_combobox.set_active(0)
+
+            deferred = subscription_dialog.perform_rssfeed_selection()
+            deferred.addCallback(callback_func, subscription_dialog)
+            return deferred
 
     def test_search(self):
 
@@ -139,8 +160,7 @@ class DialogSubscriptionTestCase(unittest.TestCase):
             subscription_config["regex_exclude"] = exclude_regex
 
             # Loading new config, and perform search
-            dialog_subscription.subscription_data = subscription_config
-            dialog_subscription.load_basic_fields_data()
+            dialog_subscription.load_basic_fields_data(subscription_config)
             dialog_subscription.perform_search()
 
             result = self.get_rssfeed_store_content(dialog_subscription)
@@ -249,26 +269,27 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  self.log,  # logger
                                                  subscription_config,
                                                  config["rssfeeds"],
-                                                 [],  # self.get_move_completed_list(),
-                                                 [],  # self.get_download_location_list(),
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
-        subscription_dialog.setup()
-        subscription_dialog.glade.get_object("txt_name").set_text(subscription_title)
-        subscription_dialog.glade.get_object("txt_regex_include").set_text(regex_include)
-        subscription_dialog.glade.get_object("checkbox_add_torrents_in_paused_state_default").set_active(False)
-        subscription_dialog.glade.get_object("checkbox_add_torrents_in_paused_state").set_active(True)
-        subscription_dialog.glade.get_object("checkbutton_auto_managed_default").set_active(False)
-        subscription_dialog.glade.get_object("checkbutton_auto_managed").set_active(False)
-        subscription_dialog.glade.get_object("checkbutton_sequential_download_default").set_active(True)
-        subscription_dialog.glade.get_object("checkbutton_sequential_download").set_active(False)
-        subscription_dialog.glade.get_object("checkbutton_prioritize_first_last_default").set_active(True)
-        subscription_dialog.glade.get_object("checkbutton_prioritize_first_last").set_active(True)
 
-        # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(0)
-        return threads.deferToThread(subscription_dialog.save_subscription_data)
+        with mock.patch.object(subscription_dialog, 'get_rssfeed_parsed') as mocked_func:
+            mocked_func.return_value = defer.succeed(None)
+            subscription_dialog.setup()
+            subscription_dialog.get_object("txt_name").set_text(subscription_title)
+            subscription_dialog.get_object("txt_regex_include").set_text(regex_include)
+            subscription_dialog.get_object("checkbox_add_torrents_in_paused_state_default").set_active(False)
+            subscription_dialog.get_object("checkbox_add_torrents_in_paused_state").set_active(True)
+            subscription_dialog.get_object("checkbutton_auto_managed_default").set_active(False)
+            subscription_dialog.get_object("checkbutton_auto_managed").set_active(False)
+            subscription_dialog.get_object("checkbutton_sequential_download_default").set_active(True)
+            subscription_dialog.get_object("checkbutton_sequential_download").set_active(False)
+            subscription_dialog.get_object("checkbutton_prioritize_first_last_default").set_active(True)
+            subscription_dialog.get_object("checkbutton_prioritize_first_last").set_active(True)
+
+            # Sets the index 0 of rssfeed combox activated.
+            rssfeeds_combobox = subscription_dialog.get_object("combobox_rssfeeds")
+            rssfeeds_combobox.set_active(0)
+            return threads.deferToThread(subscription_dialog.save_subscription_data)
 
     def test_save_subscription_with_label(self):
         subscription_title = "Test subscription"
@@ -289,17 +310,17 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  self.log,  # logger
                                                  subscription_config,
                                                  config["rssfeeds"],
-                                                 [],  # self.get_move_completed_list(),
-                                                 [],  # self.get_download_location_list(),
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
-        subscription_dialog.setup()
-        subscription_dialog.glade.get_object("txt_name").set_text(subscription_title)
+        with mock.patch.object(subscription_dialog, 'get_rssfeed_parsed') as mocked_func:
+            mocked_func.return_value = defer.succeed(None)
+            subscription_dialog.setup()
+            subscription_dialog.glade.get_object("txt_name").set_text(subscription_title)
 
-        # Sets the index 0 of rssfeed combox activated.
-        rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
-        rssfeeds_combobox.set_active(0)
-        return threads.deferToThread(subscription_dialog.save_subscription_data)
+            # Sets the index 0 of rssfeed combox activated.
+            rssfeeds_combobox = subscription_dialog.glade.get_object("combobox_rssfeeds")
+            rssfeeds_combobox.set_active(0)
+            return threads.deferToThread(subscription_dialog.save_subscription_data)
 
     @defer.inlineCallbacks
     def test_add_torrent_error(self):
@@ -335,8 +356,6 @@ class DialogSubscriptionTestCase(unittest.TestCase):
                                                  self.log,  # logger
                                                  subscription_config,
                                                  config["rssfeeds"],
-                                                 [],  # self.get_move_completed_list(),
-                                                 [],  # self.get_download_location_list(),
                                                  {},  # self.email_messages,
                                                  {})  # self.cookies)
         subscription_dialog.setup()

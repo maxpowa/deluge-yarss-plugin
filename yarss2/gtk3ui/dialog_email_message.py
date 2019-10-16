@@ -26,6 +26,7 @@ class DialogEmailMessage():
             "on_button_save_clicked": self.on_button_save_clicked,
             "on_button_cancel_clicked": self.on_button_cancel_clicked,
             "on_dialog_email_message_response": self.on_response,
+            "on_txt_to_adress_query_tooltip": self.on_txt_to_adress_query_tooltip,
         })
         # Add data
         if self.message_data is not None:
@@ -34,6 +35,10 @@ class DialogEmailMessage():
         self.dialog.set_transient_for(component.get("Preferences").pref_dialog)
         self.dialog.set_title("Edit Message" if "key" in self.message_data else "Add Message")
         self.dialog.run()
+
+    def on_txt_to_adress_query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        tooltip.set_text("Separate multiple addresses with comma")
+        return True
 
     def set_initial_data(self, data):
         self.glade.get_object("txt_message_name").set_text(data["name"])

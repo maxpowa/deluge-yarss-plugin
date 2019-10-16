@@ -14,12 +14,11 @@ import os
 import sys
 import warnings
 
-from gi.repository import Gdk, GObject, Gtk
-from gi.repository.GObject import SignalFlags
-
 from deluge.common import PY2
 
 from yarss2.util.common import get_completion_paths, get_resource
+
+from .common import Gdk, GObject, Gtk
 
 # from deluge.common import PY2, resource_filename
 
@@ -1153,7 +1152,7 @@ class PathChooserComboBox(Gtk.Box, StoredValuesPopup, GObject.GObject):
     __gsignals__ = {
         signal
         if not PY2
-        else signal.encode(): (SignalFlags.RUN_FIRST, GObject.TYPE_NONE, (object,))
+        else signal.encode(): (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, (object,))
         for signal in [
             'text-changed',
             'accelerator-set',

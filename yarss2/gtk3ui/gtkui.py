@@ -730,8 +730,6 @@ class GtkUI(Gtk3PluginBase):
                                                  self.log,
                                                  fresh_subscription_config,
                                                  self.rssfeeds,
-                                                 self.get_move_completed_list(),
-                                                 self.get_download_location_list(),
                                                  self.email_messages,
                                                  self.cookies)
         subscription_dialog.show()
@@ -768,8 +766,6 @@ class GtkUI(Gtk3PluginBase):
                                                               self.log,
                                                               self.subscriptions[key],
                                                               self.rssfeeds,
-                                                              self.get_move_completed_list(),
-                                                              self.get_download_location_list(),
                                                               self.email_messages,
                                                               self.cookies)
                 edit_subscription_dialog.show()

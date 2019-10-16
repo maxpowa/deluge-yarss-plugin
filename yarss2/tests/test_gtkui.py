@@ -61,7 +61,6 @@ class GtkUIWithCoreTestCase(unittest.TestCase):
 
     @defer.inlineCallbacks
     def setUp(self):  # NOQA
-        defer.setDebugging(True)
         # Must override callLater to avoid unclean twisted reactor
         clock = task.Clock()
         deluge.config.callLater = clock.callLater

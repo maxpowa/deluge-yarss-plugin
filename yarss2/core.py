@@ -175,3 +175,9 @@ class Core(CorePluginBase):
         Returns the available path completions for the input value.
         """
         return yarss2.util.common.get_completion_paths(value)
+
+    @export
+    def get_rssfeed_parsed(self, rssfeed_data, site_cookies_dict=None, user_agent=None):
+        return self.rssfeed_scheduler.rssfeedhandler.get_rssfeed_parsed(rssfeed_data,
+                                                                        site_cookies_dict=site_cookies_dict,
+                                                                        user_agent=user_agent)
