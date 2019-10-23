@@ -20,8 +20,9 @@ log = logging.getLogger(__name__)
 
 class Logger(object):
 
-    def __init__(self, gtkui_logger=None):
+    def __init__(self, gtkui_logger=None, logger=log):
         self.gtkui_logger = gtkui_logger
+        self.log = logger
 
     def handle_gtkui_log(self, message, gtkui):
         if not gtkui:
@@ -33,22 +34,22 @@ class Logger(object):
             self.gtkui_log_message_event(message)
 
     def debug(self, message, gtkui=True):
-        log.debug(self._msg(message))
+        self.log.debug(self._msg(message))
         self.handle_gtkui_log(message, gtkui)
 
     def info(self, message, gtkui=True):
-        log.info(self._msg(message))
+        self.log.info(self._msg(message))
         self.handle_gtkui_log(message, gtkui)
 
     def warn(self, message, gtkui=True):
         self.warning(message, gtkui=gtkui)
 
     def warning(self, message, gtkui=True):
-        log.warning(self._msg(message))
+        self.log.warning(self._msg(message))
         self.handle_gtkui_log(message, gtkui)
 
     def error(self, message, gtkui=True):
-        log.error(self._msg(message))
+        self.log.error(self._msg(message))
         self.handle_gtkui_log(message, gtkui)
 
     def _msg(self, msg):
@@ -61,4 +62,9 @@ class Logger(object):
         except KeyError:
             pass
         except SSLError:
-            log.info("Caught OpenSSL.SSL.Error in gtkui_log_message_event")
+            self.log.info("Caught OpenSSL.SSL.Error in gtkui_log_message_event")
+
+
+def getLogger(name, gtkui_logger=None):  # noqa: N802
+    log = logging.getLogger(name)
+    return Logger(gtkui_logger=gtkui_logger, logger=log)

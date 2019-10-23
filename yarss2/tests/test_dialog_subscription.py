@@ -25,7 +25,9 @@ import yarss2.util.common
 from yarss2 import yarss_config
 from yarss2.gtk3ui.dialog_subscription import DialogSubscription
 from yarss2.tests import common as tests_common
-from yarss2.util.logger import Logger
+from yarss2.util import logging
+
+from .utils.log_utils import plugin_tests_logger_name
 
 
 class TestGTKUIBase(object):
@@ -68,7 +70,7 @@ class DialogSubscriptionTestCase(ComponentTestBase):
 
     def setUp(self):  # NOQA
         super().setUp()
-        self.log = Logger()
+        self.log = logging.getLogger(plugin_tests_logger_name)
         tests_common.set_tmp_config_dir()
         self.client = deluge.ui.client.client
         self.client.start_standalone()

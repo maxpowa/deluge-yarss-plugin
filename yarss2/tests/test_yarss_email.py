@@ -9,18 +9,19 @@
 from __future__ import print_function
 
 import base64
-import logging
 import smtplib
 
 from twisted.trial import unittest
 
 import yarss2.yarss_config
 from yarss2.torrent_handling import TorrentHandler
+from yarss2.util import logging
 from yarss2.util.yarss_email import send_email, send_torrent_email
 
 from . import common as test_common
+from .utils.log_utils import plugin_tests_logger_name
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(plugin_tests_logger_name)
 
 smtp = None
 inbox = []

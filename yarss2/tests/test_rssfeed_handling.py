@@ -7,26 +7,25 @@
 # See LICENSE for more details.
 #
 import datetime
-import logging
-
-from dateutil.tz import tzoffset
-from twisted.trial import unittest
 
 import yarss2.util.common
 from yarss2 import rssfeed_handling
-from yarss2.util import common
+from yarss2.util import common, logging
 
 from . import common as test_common
+from .base import TestCaseDebug
 from .utils import assert_equal
+from .utils.log_utils import plugin_tests_logger_name
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(plugin_tests_logger_name)
 
 
-class RSSFeedHandlingTestCase(unittest.TestCase):
+class RSSFeedHandlingTestCase(TestCaseDebug):
 
     def setUp(self):  # NOQA
         self.log = log
         self.rssfeedhandler = rssfeed_handling.RSSFeedHandler(self.log)
+        self.set_unittest_maxdiff(None)
 
     def test_get_rssfeed_parsed(self):
         file_url = yarss2.util.common.get_resource(test_common.testdata_rssfeed_filename, path="tests/")
@@ -59,8 +58,6 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         # When needing to dump the result in json format
         # common.json_dump(parsed_feed["items"], "freebsd_rss_items_dump2.json")
 
-        from dateutil.tz import tzutc
-
         self.assertTrue("items" in parsed_feed)
         items = parsed_feed["items"]
 
@@ -72,7 +69,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 'updated': '2019-10-14T03:10:26+00:00',
                 'magnet': 'magnet:?xt=urn:btih:AB3C1AD2258201BFD289D886F1062761D8427A40&dn=The+Show+WEB+H264+MEMENTO&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce',  # noqa: E501
                 'torrent': None,
-                'updated_datetime': datetime.datetime(2019, 10, 14, 3, 10, 26, tzinfo=tzutc())}
+            }
         }
         self.assertEqual(stored_items, items)
 
@@ -101,7 +98,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 'updated': '2019-09-27T08:12:48-04:00',
                 'magnet': 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
                 'torrent': 'https://zoink.ch/torrent/Lolly.Tang.2009.09.26.WEB.x264-TBS[eztv].mkv.torrent',
-                'updated_datetime': datetime.datetime(2019, 9, 27, 8, 12, 48, tzinfo=tzoffset(None, -14400))},
+            },
             1: {
                 'title': 'The.Show.WEB.H264-MEMENTO',
                 'link': 'magnet:?xt=urn:btih:3B4BBDB57E3D83F900EA9844753006A7DA62D0B6&dn=The.Show.WEB.H264-MEMENTO[eztv].mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
@@ -109,7 +106,7 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 'updated': '2019-09-27T06:41:36-04:00',
                 'magnet': 'magnet:?xt=urn:btih:3B4BBDB57E3D83F900EA9844753006A7DA62D0B6&dn=The.Show.WEB.H264-MEMENTO[eztv].mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969',  # noqa: E501
                 'torrent': 'https://zoink.ch/torrent/The.Show.WEB.H264-MEMENTO[eztv].mkv.torrent',
-                'updated_datetime': datetime.datetime(2019, 9, 27, 6, 41, 36, tzinfo=tzoffset(None, -14400))}
+            }
         }
 
         self.assertEqual(stored_items, items)
@@ -127,22 +124,16 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
             break
 
         # Item has enclosure, so it should use that link
-        self.assertEquals(self.rssfeedhandler.get_link(item), item.enclosures[0].url)
+        self.assertEquals(self.rssfeedhandler.get_link(item), item['enclosures'][0]['url'])
 
-        # Remove enclosure
-        if isinstance(item, rssfeed_handling.RssItemWrapper):
-            # atom
-            item.item.enclosures = []
-        else:
-            # Feedparser
-            del item["links"][:]
+        # Remove enclosures
+        item['enclosures'] = []
         # Item no longer has enclosures, so it should return the regular link
         self.assertEquals(self.rssfeedhandler.get_link(item), item["link"])
 
     def test_rssfeed_handling_fetch_xmlns_ezrss(self):
         from yarss2 import rssfeed_handling
         filename = "ettv-rss-3.xml"
-
         file_path = common.get_resource(filename, path="tests/data/feeds/")
         parsed_feeds = rssfeed_handling.fetch_and_parse_rssfeed(file_path)
 
@@ -155,9 +146,9 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         magnet_uri = magnet_link.replace('&', '&amp;')
 
         self.assertEquals(magnet_link, entry0['link'])
-        self.assertEquals('573162367', entry0.item.torrent.contentlength)
-        self.assertEquals('CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05', entry0.item.torrent.infohash)
-        self.assertEquals(magnet_uri, entry0.item.torrent.magneturi)
+        self.assertEquals('573162367', entry0['torrent']['contentlength'])
+        self.assertEquals('CD44C326C5C4AC6EA08EAA5CDF61E53B1414BD05', entry0['torrent']['infohash'])
+        self.assertEquals(magnet_uri, entry0['torrent']['magneturi'])
 
     def test_rssfeed_handling_fetch_xmlns_ezrss_namespace(self):
         self.maxDiff = None
@@ -176,9 +167,9 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
 
         magnet_uri = 'magnet:?xt=urn:btih:4CF874831F61F5DB9C3299E503E28A8103047BA0&dn=Lolly.Tang.2009.09.26.WEB.x264-TBS%5Beztv%5D.mkv&tr=udp%3A%2F%2Ftracker.publicbt.com%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969'  # noqa: E501
 
-        self.assertEquals('288475596', entry0.item.torrent.contentlength)
-        self.assertEquals('4CF874831F61F5DB9C3299E503E28A8103047BA0', entry0.item.torrent.infohash)
-        self.assertEquals(magnet_uri, entry0.item.torrent.magneturi)
+        self.assertEquals('288475596', entry0['torrent']['contentlength'])
+        self.assertEquals('4CF874831F61F5DB9C3299E503E28A8103047BA0', entry0['torrent']['infohash'])
+        self.assertEquals(magnet_uri, entry0['torrent']['magneturi'])
 
     def test_rssfeed_handling_fetch_with_enclosure(self):
         self.maxDiff = None
@@ -197,12 +188,12 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
         link = 'https://site.net/file.torrent'
 
         self.assertEquals('This is the title', item0['title'])
-        self.assertEquals(link, item0.get_download_link())
-        self.assertEquals([(4541927915.52, '4.23 GB')], item0.get_download_size())
+        self.assertEquals(link, rssfeed_handling.get_item_download_link(item0))
+        self.assertEquals([(4541927915.52, '4.23 GB')], rssfeed_handling.get_download_size(item0))
 
         self.assertEquals('[TORRENT] This is the title', item2['title'])
-        self.assertEquals(link, item2.get_download_link())
-        self.assertEquals([857007476], item2.get_download_size())
+        self.assertEquals(link, rssfeed_handling.get_item_download_link(item2))
+        self.assertEquals([857007476], rssfeed_handling.get_download_size(item2))
 
     def test_get_size(self):
         filename_or_url = yarss2.util.common.get_resource("t1.rss", path="tests/data/feeds/")
@@ -321,19 +312,13 @@ class RSSFeedHandlingTestCase(unittest.TestCase):
                 'updated': '2014-10-04T03:44:14+00:00',
                 'magnet': 'magnet:?xt=urn:btih:3AAEY42EZCKSC54ELCI35H45HIVZF7L5&dn=Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS+[PublicHD]&tr=udp://tracker.publichd.eu/announce&tr=udp://tracker.1337x.org:80/announce&tr=udp://tracker.openbittorrent.com:80/announce&tr=http://fr33dom.h33t.com:3310/announce',  # noqa: E501
                 'torrent': 'http://publichd.se/download.php?id=d8004c7344c8952177845891be9f9d3a2b92fd7d&f=Chicago.Fire.S02E18.720p.WEB-DL.DD5.1.H.264-KiNGS-[PublicHD]',  # noqa: E501
-                'updated_datetime': datetime.datetime(2014, 10, 4, 3, 44, 14, tzinfo=datetime.timezone.utc)
             }
             self.assertEqual(expected_item, item)
 
             # Some RSS feeds do not have a proper timestamp
             if 'updated_datetime' in item:
                 updated_datetime = item['updated_datetime']
-                if parsed_feed["raw_result"]['parser'] == "atoma":
-                    test_val = datetime.datetime(2014, 10, 4, 3, 44, 14)
-                else:
-                    # Feedparser parses date 10/04/2014 03:44:14 as day/month/year ....
-                    test_val = datetime.datetime(2014, 4, 10, 3, 44, 14)
-
+                test_val = datetime.datetime(2014, 10, 4, 3, 44, 14)
                 test_val = yarss2.util.common.datetime_add_timezone(test_val)
                 self.assertEquals(test_val, updated_datetime)
                 break

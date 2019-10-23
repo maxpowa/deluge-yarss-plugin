@@ -14,9 +14,8 @@ from twisted.trial import unittest
 
 import yarss2.yarss_config
 from yarss2.gtk3ui.dialog_rssfeed import DialogRSSFeed
-from yarss2.util import http
+from yarss2.util import http, logging
 from yarss2.util.http import urlparse
-from yarss2.util.logger import Logger
 
 
 class DummyClass(object):
@@ -36,7 +35,7 @@ class DummyClass(object):
 class DialogRSSFeedTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.log = Logger()
+        self.log = logging.getLogger(__name__)
         self.test_rssfeed = yarss2.yarss_config.get_fresh_rssfeed_config()
 
     def test_create(self):

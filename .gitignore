@@ -6,3 +6,4 @@ YaRSS2.egg-info/*
 *.bak
 .tox
 _trial_temp/
+yarss2/tests/test_dev.py

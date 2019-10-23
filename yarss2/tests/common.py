@@ -9,7 +9,6 @@
 
 import datetime
 import json
-import logging
 import tempfile
 
 import deluge.config
@@ -18,9 +17,13 @@ import deluge.core.preferencesmanager
 
 import yarss2.util.common
 from yarss2 import load_libs, yarss_config
+from yarss2.util import logging
+
+from .utils.log_utils import plugin_tests_logger_name
 
 load_libs()
-log = logging.getLogger(__name__)
+
+log = logging.getLogger(plugin_tests_logger_name)
 
 
 def disable_new_release_check():
@@ -78,11 +81,10 @@ def load_json_testdata():
 
 def json_load(filename, dict_int_keys=False):
     def datetime_parse(dct):
-        if "updated_datetime" in dct:
-            dct["updated_datetime"] = yarss2.util.common.isodate_to_datetime(dct["updated_datetime"])
         if 'updated' in dct:
             # Add timezone (+0000)
-            dct["updated"] = dct["updated_datetime"].isoformat()
+            updated_dt = yarss2.util.common.isodate_to_datetime(dct["updated"])
+            dct["updated"] = updated_dt.isoformat()
         return dct
 
     filename = yarss2.util.common.get_resource(filename, path="tests")

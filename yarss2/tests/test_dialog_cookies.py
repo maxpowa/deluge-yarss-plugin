@@ -14,7 +14,9 @@ from twisted.trial import unittest
 
 import yarss2.yarss_config
 from yarss2.gtk3ui.dialog_cookie import DialogCookie
-from yarss2.util.logger import Logger
+from yarss2.util import logging
+
+from .utils.log_utils import plugin_tests_logger_name
 
 
 class DummyClass(object):
@@ -33,7 +35,7 @@ class DummyClass(object):
 class DialogCookiesTestCase(unittest.TestCase):
 
     def setUp(self):  # NOQA
-        self.log = Logger()
+        self.log = logging.getLogger(plugin_tests_logger_name)
         self.test_cookie = yarss2.yarss_config.get_fresh_cookie_config()
 
     def test_create(self):

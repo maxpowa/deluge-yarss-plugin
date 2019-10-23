@@ -51,6 +51,9 @@ try:
 except NameError:
     basestring = str
 
+
+USER_AGENT = "YaRSS2"
+
 bytes_ = type(b'')
 
 # HTTP "Accept" header to send to servers when downloading feeds.  If you don't

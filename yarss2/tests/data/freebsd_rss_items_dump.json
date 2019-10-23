@@ -1,7 +1,6 @@
 {
   "0": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-amd64-all", 
     "magnet": null, 
@@ -10,7 +9,6 @@
   }, 
   "1": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-i386-all", 
     "magnet": null, 
@@ -19,7 +17,6 @@
   }, 
   "2": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-ia64-all", 
     "magnet": null, 
@@ -28,7 +25,6 @@
   }, 
   "3": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc-all", 
     "magnet": null, 
@@ -37,7 +33,6 @@
   }, 
   "4": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc64-all", 
     "magnet": null, 
@@ -46,7 +41,6 @@
   }, 
   "5": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-sparc64-all", 
     "magnet": null, 
@@ -55,7 +49,6 @@
   }, 
   "6": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-amd64-bootonly", 
     "magnet": null, 
@@ -64,7 +57,6 @@
   }, 
   "7": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-amd64-disc1", 
     "magnet": null, 
@@ -73,7 +65,6 @@
   }, 
   "8": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-amd64-dvd1", 
     "magnet": null, 
@@ -82,7 +73,6 @@
   }, 
   "9": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-amd64-memstick", 
     "magnet": null, 
@@ -91,7 +81,6 @@
   }, 
   "10": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-i386-bootonly", 
     "magnet": null, 
@@ -100,7 +89,6 @@
   }, 
   "11": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-i386-disc1", 
     "magnet": null, 
@@ -109,7 +97,6 @@
   }, 
   "12": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-i386-dvd1", 
     "magnet": null, 
@@ -118,7 +105,6 @@
   }, 
   "13": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-i386-memstick", 
     "magnet": null, 
@@ -127,7 +113,6 @@
   }, 
   "14": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-ia64-bootonly", 
     "magnet": null, 
@@ -136,7 +121,6 @@
   }, 
   "15": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-ia64-memstick", 
     "magnet": null, 
@@ -145,7 +129,6 @@
   }, 
   "16": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-ia64-release", 
     "magnet": null, 
@@ -154,7 +137,6 @@
   }, 
   "17": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc-bootonly", 
     "magnet": null, 
@@ -163,7 +145,6 @@
   }, 
   "18": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc-memstick", 
     "magnet": null, 
@@ -172,7 +153,6 @@
   }, 
   "19": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc-release", 
     "magnet": null, 
@@ -181,7 +161,6 @@
   }, 
   "20": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc64-bootonly", 
     "magnet": null, 
@@ -190,7 +169,6 @@
   }, 
   "21": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc64-memstick", 
     "magnet": null, 
@@ -199,7 +177,6 @@
   }, 
   "22": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-powerpc64-release", 
     "magnet": null, 
@@ -208,7 +185,6 @@
   }, 
   "23": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-sparc64-bootonly", 
     "magnet": null, 
@@ -217,7 +193,6 @@
   }, 
   "24": {
     "updated": "2012-03-30T15:13:54", 
-    "updated_datetime": "2012-03-30T15:13:54", 
     "matches": false, 
     "title": "FreeBSD-9.0-RELEASE-sparc64-disc1", 
     "magnet": null, 

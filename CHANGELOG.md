@@ -1,5 +1,11 @@
 ## Changelog ##
 
+v2.1.4 - 2019-10-23
+
+    * Fix #53: Fix bug introduced in v2.1.2 where showing the RSS feed results was
+               broken in thin client mode.
+    * Fix #48: Reduce the minimum updating interval from 5 to 1 minute.
+
 v2.1.3 - 2019-10-17
 
 * Fix #43: Unable to add Cookie-information

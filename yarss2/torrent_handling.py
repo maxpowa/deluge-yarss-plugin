@@ -47,6 +47,13 @@ class TorrentHandler(object):
             self.log.error(error_msg)
             download.set_error(error_msg)
             return download
+
+        if download.filedump is None:
+            error_msg = "Filedump is None"
+            download.set_error(error_msg)
+            self.log.warning(error_msg)
+            return download
+
         try:
             # Get the info to see if any exceptions are raised
             lt.torrent_info(lt.bdecode(download.filedump))
@@ -206,5 +213,4 @@ class TorrentHandler(object):
                                deferred=True)
 
     def on_torrent_finished_event(self, torrent_id):
-        # print "torrent_finished_event:", torrent_id
         pass

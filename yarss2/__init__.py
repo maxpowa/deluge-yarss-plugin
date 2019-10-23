@@ -21,9 +21,9 @@ import pkg_resources
 
 from deluge.plugins.init import PluginInitBase
 
-import yarss2.util.logger
+from yarss2.util import logging
 
-log = yarss2.util.logger.Logger()
+log = logging.getLogger(__name__)
 
 
 def load_libs():
@@ -31,14 +31,15 @@ def load_libs():
     for name in egg.get_entry_map("yarss2.libpaths"):
         ep = egg.get_entry_info("yarss2.libpaths", name)
         location = "%s/%s" % (egg.location, ep.module_name.replace(".", "/"))
-        sys.path.append(location)
+        if location not in sys.path:
+            sys.path.append(location)
         log.info("Appending to sys.path: '%s'" % location)
 
 
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
         load_libs()
-        from core import Core as CorePluginClass
+        from .core import Core as CorePluginClass
         self._plugin_cls = CorePluginClass
         super(CorePlugin, self).__init__(plugin_name)
 
@@ -54,14 +55,13 @@ class GtkUIPlugin(PluginInitBase):
 class Gtk3UIPlugin(PluginInitBase):
     def __init__(self, plugin_name):
         load_libs()
-        from gtk3ui.gtkui import GtkUI as GtkUIPluginClass
+        from .gtk3ui.gtkui import GtkUI as GtkUIPluginClass
         self._plugin_cls = GtkUIPluginClass
         super(Gtk3UIPlugin, self).__init__(plugin_name)
 
 
 class WebUIPlugin(PluginInitBase):
     def __init__(self, plugin_name):
-        print("WebUIPlugin()")
-        from .webui import WebUI as _pluginCls
+        from .webui import YaRSS2 as _pluginCls
         self._plugin_cls = _pluginCls
         super(WebUIPlugin, self).__init__(plugin_name)

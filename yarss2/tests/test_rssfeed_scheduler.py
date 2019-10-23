@@ -7,7 +7,6 @@
 # See LICENSE for more details.
 #
 
-import logging
 import threading
 
 from twisted.internet.defer import Deferred, DeferredList
@@ -16,11 +15,13 @@ from twisted.trial import unittest
 import yarss2.util.common
 import yarss2.yarss_config
 from yarss2.rssfeed_scheduler import RSSFeedRunQueue, RSSFeedScheduler
+from yarss2.util import logging
 
 from . import common as test_common
 from .test_torrent_handling import TestComponent
+from .utils.log_utils import plugin_tests_logger_name
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(plugin_tests_logger_name)
 
 
 class RSSFeedSchedulerTestCase(unittest.TestCase):

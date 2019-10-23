@@ -8,7 +8,6 @@
 #
 
 import datetime
-import logging
 import os.path
 from unittest import mock
 
@@ -20,14 +19,16 @@ from deluge.error import AddTorrentError
 import yarss2.torrent_handling
 import yarss2.util.common
 from yarss2.torrent_handling import TorrentDownload, TorrentHandler
+from yarss2.util import logging
 from yarss2.util.common import GeneralSubsConf, read_file
 
 from . import common as test_common
 from . import test_torrent_handling
+from .utils.log_utils import plugin_tests_logger_name
 
 test_component = None
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(plugin_tests_logger_name)
 
 
 class TestComponent(object):

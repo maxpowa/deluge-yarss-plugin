@@ -11,12 +11,14 @@ from deluge.core.rpcserver import export
 from deluge.plugins.pluginbase import CorePluginBase
 
 import yarss2.util.common
-import yarss2.util.logger
 from yarss2.rssfeed_scheduler import RSSFeedScheduler
 from yarss2.torrent_handling import TorrentHandler
+from yarss2.util import logging
 from yarss2.util.http import get_matching_cookies_dict
 from yarss2.util.yarss_email import send_torrent_email
 from yarss2.yarss_config import YARSSConfig, get_user_agent
+
+log = logging.getLogger(__name__)
 
 
 class Core(CorePluginBase):
@@ -34,7 +36,7 @@ class Core(CorePluginBase):
             super(Core, self).__del__()
 
     def enable(self, config=None):
-        self.log = yarss2.util.logger.Logger()
+        self.log = logging.getLogger(__name__)
         self.torrent_handler = TorrentHandler(self.log)
         if config is None:
             self.yarss_config = YARSSConfig(self.log)

@@ -24,6 +24,7 @@ except NameError:
     unicode = str
 
 
+LATEST_CONFIG_VERSION = 8
 DEFAULT_UPDATE_INTERVAL = 120
 
 DUMMY_RSSFEED_KEY = "9999"
@@ -75,10 +76,10 @@ class YARSSConfig(object):
         self.core_config = core_config
         self.config = config
 
-        # Used for testing
+        # Prividing a config here us used for testing
         if config is None:
-            self.config = deluge.configmanager.ConfigManager(CONFIG_FILENAME, default_prefs())
-
+            self.config = deluge.configmanager.ConfigManager(CONFIG_FILENAME, default_prefs(),
+                                                             file_version=LATEST_CONFIG_VERSION)
         if verify_config:
             self._verify_config()
 

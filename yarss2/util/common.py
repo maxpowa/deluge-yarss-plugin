@@ -71,13 +71,21 @@ def datetime_add_timezone(dt, tzinfo=None):
 
 
 def isodate_to_datetime(date_in_isoformat):
+    """
+    Args:
+        date_in_isoformat (str): The date in iso format
+
+    Returns:
+        datetime.datetime: The datetime object converted from date_in_isoformat
+
+    """
     from dateutil import parser as dateutil_parser
     try:
         dt = dateutil_parser.parse(date_in_isoformat)
         return datetime_add_timezone(dt)
     except ValueError as err:
-        import yarss2.util.logger
-        log = yarss2.util.logger.Logger()
+        from yarss2.util import logging
+        log = logging.getLogger(__name__)
         log.warning("isodate_to_datetime error:", err)
         return get_default_date()
 

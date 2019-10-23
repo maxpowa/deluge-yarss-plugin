@@ -21,10 +21,10 @@ from deluge.plugins.pluginbase import Gtk3PluginBase
 from deluge.ui.client import client
 
 from yarss2 import yarss_config
+from yarss2.util import logging
 from yarss2.util.common import get_resource, get_value_in_selected_row
 from yarss2.util.gtkui_log import GTKUILogger
 from yarss2.util.http import encode_cookie_values
-from yarss2.util.logger import Logger
 
 from .common import Gtk, popup_gtk_menu
 from .dialog_cookie import DialogCookie
@@ -70,15 +70,13 @@ class GtkUI(Gtk3PluginBase):
 
             "on_checkbox_email_authentication_toggled": self.on_checkbox_email_authentication_toggled,
             "on_checkbutton_show_log_messages_gui_toggled": self.on_checkbutton_show_log_messages_gui_toggled,
-
-            "on_checkbutton_send_email_on_torrent_events_toggled": lambda x: print("LAMDBA"),
         })
 
         component.get("Preferences").add_page("YaRSS2", self.glade.get_object("notebook_main"))
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
         self.gtkui_log = GTKUILogger(self.glade.get_object('textview_log'))
-        self.log = Logger(gtkui_logger=self.gtkui_log)
+        self.log = logging.getLogger(__name__, gtkui_logger=self.gtkui_log)
 
         self.subscriptions = {}
         self.rssfeeds = {}

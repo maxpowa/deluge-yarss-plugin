@@ -149,7 +149,7 @@
                     <property name="can_focus">False</property>
                     <property name="border_width">1</property>
                     <child>
-                      <object class="GtkVBox" id="rssfeeds_box">
+                      <object class="GtkBox" id="rssfeeds_box">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
@@ -304,7 +304,6 @@
                                     <property name="receives_default">False</property>
                                     <property name="tooltip_text" translatable="yes">With this disabled, no emails will be sent by YARSS2</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_checkbutton_send_email_on_torrent_events_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">0</property>

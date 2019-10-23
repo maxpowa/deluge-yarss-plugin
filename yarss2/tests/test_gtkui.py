@@ -17,9 +17,10 @@ from deluge.ui.client import client
 import yarss2.gtk3ui.gtkui
 from yarss2.gtk3ui.gtkui import GtkUI
 from yarss2.tests import common as tests_common
-from yarss2.util.logger import Logger
+from yarss2.util import logging
 
 from . import test_gtkui
+from .utils.log_utils import plugin_tests_logger_name
 
 yarss2.gtk3ui.gtkui.component = test_gtkui
 
@@ -43,7 +44,7 @@ class GtkUITestCase(unittest.TestCase):
         tests_common.set_tmp_config_dir()
         client.start_standalone()
 
-        self.log = Logger()
+        self.log = logging.getLogger(plugin_tests_logger_name)
         self.gtkui = GtkUI("YaRSS2")
         self.gtkui.create_ui()
 
@@ -71,7 +72,7 @@ class GtkUIWithCoreTestCase(unittest.TestCase):
         success = yield client.core.enable_plugin("Label")
         self.assertTrue(success, msg="Failed to enable Label plugin")
 
-        self.log = Logger()
+        self.log = logging.getLogger(plugin_tests_logger_name)
         self.gtkui = GtkUI("YaRSS2")
         self.gtkui.create_ui()
 

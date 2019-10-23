@@ -13,13 +13,13 @@ import deluge.component as component
 from deluge.ui.client import client
 
 import yarss2.gtk3ui.path_combo_chooser
-import yarss2.util.logger
 from yarss2.gtk3ui.path_combo_chooser import PathChooserComboBox
+from yarss2.util import logging
 from yarss2.util.common import get_resource
 
 yarss2.gtk3ui.path_combo_chooser.get_resource = get_resource
 
-log = yarss2.util.logger.Logger()
+log = logging.getLogger(__name__)
 
 
 def singleton(cls):

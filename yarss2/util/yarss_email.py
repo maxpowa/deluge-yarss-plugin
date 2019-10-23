@@ -12,7 +12,7 @@ import smtplib
 
 from twisted.internet import threads
 
-import yarss2.util.logger
+from yarss2.util import logging
 
 # Mime (might) not be included with Deluge on Windows.
 try:
@@ -24,7 +24,7 @@ except ImportError:
     from yarss2.lib.mime.text import MIMEText
 
 
-log = yarss2.util.logger.Logger()
+log = logging.getLogger(__name__)
 
 
 def send_email(email_conf, server_conf):

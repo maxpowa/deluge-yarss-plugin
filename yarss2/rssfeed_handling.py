@@ -6,11 +6,11 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-from __future__ import print_function
-
-import datetime
 import re
 
+import attr
+
+from yarss2.error import FetchAndFeedparsingError
 from yarss2.util import common, http
 from yarss2.yarss_config import get_user_agent
 
@@ -35,8 +35,8 @@ def _parse_size(string):
 
 def _get_size(item):
     size = []
-    if len(item.enclosures) > 0:
-        s = item.enclosures[0].length
+    if len(item['enclosures']) > 0:
+        s = item['enclosures'][0]['length']
         size.append(int(s))
 
     if "contentlength" in item:
@@ -58,52 +58,31 @@ def _get_size(item):
     return size
 
 
-class RssItemWrapper(object):
+def get_item_download_link(item):
+    if len(item["enclosures"]) > 0:
+        return item["enclosures"][0]['url']
+    return item["link"]
 
-    def __init__(self, item):
-        self.item = item
 
-    @property
-    def enclosures(self):
-        return self.item.enclosures
-
-    def __contains__(self, key):
-        if isinstance(self.item, dict):
-            return key in self.item
-        else:
-            if key == 'published_parsed':
-                return True
-
-            try:
-                getattr(self.item, key)
-                return True
-            except AttributeError:
-                return False
-
-    def __getitem__(self, key):
-        if isinstance(self.item, dict):
-            return self.item[key]
-        else:
-            # For atom, return pub_date (datetime))
-            if key == 'published_parsed':
-                key = 'pub_date'
-
-            return getattr(self.item, key)
-
-    def get_download_link(self):
-        if len(self["enclosures"]) > 0:
-            return self["enclosures"][0].url
-        return self["link"]
-
-    def get_download_size(self):
-        return _get_size(self)
-
-    def __str__(self):
-        return "RssItemWrapper(%s)" % self.item
+def get_download_size(item):
+    return _get_size(item)
 
 
 def atoma_result_to_dict(atoma_result):
-    items = [RssItemWrapper(item) for item in atoma_result.items if item.title is not None]
+
+    def item_to_dict(item):
+        d = attr.asdict(item)
+        if d['pub_date'] is not None:
+            dt = d['pub_date']
+            if dt.tzinfo is None:
+                dt = common.datetime_add_timezone(dt)
+            d['published_date'] = dt.isoformat()
+            # We must remove datetime.datetime to make the dict encodable by rencode
+            del d['pub_date']
+
+        return d
+
+    items = [item_to_dict(item) for item in atoma_result.items if item.title is not None]
     result = {
         'items': items, 'bozo': 0,
         'feed': {
@@ -164,9 +143,9 @@ class RSSFeedHandler(object):
         link = None
         if "link" in item:
             link = item['link']
-            if len(item.enclosures) > 0:
+            if len(item['enclosures']) > 0:
                 try:
-                    link = item.enclosures[0].url
+                    link = item['enclosures'][0]['url']
                 except AttributeError:
                     pass
         return link
@@ -176,8 +155,8 @@ class RSSFeedHandler(object):
         Get magnet URI from torrent item
         """
         torrent = item['torrent']
-        if torrent and torrent.magneturi is not None:
-            return torrent.magneturi
+        if torrent and torrent['magneturi'] is not None:
+            return torrent['magneturi']
         return None
 
     def get_size(self, item):
@@ -209,7 +188,8 @@ class RSSFeedHandler(object):
             self.log.warning("Feedparser was called with url: '%s' using cookies: '%s' and User-agent: '%s'" %
                              (rssfeed_data["url"], http.get_cookie_header(cookie_header), user_agent))
             self.log.warning("Stacktrace:\n" + common.get_exception_string())
-            return None
+            raise FetchAndFeedparsingError("Exception occured in feedparser: " + str(e))
+
         return_dict["raw_result"] = parsed_feed
 
         # Error parsing
@@ -224,7 +204,6 @@ class RSSFeedHandler(object):
 
         for item in parsed_feed['items']:
             # Some RSS feeds do not have a proper timestamp
-            dt = None
             magnet = None
             torrent = None
 
@@ -232,14 +211,8 @@ class RSSFeedHandler(object):
             if not item:
                 continue
 
-            if 'pub_date' in item:
-                dt = item['pub_date']
-
-            elif 'published_parsed' in item:
-                published = item['published_parsed']
-                if published is not None:
-                    dt = datetime.datetime(* published[:6])
-            else:
+            published_date = item.get('published_date', None)
+            if published_date is None:
                 no_publish_time = True
                 return_dict["warning"] = "Published time not available!"
 
@@ -258,7 +231,8 @@ class RSSFeedHandler(object):
 
             rssfeeds_dict[key] = self._new_rssfeeds_dict_item(item['title'], link=link,
                                                               torrent=torrent, magnet=magnet,
-                                                              published_datetime=dt)
+                                                              published_date=published_date)
+
             key += 1
 
         if no_publish_time:
@@ -268,7 +242,7 @@ class RSSFeedHandler(object):
         return return_dict
 
     def _new_rssfeeds_dict_item(self, title, link=None, torrent=None, magnet=None,
-                                published_datetime=None, key=None):
+                                published_date=None, key=None):
         d = {}
         d["title"] = title
         d["link"] = link
@@ -276,13 +250,9 @@ class RSSFeedHandler(object):
         d["updated"] = ""
         d["magnet"] = magnet
         d["torrent"] = torrent
-        d["updated_datetime"] = None
 
-        if published_datetime:
-            if published_datetime.tzinfo is None:
-                published_datetime = common.datetime_add_timezone(published_datetime)
-            d["updated_datetime"] = published_datetime
-            d["updated"] = published_datetime.isoformat()
+        if published_date:
+            d["updated"] = published_date
 
         if key is not None:
             d["key"] = key
@@ -462,7 +432,8 @@ class RSSFeedHandler(object):
         for key in list(matches.keys()):
             # Discard match only if timestamp is available,
             # and the timestamp is older or equal to the last matching timestamp
-            if matches[key]["updated_datetime"] and last_match_dt >= matches[key]["updated_datetime"]:
+            matched_updated = common.isodate_to_datetime(matches[key]["updated"])
+            if matched_updated and last_match_dt >= matched_updated:
                 if subscription_data["ignore_timestamp"] is True:
                     self.log.info("Old timestamp: '%s', but ignore option is enabled so add torrent anyways."
                                   % matches[key]["title"])
@@ -472,7 +443,7 @@ class RSSFeedHandler(object):
                     continue
             fetch_data["matching_torrents"].append({"title": matches[key]["title"],
                                                     "link": matches[key]["link"],
-                                                    "updated_datetime": matches[key]["updated_datetime"],
+                                                    "updated_datetime": matched_updated,
                                                     "site_cookies_dict": fetch_data["site_cookies_dict"],
                                                     "user_agent": fetch_data["user_agent"],
                                                     "referrer": rssfeed_data["url"],
